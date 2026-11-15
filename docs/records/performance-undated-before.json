@@ -1,0 +1,79 @@
+{
+  "runtime": "v24.22.1",
+  "browser": "156.0.8078.4",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "results": [
+    {
+      "tool": "json",
+      "rows": 1000,
+      "inputUnits": 52001,
+      "inputToResultMs": 126,
+      "maxFrameGapMs": 50,
+      "frames": 7
+    },
+    {
+      "tool": "sql",
+      "rows": 1000,
+      "inputUnits": 6034,
+      "inputToResultMs": 63,
+      "maxFrameGapMs": 17,
+      "frames": 5
+    },
+    {
+      "tool": "count",
+      "rows": 1000,
+      "inputUnits": 10999,
+      "inputToResultMs": 262,
+      "maxFrameGapMs": 183,
+      "frames": 6
+    },
+    {
+      "tool": "json",
+      "rows": 10000,
+      "inputUnits": 520001,
+      "inputToResultMs": 833,
+      "maxFrameGapMs": 733,
+      "frames": 8
+    },
+    {
+      "tool": "sql",
+      "rows": 10000,
+      "inputUnits": 60034,
+      "inputToResultMs": 128,
+      "maxFrameGapMs": 67,
+      "frames": 5
+    },
+    {
+      "tool": "count",
+      "rows": 10000,
+      "inputUnits": 109999,
+      "inputToResultMs": 512,
+      "maxFrameGapMs": 417,
+      "frames": 7
+    },
+    {
+      "tool": "json",
+      "rows": 100000,
+      "inputUnits": 5200001,
+      "inputToResultMs": 7146,
+      "maxFrameGapMs": 6650,
+      "frames": 26
+    },
+    {
+      "tool": "sql",
+      "rows": 100000,
+      "inputUnits": 600034,
+      "inputToResultMs": 18983,
+      "maxFrameGapMs": 18883,
+      "frames": 7
+    },
+    {
+      "tool": "count",
+      "rows": 100000,
+      "inputUnits": 1099999,
+      "inputToResultMs": 2421,
+      "maxFrameGapMs": 2267,
+      "frames": 10
+    }
+  ]
+}

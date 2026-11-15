@@ -1,0 +1,986 @@
+{
+  "measuredAt": "2026-11-09T05:02:24.030Z",
+  "commit": "4e4613e97d9e9f1acb6f3cf43ed83f9cb07bb3e8",
+  "uncommittedChanges": true,
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "cpuCount": 8,
+  "memoryGiB": 16,
+  "runtime": "v24.22.1",
+  "browser": "156.0.8078.4",
+  "runsPerCase": 3,
+  "results": [
+    {
+      "tool": "json",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 51,
+        "sample": "{\"id\":9007199254740993,\"name\":\"山田\",\"amount\":100.00}",
+        "inputUnits": 52001
+      },
+      "inputToResultMs": {
+        "median": 484,
+        "min": 483,
+        "max": 502
+      },
+      "maxFrameGapMs": {
+        "median": 33,
+        "min": 33,
+        "max": 50
+      },
+      "runs": [
+        {
+          "inputToResultMs": 483,
+          "maxFrameGapMs": 50,
+          "frames": 28
+        },
+        {
+          "inputToResultMs": 484,
+          "maxFrameGapMs": 33,
+          "frames": 29
+        },
+        {
+          "inputToResultMs": 502,
+          "maxFrameGapMs": 33,
+          "frames": 30
+        }
+      ]
+    },
+    {
+      "tool": "csv",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 26,
+        "sample": "9007199254740993,山田,100.00",
+        "inputUnits": 27014
+      },
+      "inputToResultMs": {
+        "median": 513,
+        "min": 498,
+        "max": 554
+      },
+      "maxFrameGapMs": {
+        "median": 50,
+        "min": 33,
+        "max": 50
+      },
+      "runs": [
+        {
+          "inputToResultMs": 498,
+          "maxFrameGapMs": 33,
+          "frames": 30
+        },
+        {
+          "inputToResultMs": 554,
+          "maxFrameGapMs": 50,
+          "frames": 32
+        },
+        {
+          "inputToResultMs": 513,
+          "maxFrameGapMs": 50,
+          "frames": 30
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 10,
+        "sample": "山田ABC123😀",
+        "inputUnits": 10999
+      },
+      "inputToResultMs": {
+        "median": 565,
+        "min": 564,
+        "max": 595
+      },
+      "maxFrameGapMs": {
+        "median": 50,
+        "min": 50,
+        "max": 83
+      },
+      "runs": [
+        {
+          "inputToResultMs": 564,
+          "maxFrameGapMs": 50,
+          "frames": 30
+        },
+        {
+          "inputToResultMs": 595,
+          "maxFrameGapMs": 83,
+          "frames": 30
+        },
+        {
+          "inputToResultMs": 565,
+          "maxFrameGapMs": 50,
+          "frames": 31
+        }
+      ]
+    },
+    {
+      "tool": "diff",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 13,
+        "sample": "山田ABC123😀 の行",
+        "inputUnits": 34978
+      },
+      "inputToResultMs": {
+        "median": 290,
+        "min": 288,
+        "max": 384
+      },
+      "maxFrameGapMs": {
+        "median": 83,
+        "min": 67,
+        "max": 83
+      },
+      "runs": [
+        {
+          "inputToResultMs": 290,
+          "maxFrameGapMs": 67,
+          "frames": 16
+        },
+        {
+          "inputToResultMs": 384,
+          "maxFrameGapMs": 83,
+          "frames": 16
+        },
+        {
+          "inputToResultMs": 288,
+          "maxFrameGapMs": 83,
+          "frames": 15
+        }
+      ]
+    },
+    {
+      "tool": "base64",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 8999
+      },
+      "inputToResultMs": {
+        "median": 353,
+        "min": 313,
+        "max": 436
+      },
+      "maxFrameGapMs": {
+        "median": 17,
+        "min": 17,
+        "max": 17
+      },
+      "runs": [
+        {
+          "inputToResultMs": 353,
+          "maxFrameGapMs": 17,
+          "frames": 22
+        },
+        {
+          "inputToResultMs": 436,
+          "maxFrameGapMs": 17,
+          "frames": 27
+        },
+        {
+          "inputToResultMs": 313,
+          "maxFrameGapMs": 17,
+          "frames": 20
+        }
+      ]
+    },
+    {
+      "tool": "hash",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 8999
+      },
+      "inputToResultMs": {
+        "median": 463,
+        "min": 461,
+        "max": 484
+      },
+      "maxFrameGapMs": {
+        "median": 17,
+        "min": 17,
+        "max": 17
+      },
+      "runs": [
+        {
+          "inputToResultMs": 461,
+          "maxFrameGapMs": 17,
+          "frames": 29
+        },
+        {
+          "inputToResultMs": 484,
+          "maxFrameGapMs": 17,
+          "frames": 31
+        },
+        {
+          "inputToResultMs": 463,
+          "maxFrameGapMs": 17,
+          "frames": 28
+        }
+      ]
+    },
+    {
+      "tool": "jwt",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 25378
+      },
+      "inputToResultMs": {
+        "median": 356,
+        "min": 340,
+        "max": 416
+      },
+      "maxFrameGapMs": {
+        "median": 33,
+        "min": 17,
+        "max": 50
+      },
+      "runs": [
+        {
+          "inputToResultMs": 416,
+          "maxFrameGapMs": 17,
+          "frames": 26
+        },
+        {
+          "inputToResultMs": 356,
+          "maxFrameGapMs": 33,
+          "frames": 21
+        },
+        {
+          "inputToResultMs": 340,
+          "maxFrameGapMs": 50,
+          "frames": 20
+        }
+      ]
+    },
+    {
+      "tool": "cert",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 10,
+        "sample": "証明書（PEM）1枚",
+        "inputUnits": 13539
+      },
+      "inputToResultMs": {
+        "median": 435,
+        "min": 411,
+        "max": 538
+      },
+      "maxFrameGapMs": {
+        "median": 100,
+        "min": 100,
+        "max": 133
+      },
+      "runs": [
+        {
+          "inputToResultMs": 435,
+          "maxFrameGapMs": 100,
+          "frames": 21
+        },
+        {
+          "inputToResultMs": 538,
+          "maxFrameGapMs": 133,
+          "frames": 25
+        },
+        {
+          "inputToResultMs": 411,
+          "maxFrameGapMs": 100,
+          "frames": 19
+        }
+      ]
+    },
+    {
+      "tool": "regex",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 12,
+        "sample": "あいうえおabc 123",
+        "inputUnits": 13002
+      },
+      "inputToResultMs": {
+        "median": 283,
+        "min": 264,
+        "max": 294
+      },
+      "maxFrameGapMs": {
+        "median": 67,
+        "min": 67,
+        "max": 83
+      },
+      "runs": [
+        {
+          "inputToResultMs": 283,
+          "maxFrameGapMs": 67,
+          "frames": 13
+        },
+        {
+          "inputToResultMs": 294,
+          "maxFrameGapMs": 83,
+          "frames": 13
+        },
+        {
+          "inputToResultMs": 264,
+          "maxFrameGapMs": 67,
+          "frames": 13
+        }
+      ]
+    },
+    {
+      "tool": "json",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 51,
+        "sample": "{\"id\":9007199254740993,\"name\":\"山田\",\"amount\":100.00}",
+        "inputUnits": 520001
+      },
+      "inputToResultMs": {
+        "median": 589,
+        "min": 524,
+        "max": 629
+      },
+      "maxFrameGapMs": {
+        "median": 34,
+        "min": 33,
+        "max": 83
+      },
+      "runs": [
+        {
+          "inputToResultMs": 629,
+          "maxFrameGapMs": 33,
+          "frames": 38
+        },
+        {
+          "inputToResultMs": 589,
+          "maxFrameGapMs": 83,
+          "frames": 31
+        },
+        {
+          "inputToResultMs": 524,
+          "maxFrameGapMs": 34,
+          "frames": 30
+        }
+      ]
+    },
+    {
+      "tool": "csv",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 26,
+        "sample": "9007199254740993,山田,100.00",
+        "inputUnits": 270014
+      },
+      "inputToResultMs": {
+        "median": 591,
+        "min": 519,
+        "max": 606
+      },
+      "maxFrameGapMs": {
+        "median": 67,
+        "min": 50,
+        "max": 83
+      },
+      "runs": [
+        {
+          "inputToResultMs": 606,
+          "maxFrameGapMs": 67,
+          "frames": 31
+        },
+        {
+          "inputToResultMs": 591,
+          "maxFrameGapMs": 83,
+          "frames": 30
+        },
+        {
+          "inputToResultMs": 519,
+          "maxFrameGapMs": 50,
+          "frames": 30
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 10,
+        "sample": "山田ABC123😀",
+        "inputUnits": 109999
+      },
+      "inputToResultMs": {
+        "median": 709,
+        "min": 652,
+        "max": 746
+      },
+      "maxFrameGapMs": {
+        "median": 100,
+        "min": 100,
+        "max": 133
+      },
+      "runs": [
+        {
+          "inputToResultMs": 652,
+          "maxFrameGapMs": 100,
+          "frames": 32
+        },
+        {
+          "inputToResultMs": 746,
+          "maxFrameGapMs": 133,
+          "frames": 31
+        },
+        {
+          "inputToResultMs": 709,
+          "maxFrameGapMs": 100,
+          "frames": 33
+        }
+      ]
+    },
+    {
+      "tool": "diff",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 13,
+        "sample": "山田ABC123😀 の行",
+        "inputUnits": 369778
+      },
+      "inputToResultMs": {
+        "median": 396,
+        "min": 389,
+        "max": 401
+      },
+      "maxFrameGapMs": {
+        "median": 100,
+        "min": 100,
+        "max": 100
+      },
+      "runs": [
+        {
+          "inputToResultMs": 401,
+          "maxFrameGapMs": 100,
+          "frames": 16
+        },
+        {
+          "inputToResultMs": 389,
+          "maxFrameGapMs": 100,
+          "frames": 16
+        },
+        {
+          "inputToResultMs": 396,
+          "maxFrameGapMs": 100,
+          "frames": 17
+        }
+      ]
+    },
+    {
+      "tool": "base64",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 89999
+      },
+      "inputToResultMs": {
+        "median": 405,
+        "min": 386,
+        "max": 424
+      },
+      "maxFrameGapMs": {
+        "median": 83,
+        "min": 83,
+        "max": 100
+      },
+      "runs": [
+        {
+          "inputToResultMs": 386,
+          "maxFrameGapMs": 83,
+          "frames": 20
+        },
+        {
+          "inputToResultMs": 424,
+          "maxFrameGapMs": 100,
+          "frames": 22
+        },
+        {
+          "inputToResultMs": 405,
+          "maxFrameGapMs": 83,
+          "frames": 21
+        }
+      ]
+    },
+    {
+      "tool": "hash",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 89999
+      },
+      "inputToResultMs": {
+        "median": 515,
+        "min": 466,
+        "max": 565
+      },
+      "maxFrameGapMs": {
+        "median": 117,
+        "min": 100,
+        "max": 167
+      },
+      "runs": [
+        {
+          "inputToResultMs": 565,
+          "maxFrameGapMs": 100,
+          "frames": 31
+        },
+        {
+          "inputToResultMs": 515,
+          "maxFrameGapMs": 167,
+          "frames": 23
+        },
+        {
+          "inputToResultMs": 466,
+          "maxFrameGapMs": 117,
+          "frames": 23
+        }
+      ]
+    },
+    {
+      "tool": "jwt",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 253378
+      },
+      "inputToResultMs": {
+        "median": 492,
+        "min": 490,
+        "max": 645
+      },
+      "maxFrameGapMs": {
+        "median": 200,
+        "min": 183,
+        "max": 317
+      },
+      "runs": [
+        {
+          "inputToResultMs": 492,
+          "maxFrameGapMs": 183,
+          "frames": 20
+        },
+        {
+          "inputToResultMs": 645,
+          "maxFrameGapMs": 317,
+          "frames": 20
+        },
+        {
+          "inputToResultMs": 490,
+          "maxFrameGapMs": 200,
+          "frames": 19
+        }
+      ]
+    },
+    {
+      "tool": "cert",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 10,
+        "sample": "証明書（PEM）1枚",
+        "inputUnits": 135399
+      },
+      "inputToResultMs": {
+        "median": 702,
+        "min": 591,
+        "max": 713
+      },
+      "maxFrameGapMs": {
+        "median": 233,
+        "min": 217,
+        "max": 317
+      },
+      "runs": [
+        {
+          "inputToResultMs": 702,
+          "maxFrameGapMs": 233,
+          "frames": 27
+        },
+        {
+          "inputToResultMs": 713,
+          "maxFrameGapMs": 317,
+          "frames": 21
+        },
+        {
+          "inputToResultMs": 591,
+          "maxFrameGapMs": 217,
+          "frames": 21
+        }
+      ]
+    },
+    {
+      "tool": "regex",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 12,
+        "sample": "あいうえおabc 123",
+        "inputUnits": 130002
+      },
+      "inputToResultMs": {
+        "median": 261,
+        "min": 255,
+        "max": 358
+      },
+      "maxFrameGapMs": {
+        "median": 183,
+        "min": 167,
+        "max": 283
+      },
+      "runs": [
+        {
+          "inputToResultMs": 255,
+          "maxFrameGapMs": 167,
+          "frames": 6
+        },
+        {
+          "inputToResultMs": 358,
+          "maxFrameGapMs": 283,
+          "frames": 6
+        },
+        {
+          "inputToResultMs": 261,
+          "maxFrameGapMs": 183,
+          "frames": 6
+        }
+      ]
+    },
+    {
+      "tool": "json",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 51,
+        "sample": "{\"id\":9007199254740993,\"name\":\"山田\",\"amount\":100.00}",
+        "inputUnits": 5200001
+      },
+      "inputToResultMs": {
+        "median": 1149,
+        "min": 1140,
+        "max": 1161
+      },
+      "maxFrameGapMs": {
+        "median": 217,
+        "min": 200,
+        "max": 233
+      },
+      "runs": [
+        {
+          "inputToResultMs": 1161,
+          "maxFrameGapMs": 217,
+          "frames": 54
+        },
+        {
+          "inputToResultMs": 1140,
+          "maxFrameGapMs": 233,
+          "frames": 48
+        },
+        {
+          "inputToResultMs": 1149,
+          "maxFrameGapMs": 200,
+          "frames": 52
+        }
+      ]
+    },
+    {
+      "tool": "csv",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 26,
+        "sample": "9007199254740993,山田,100.00",
+        "inputUnits": 2700014
+      },
+      "inputToResultMs": {
+        "median": 1090,
+        "min": 1072,
+        "max": 1108
+      },
+      "maxFrameGapMs": {
+        "median": 183,
+        "min": 167,
+        "max": 183
+      },
+      "runs": [
+        {
+          "inputToResultMs": 1090,
+          "maxFrameGapMs": 167,
+          "frames": 56
+        },
+        {
+          "inputToResultMs": 1108,
+          "maxFrameGapMs": 183,
+          "frames": 52
+        },
+        {
+          "inputToResultMs": 1072,
+          "maxFrameGapMs": 183,
+          "frames": 53
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 10,
+        "sample": "山田ABC123😀",
+        "inputUnits": 1099999
+      },
+      "inputToResultMs": {
+        "median": 1451,
+        "min": 1309,
+        "max": 1561
+      },
+      "maxFrameGapMs": {
+        "median": 183,
+        "min": 167,
+        "max": 183
+      },
+      "runs": [
+        {
+          "inputToResultMs": 1561,
+          "maxFrameGapMs": 167,
+          "frames": 80
+        },
+        {
+          "inputToResultMs": 1309,
+          "maxFrameGapMs": 183,
+          "frames": 65
+        },
+        {
+          "inputToResultMs": 1451,
+          "maxFrameGapMs": 183,
+          "frames": 74
+        }
+      ]
+    },
+    {
+      "tool": "diff",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 13,
+        "sample": "山田ABC123😀 の行",
+        "inputUnits": 3897778
+      },
+      "inputToResultMs": {
+        "median": 1097,
+        "min": 1019,
+        "max": 1530
+      },
+      "maxFrameGapMs": {
+        "median": 267,
+        "min": 217,
+        "max": 333
+      },
+      "runs": [
+        {
+          "inputToResultMs": 1530,
+          "maxFrameGapMs": 333,
+          "frames": 57
+        },
+        {
+          "inputToResultMs": 1097,
+          "maxFrameGapMs": 267,
+          "frames": 43
+        },
+        {
+          "inputToResultMs": 1019,
+          "maxFrameGapMs": 217,
+          "frames": 39
+        }
+      ]
+    },
+    {
+      "tool": "base64",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 899999
+      },
+      "inputToResultMs": {
+        "median": 715,
+        "min": 710,
+        "max": 754
+      },
+      "maxFrameGapMs": {
+        "median": 200,
+        "min": 150,
+        "max": 233
+      },
+      "runs": [
+        {
+          "inputToResultMs": 715,
+          "maxFrameGapMs": 150,
+          "frames": 35
+        },
+        {
+          "inputToResultMs": 754,
+          "maxFrameGapMs": 233,
+          "frames": 33
+        },
+        {
+          "inputToResultMs": 710,
+          "maxFrameGapMs": 200,
+          "frames": 32
+        }
+      ]
+    },
+    {
+      "tool": "hash",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 899999
+      },
+      "inputToResultMs": {
+        "median": 1811,
+        "min": 1785,
+        "max": 2086
+      },
+      "maxFrameGapMs": {
+        "median": 1333,
+        "min": 1300,
+        "max": 1533
+      },
+      "runs": [
+        {
+          "inputToResultMs": 2086,
+          "maxFrameGapMs": 1533,
+          "frames": 26
+        },
+        {
+          "inputToResultMs": 1811,
+          "maxFrameGapMs": 1333,
+          "frames": 25
+        },
+        {
+          "inputToResultMs": 1785,
+          "maxFrameGapMs": 1300,
+          "frames": 26
+        }
+      ]
+    },
+    {
+      "tool": "jwt",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 8,
+        "sample": "あいうえおabc",
+        "inputUnits": 2533378
+      },
+      "inputToResultMs": {
+        "median": 50328,
+        "min": 48605,
+        "max": 50841
+      },
+      "maxFrameGapMs": {
+        "median": 49865,
+        "min": 48181,
+        "max": 50398
+      },
+      "runs": [
+        {
+          "inputToResultMs": 50841,
+          "maxFrameGapMs": 50398,
+          "frames": 26
+        },
+        {
+          "inputToResultMs": 48605,
+          "maxFrameGapMs": 48181,
+          "frames": 26
+        },
+        {
+          "inputToResultMs": 50328,
+          "maxFrameGapMs": 49865,
+          "frames": 30
+        }
+      ]
+    },
+    {
+      "tool": "cert",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 10,
+        "sample": "証明書（PEM）1枚",
+        "inputUnits": 1353999
+      },
+      "inputToResultMs": {
+        "median": 682,
+        "min": 661,
+        "max": 822
+      },
+      "maxFrameGapMs": {
+        "median": 333,
+        "min": 317,
+        "max": 483
+      },
+      "runs": [
+        {
+          "inputToResultMs": 661,
+          "maxFrameGapMs": 333,
+          "frames": 22
+        },
+        {
+          "inputToResultMs": 822,
+          "maxFrameGapMs": 483,
+          "frames": 21
+        },
+        {
+          "inputToResultMs": 682,
+          "maxFrameGapMs": 317,
+          "frames": 24
+        }
+      ]
+    },
+    {
+      "tool": "regex",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 12,
+        "sample": "あいうえおabc 123",
+        "inputUnits": 1300002
+      },
+      "inputToResultMs": {
+        "median": 2179,
+        "min": 2171,
+        "max": 2393
+      },
+      "maxFrameGapMs": {
+        "median": 1967,
+        "min": 1950,
+        "max": 2183
+      },
+      "runs": [
+        {
+          "inputToResultMs": 2393,
+          "maxFrameGapMs": 2183,
+          "frames": 13
+        },
+        {
+          "inputToResultMs": 2171,
+          "maxFrameGapMs": 1967,
+          "frames": 12
+        },
+        {
+          "inputToResultMs": 2179,
+          "maxFrameGapMs": 1950,
+          "frames": 13
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "measuredAt": "2026-11-12T05:18:28.713Z",
+  "commit": "fcad5e2bbe55a484d1e73903327cac96b20598f8",
+  "modifiedFiles": "M SECURITY.md\n M csp.config.ts\n M docs/ARCHITECTURE.md\n M docs/PERFORMANCE.md\n M docs/TESTING.md\n M docs/USAGE.md\n M e2e/cron.spec.ts\n M e2e/jwt.spec.ts\n M e2e/text-count.spec.ts\n M e2e/unix-time.spec.ts\n M src/architecture.test.ts\n M src/docs.test.ts\n M src/lib/date.test.ts\n M src/lib/date.ts\n M src/lib/timezone.ts\n M src/sourceScan.testing.ts\n M src/tools/business-days/RangeTab.tsx\n M src/tools/business-days/logic.test.ts\n M src/tools/business-days/logic.ts\n M src/tools/cron/logic.test.ts\n M src/tools/jwt-decoder/keys.ts\n M src/tools/jwt-decoder/verify.test.ts\n M src/tools/password-generator/logic.test.ts\n M src/tools/password-generator/logic.ts\n M src/tools/text-count/count.ts\n M src/tools/text-count/logic.test.ts\n M src/tools/unix-time/Convert.tsx\n M src/tools/unix-time/epoch.ts\n M src/tools/unix-time/logic.test.ts\n M src/tools/unix-time/logic.ts\n?? docs/records/password-generation-2026-11-12.json\n?? e2e/business-days.spec.ts\n?? scripts/measure-epoch-parsing.mjs\n?? scripts/measure-password-generation.mjs\n?? src/lib/civilTime.test.ts\n?? src/lib/civilTime.ts",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "scope": "Node の単一エポック解析のみ。入力文字列の準備・画面・保存は対象外。HEAD の入口も依存は作業ツリーから読む。",
+  "cases": [
+    {
+      "name": "範囲外の9の繰り返し",
+      "inputLength": 1000,
+      "expectedMillis": null,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            0.015099999999989677,
+            0.009800000000012687,
+            0.008700000000004593
+          ],
+          "medianMs": 0.009800000000012687
+        },
+        "workingTree": {
+          "runsMs": [
+            0.005099999999998772,
+            0.004399999999975535,
+            0.004099999999993997
+          ],
+          "medianMs": 0.004399999999975535
+        }
+      }
+    },
+    {
+      "name": "範囲外の9の繰り返し",
+      "inputLength": 1000000,
+      "expectedMillis": null,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            101.72479999999996,
+            85.65129999999999,
+            75.8091
+          ],
+          "medianMs": 85.65129999999999
+        },
+        "workingTree": {
+          "runsMs": [
+            0.44039999999995416,
+            0.5436999999999443,
+            0.4939999999999145
+          ],
+          "medianMs": 0.4939999999999145
+        }
+      }
+    },
+    {
+      "name": "範囲外の9の繰り返し",
+      "inputLength": 8000000,
+      "expectedMillis": null,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            1010.7585000000001,
+            981.2905999999998,
+            987.5604000000003
+          ],
+          "medianMs": 987.5604000000003
+        },
+        "workingTree": {
+          "runsMs": [
+            2.794499999999971,
+            3.012200000000121,
+            3.2327000000004773
+          ],
+          "medianMs": 3.012200000000121
+        }
+      }
+    },
+    {
+      "name": "先頭の0が長い有効値",
+      "inputLength": 8000001,
+      "expectedMillis": 1000,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            21.25300000000061,
+            20.881800000000112,
+            19.529599999999846
+          ],
+          "medianMs": 20.881800000000112
+        },
+        "workingTree": {
+          "runsMs": [
+            5.462400000000343,
+            5.740899999999783,
+            5.471199999999953
+          ],
+          "medianMs": 5.471199999999953
+        }
+      }
+    },
+    {
+      "name": "小数部が長い有効値",
+      "inputLength": 8000005,
+      "expectedMillis": 1001,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            2.9945999999999913,
+            3.026499999999942,
+            2.8652000000001863
+          ],
+          "medianMs": 2.9945999999999913
+        },
+        "workingTree": {
+          "runsMs": [
+            2.8585000000002765,
+            2.8822000000000116,
+            2.969500000000153
+          ],
+          "medianMs": 2.8822000000000116
+        }
+      }
+    }
+  ]
+}

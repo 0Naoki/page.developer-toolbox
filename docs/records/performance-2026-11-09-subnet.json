@@ -1,0 +1,161 @@
+{
+  "measuredAt": "2026-11-09T11:59:58.848Z",
+  "commit": "3ecf9356b50e7b2322201ace8b88f991af88b53d",
+  "environment": {
+    "os": "win32 10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+    "memoryBytes": 16801914880,
+    "node": "v24.22.1",
+    "chromium": "156.0.8078.4"
+  },
+  "runsPerCase": 3,
+  "rows": 100000,
+  "before": "HEADに計測用マークを追加",
+  "after": "同じコミット上の未コミットの修正（Workerに計測用コードを追加）",
+  "runs": [
+    {
+      "build": "before",
+      "mode": "aggregate",
+      "inputLength": 1211791,
+      "renderedLength": 1511791,
+      "totalMs": 1266.6999999999998,
+      "maxFrameGapMs": 1250,
+      "computeMs": 306.3999999910593,
+      "requestAndStartupMs": null,
+      "responseTransferMs": null,
+      "resultToSecondFrameMs": 900.5000000029802
+    },
+    {
+      "build": "before",
+      "mode": "aggregate",
+      "inputLength": 1211791,
+      "renderedLength": 1511791,
+      "totalMs": 1216.6,
+      "maxFrameGapMs": 1199.8999999999999,
+      "computeMs": 341.3999999910593,
+      "requestAndStartupMs": null,
+      "responseTransferMs": null,
+      "resultToSecondFrameMs": 805.6000000119209
+    },
+    {
+      "build": "before",
+      "mode": "aggregate",
+      "inputLength": 1211791,
+      "renderedLength": 1511791,
+      "totalMs": 1100,
+      "maxFrameGapMs": 1083.3000000000002,
+      "computeMs": 253.30000001192093,
+      "requestAndStartupMs": null,
+      "responseTransferMs": null,
+      "resultToSecondFrameMs": 779.9999999910592
+    },
+    {
+      "build": "before",
+      "mode": "overlap",
+      "inputLength": 1511791,
+      "renderedLength": 23,
+      "totalMs": 333.40000000000003,
+      "maxFrameGapMs": 316.7,
+      "computeMs": 209.5,
+      "requestAndStartupMs": null,
+      "responseTransferMs": null,
+      "resultToSecondFrameMs": 73.30000000894074
+    },
+    {
+      "build": "before",
+      "mode": "overlap",
+      "inputLength": 1511791,
+      "renderedLength": 23,
+      "totalMs": 350,
+      "maxFrameGapMs": 333.4000000000001,
+      "computeMs": 211.6000000089407,
+      "requestAndStartupMs": null,
+      "responseTransferMs": null,
+      "resultToSecondFrameMs": 82.09999999701972
+    },
+    {
+      "build": "before",
+      "mode": "overlap",
+      "inputLength": 1511791,
+      "renderedLength": 23,
+      "totalMs": 333.4,
+      "maxFrameGapMs": 316.70000000000005,
+      "computeMs": 215.5,
+      "requestAndStartupMs": null,
+      "responseTransferMs": null,
+      "resultToSecondFrameMs": 66.29999999105928
+    },
+    {
+      "build": "after",
+      "mode": "aggregate",
+      "inputLength": 1211791,
+      "renderedLength": 50000,
+      "totalMs": 533.4,
+      "maxFrameGapMs": 133.39999999999998,
+      "computeMs": 251.199951171875,
+      "requestAndStartupMs": 8,
+      "responseTransferMs": 1.900146484375,
+      "resultToSecondFrameMs": 29.199902343749955
+    },
+    {
+      "build": "after",
+      "mode": "aggregate",
+      "inputLength": 1211791,
+      "renderedLength": 50000,
+      "totalMs": 533.4,
+      "maxFrameGapMs": 100,
+      "computeMs": 276.89990234375,
+      "requestAndStartupMs": 8.2001953125,
+      "responseTransferMs": 1.699951171875,
+      "resultToSecondFrameMs": 23.499951171874955
+    },
+    {
+      "build": "after",
+      "mode": "aggregate",
+      "inputLength": 1211791,
+      "renderedLength": 50000,
+      "totalMs": 533.3,
+      "maxFrameGapMs": 116.60000000000002,
+      "computeMs": 254.800048828125,
+      "requestAndStartupMs": 8.599853515625,
+      "responseTransferMs": 1.5,
+      "resultToSecondFrameMs": 32.299999999999955
+    },
+    {
+      "build": "after",
+      "mode": "overlap",
+      "inputLength": 1511791,
+      "renderedLength": 23,
+      "totalMs": 450,
+      "maxFrameGapMs": 100,
+      "computeMs": 196.10009765625,
+      "requestAndStartupMs": 6.800048828125,
+      "responseTransferMs": 0.5,
+      "resultToSecondFrameMs": 22.39990234375
+    },
+    {
+      "build": "after",
+      "mode": "overlap",
+      "inputLength": 1511791,
+      "renderedLength": 23,
+      "totalMs": 450,
+      "maxFrameGapMs": 100,
+      "computeMs": 200.699951171875,
+      "requestAndStartupMs": 9.500244140625,
+      "responseTransferMs": 0.2998046875,
+      "resultToSecondFrameMs": 16.200048828124977
+    },
+    {
+      "build": "after",
+      "mode": "overlap",
+      "inputLength": 1511791,
+      "renderedLength": 23,
+      "totalMs": 483.4,
+      "maxFrameGapMs": 100,
+      "computeMs": 223.10009765625,
+      "requestAndStartupMs": 7.89990234375,
+      "responseTransferMs": 0.199951171875,
+      "resultToSecondFrameMs": 24.499951171874955
+    }
+  ]
+}

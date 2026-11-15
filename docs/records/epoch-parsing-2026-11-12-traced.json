@@ -1,0 +1,160 @@
+{
+  "scope": "Node の単一エポック解析のみ。入力文字列の準備・画面・保存は対象外。HEAD の入口も依存は作業ツリーから読む。",
+  "cases": [
+    {
+      "name": "範囲外の9の繰り返し",
+      "inputLength": 1000,
+      "expectedMillis": null,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            0.02539999999999054,
+            0.02179999999998472,
+            0.019600000000025375
+          ],
+          "medianMs": 0.02179999999998472
+        },
+        "workingTree": {
+          "runsMs": [
+            0.013199999999983447,
+            0.01310000000000855,
+            0.009900000000016007
+          ],
+          "medianMs": 0.01310000000000855
+        }
+      }
+    },
+    {
+      "name": "範囲外の9の繰り返し",
+      "inputLength": 1000000,
+      "expectedMillis": null,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            95.80959999999999,
+            100.48640000000006,
+            107.11700000000008
+          ],
+          "medianMs": 100.48640000000006
+        },
+        "workingTree": {
+          "runsMs": [
+            0.8326000000000704,
+            0.8167999999999438,
+            0.7590000000000146
+          ],
+          "medianMs": 0.8167999999999438
+        }
+      }
+    },
+    {
+      "name": "範囲外の9の繰り返し",
+      "inputLength": 8000000,
+      "expectedMillis": null,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            989.7806000000003,
+            990.6350000000002,
+            1007.5155
+          ],
+          "medianMs": 990.6350000000002
+        },
+        "workingTree": {
+          "runsMs": [
+            3.459600000000137,
+            2.9124999999994543,
+            2.8629999999993743
+          ],
+          "medianMs": 2.9124999999994543
+        }
+      }
+    },
+    {
+      "name": "先頭の0が長い有効値",
+      "inputLength": 8000001,
+      "expectedMillis": 1000,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            19.74210000000039,
+            18.75630000000001,
+            19.250099999999293
+          ],
+          "medianMs": 19.250099999999293
+        },
+        "workingTree": {
+          "runsMs": [
+            5.559400000000096,
+            5.819999999999709,
+            5.578000000000429
+          ],
+          "medianMs": 5.578000000000429
+        }
+      }
+    },
+    {
+      "name": "小数部が長い有効値",
+      "inputLength": 8000005,
+      "expectedMillis": 1001,
+      "timings": {
+        "HEAD": {
+          "runsMs": [
+            3.42029999999977,
+            3.112799999999879,
+            2.832800000000134
+          ],
+          "medianMs": 3.112799999999879
+        },
+        "workingTree": {
+          "runsMs": [
+            2.987600000000384,
+            3.110000000000582,
+            3.1753000000007887
+          ],
+          "medianMs": 3.110000000000582
+        }
+      }
+    }
+  ],
+  "startedAt": "2026-11-12T06:03:55.485Z",
+  "measuredAt": "2026-11-12T06:04:00.344Z",
+  "commit": "fcad5e2bbe55a484d1e73903327cac96b20598f8",
+  "modifiedFiles": "M SECURITY.md\n M csp.config.ts\n M docs/ARCHITECTURE.md\n M docs/PERFORMANCE.md\n M docs/TESTING.md\n M docs/USAGE.md\n M e2e/cron.spec.ts\n M e2e/jwt.spec.ts\n M e2e/subnet.spec.ts\n M e2e/text-count.spec.ts\n M e2e/unix-time.spec.ts\n M src/architecture.test.ts\n M src/components/CopyButton.tsx\n M src/docs.test.ts\n M src/lib/date.test.ts\n M src/lib/date.ts\n M src/lib/timezone.ts\n M src/sourceScan.testing.ts\n M src/tools/business-days/RangeTab.tsx\n M src/tools/business-days/logic.test.ts\n M src/tools/business-days/logic.ts\n M src/tools/cron/logic.test.ts\n M src/tools/jwt-decoder/keys.ts\n M src/tools/jwt-decoder/verify.test.ts\n M src/tools/password-generator/logic.test.ts\n M src/tools/password-generator/logic.ts\n M src/tools/subnet/ipv6.test.ts\n M src/tools/subnet/ipv6.ts\n M src/tools/subnet/logic.ts\n M src/tools/text-count/count.ts\n M src/tools/text-count/logic.test.ts\n M src/tools/unix-time/Convert.tsx\n M src/tools/unix-time/epoch.ts\n M src/tools/unix-time/logic.test.ts\n M src/tools/unix-time/logic.ts\n?? docs/records/epoch-parsing-2026-11-12-traced.json\n?? docs/records/epoch-parsing-2026-11-12.json\n?? docs/records/password-generation-2026-11-12-traced.json\n?? docs/records/password-generation-2026-11-12.json\n?? e2e/business-days.spec.ts\n?? e2e/copy.spec.ts\n?? scripts/benchmark.mjs\n?? scripts/measure-epoch-parsing.mjs\n?? scripts/measure-password-generation.mjs\n?? src/lib/civilTime.test.ts\n?? src/lib/civilTime.ts\n?? src/tools/subnet/cloudPolicy.test.ts\n?? src/tools/subnet/cloudPolicy.ts",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "provenance": {
+    "HEAD": {
+      "entry": "src/tools/unix-time/epoch.ts",
+      "files": {
+        "src/lib/civilTime.ts": "9b079a4a5f0bb1fa78b57e5690eda1c6690c62d523a49cef8368bd7ff0b270a1",
+        "src/lib/date.ts": "745d3c6224f671c3ce8d9158acde4e98afdf707184bd7884741c1922eb27e473",
+        "src/lib/timezone.ts": "42747f4ee65170befe67b03b13ce6b641ec23afed4a6198f6963c8ed6313a37c",
+        "src/tools/unix-time/epoch.ts": "76838086ae570625e657cfc3fd0e459188af861b1ef9d34889753dcd92ce7c8e"
+      },
+      "bundleSha256": "8081f31e494daedd33870f200a18f79d04834ee2d7bf3d697bad939ab83ee730"
+    },
+    "workingTree": {
+      "entry": "src/tools/unix-time/epoch.ts",
+      "files": {
+        "src/lib/civilTime.ts": "9b079a4a5f0bb1fa78b57e5690eda1c6690c62d523a49cef8368bd7ff0b270a1",
+        "src/lib/date.ts": "745d3c6224f671c3ce8d9158acde4e98afdf707184bd7884741c1922eb27e473",
+        "src/lib/timezone.ts": "42747f4ee65170befe67b03b13ce6b641ec23afed4a6198f6963c8ed6313a37c",
+        "src/tools/unix-time/epoch.ts": "1bba3bd716241718f5e6b06e2e94a0b4b88813e72ca25bc1ee9117e62fc6484c"
+      },
+      "bundleSha256": "289cc57595cf3d6e9488cdc7c25bf29d18d175ceb7d876ad2b5184f1f6f1abce"
+    }
+  },
+  "snapshotFiles": {
+    "package-lock.json": "c51d7ec3e01255d4aad87246e71a22596a62a07ecce26a06e50497a78585592a",
+    "scripts/benchmark.mjs": "aebf1a74e58d503d037a245efa7c0b577b3f91471fb050414d9674b02ebd5d43",
+    "scripts/measure-epoch-parsing.mjs": "d36cc0ecac17dd132bf54857d8fab599ac5366f56af3ca43f3f26b3a708884ac",
+    "src/lib/timezone.ts": "42747f4ee65170befe67b03b13ce6b641ec23afed4a6198f6963c8ed6313a37c",
+    "src/lib/civilTime.ts": "9b079a4a5f0bb1fa78b57e5690eda1c6690c62d523a49cef8368bd7ff0b270a1",
+    "src/lib/date.ts": "745d3c6224f671c3ce8d9158acde4e98afdf707184bd7884741c1922eb27e473",
+    "src/tools/unix-time/epoch.ts": "1bba3bd716241718f5e6b06e2e94a0b4b88813e72ca25bc1ee9117e62fc6484c"
+  },
+  "dependencySource": "両版とも作業ツリーの同じスナップショットを使用。HEAD は入口だけを開始時のコミットから読む。"
+}
