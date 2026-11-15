@@ -1,0 +1,217 @@
+############################################################
+# 依存・ビルド成果物（Node.js / Vite / TypeScript）
+############################################################
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+
+############################################################
+# テスト結果（Vitest / Playwright）
+############################################################
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+/.vitest/
+
+############################################################
+# ログ
+############################################################
+*.log
+npm-debug.log*
+
+############################################################
+# 環境変数
+############################################################
+# VITE_ 付きの値はビルド成果物に埋め込まれる。秘密情報は置かない（SECURITY.md）
+.env
+.env.*
+!.env.example
+
+############################################################
+# 秘密情報・認証情報・個人のデータ（公開リポジトリに絶対に含めない。CONTRIBUTING.md）
+############################################################
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.jks
+*.keystore
+*.kdbx
+*.ppk
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+credentials*.json
+service-account*.json
+*.secret
+*.secrets
+.netrc
+*.local
+# 通信内容・Cookie を含みうる記録（Playwright のトレースなど）
+*.har
+trace.zip
+# 個人のメモ
+*.local.md
+/.private/
+
+############################################################
+# AI エージェント（Claude Code・Codex）の手元専用の設定
+############################################################
+# プレビュー用の launch.json、個人の settings.local.json、作業メモなど
+# AI エージェントへの決まりは CONTRIBUTING.md の「AI エージェントに作業させるとき」に書き、ツールの設定は共有しない
+.claude/
+.codex/
+
+############################################################
+# エディタ
+############################################################
+.vscode/*
+!.vscode/extensions.json
+*.code-workspace
+.history/
+*.vsix
+.idea/
+*.swp
+
+############################################################
+# macOS
+############################################################
+.DS_Store
+.localized
+__MACOSX/
+.AppleDouble
+.LSOverride
+._*
+
+# ボリュームの直下に作られるファイル
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.com.apple.timemachine.supported
+.PKInstallSandboxManager
+.PKInstallSandboxManager-SystemSoftware
+.hotfiles.btree
+.vol
+.file
+.disk_label*
+lost+found
+.HFS+ Private Directory Data?
+
+# AFP の共有に作られるもの
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Mac OS 6〜9
+Desktop DB
+Desktop DF
+TheFindByContentFolder
+TheVolumeSettingsFolder
+.FBCIndex
+.FBCSemaphoreFile
+.FBCLockFolder
+
+# クォータ
+.quota.group
+.quota.user
+.quota.ops.group
+.quota.ops.user
+
+# Time Machine
+Backups.backupdb
+.MobileBackups
+.MobileBackups.trash
+MobileBackups.trash
+tmbootpicker.efi
+
+############################################################
+# Windows
+############################################################
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+############################################################
+# Linux
+############################################################
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+nohup.out
+
+############################################################
+# Microsoft Office の一時ファイル・バックアップ
+############################################################
+*.tmp
+~$*.doc*
+~$*.dot*
+Backup of *.doc*
+~$*.xls*
+*.xlk
+~$*.ppt*
+*.~vsd*
+
+############################################################
+# アーカイブ・パッケージ
+############################################################
+# 中身を展開して元のファイルをコミットする（Git は自前で圧縮するため）
+*.7z
+*.jar
+*.rar
+*.zip
+*.gz
+*.gzip
+*.tgz
+*.bzip
+*.bzip2
+*.bz2
+*.xz
+*.lzma
+*.xar
+*.iso
+*.tar
+*.dmg
+*.xpi
+*.gem
+*.egg
+*.deb
+*.rpm
+*.txz
+
+############################################################
+# バックアップ
+############################################################
+*.bak
+*.gho
+*.ori
+*.orig
+
+############################################################
+# ほかのバージョン管理・Git のツール
+############################################################
+.svn/
+/.tgitconfig

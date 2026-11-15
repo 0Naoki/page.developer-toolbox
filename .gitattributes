@@ -1,0 +1,33 @@
+# 改行は LF にそろえる（Windows で取り出しても CRLF にしない）。
+# 拡張子のないファイル（LICENSE など）も、テキストと判定できれば LF にする。
+* text=auto eol=lf
+
+# このリポジトリで使っているテキストのファイル
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.mjs     text eol=lf
+*.js      text eol=lf
+*.json    text eol=lf
+*.css     text eol=lf diff=css
+*.html    text eol=lf diff=html
+*.md      text eol=lf diff=markdown
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.svg     text eol=lf
+
+# Windows PowerShell 用のスクリプトは CRLF にする（start.ps1。BOM 付きで保存することは src/startScript.test.ts で検査）
+*.ps1     text eol=crlf
+
+# 画像・フォントは改行を変換せず、差分も出さない
+*.png     binary
+*.ico     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.webp    binary
+*.woff    binary
+*.woff2   binary
+
+# アーカイブ（git archive）に含めない
+.gitattributes  export-ignore
+.gitignore      export-ignore

@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows PowerShell 5.1 は BOM のない UTF-8 を ANSI として読み、日本語の文字列で構文エラーになる（.gitattributes の eol と同じ）
+[*.ps1]
+charset = utf-8-bom
+end_of_line = crlf
