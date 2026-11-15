@@ -1,0 +1,10 @@
+# テンプレートを使わない空の Issue を禁止し、脆弱性は非公開の窓口へ誘導する
+#
+# 報告のリンクは、公開先の page.developer-toolbox リポジトリで Settings → Advanced Security（または Code security）の
+# 「Private vulnerability reporting」を有効にするまで開けない（docs/PUBLISHING.md の 5）。
+# 公開先を変えるときは、URL のアカウント名とリポジトリ名も直す（docs/PUBLISHING.md の 2）。
+blank_issues_enabled: false
+contact_links:
+  - name: 脆弱性の報告（非公開）
+    url: https://github.com/0Naoki/page.developer-toolbox/security/advisories/new
+    about: セキュリティ上の問題は公開の Issue に書かず、こちらから非公開で報告してください（SECURITY.md）。

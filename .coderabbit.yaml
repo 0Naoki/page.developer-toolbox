@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit（プルリクエストのたびの AI レビュー）の設定
+#
+# 手順と方針は docs/AI_REVIEW.md の「3. プルリクエストのたびのレビュー（CodeRabbit）」にある。
+# 公開リポジトリ向けの無料プラン（Open source）で使う。private リポジトリでは有料になるため、公開してからインストールする。
+#
+# 方針
+# - レビューの観点は AGENTS.md の「Code Review Rules」に従う（CodeRabbit は AGENTS.md を自動で読む）
+# - CodeRabbit はコメントだけを書く。コードのコミット・ブランチの作成・承認（approve）をする機能はすべて切る
+#   （外部の人の PR でも、AI がこのリポジトリにコードを書き込まないようにするため）
+# - 既定値と同じでも、上の方針に関わる項目は明示する（既定値が変わっても方針が変わらないように）
+
+language: ja-JP
+early_access: false
+
+reviews:
+  profile: chill
+
+  # 承認・変更の要求をしない（マージの判断はメンテナーが行う）
+  # allow_author_approval は既定で true で、PR の作成者が `@coderabbitai approve` で自分の PR を承認させられる。
+  # 外部の人が CodeRabbit の名義で承認を得られないよう、enabled とは別に切る
+  auto_approvals:
+    enabled: false
+    allow_author_approval: false
+  fail_commit_status: false
+
+  # ラベル・レビュアーを勝手に付けない。レビューに関係のない出力は切る
+  auto_apply_labels: false
+  auto_assign_reviewers: false
+  suggested_reviewers: false
+  poem: false
+  in_progress_fortune: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+
+  # 生成物・計測の記録はレビューしない
+  path_filters:
+    - '!package-lock.json'
+    - '!docs/records/**/*.json'
+
+  # コードを書き込む機能（コミット・修正の適用・PR の作成）をすべて切る
+  finishing_touches:
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+    simplify:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+
+chat:
+  art: false

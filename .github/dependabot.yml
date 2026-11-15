@@ -1,0 +1,95 @@
+# 配置場所: .github/dependabot.yml
+# リファレンス: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+#
+# 依存パッケージと GitHub Actions の更新を、自動でプルリクエストにする。
+# 更新は CI（型チェック・テスト・E2E。.github/workflows/ci.yml）が通ってからマージする。
+#
+# ■ cooldown（待機期間）
+# 公開直後に不具合が見つかったリリースや、乗っ取られた悪意あるリリースを取り込むリスクを下げるための待機期間。
+# - バージョン更新（version updates）にのみ適用される。
+# - セキュリティ更新（security updates）には適用されず、PR は即時作成される。
+# - semver-major-days: メジャー更新（破壊的変更を含みうる）の待機期間。
+# - semver-minor-days: マイナー更新（後方互換のある機能追加）の待機期間。
+# - semver-patch-days: パッチ更新（後方互換のあるバグ修正）の待機期間。
+# - default-days     : semver-*-days が無い更新すべてに適用される待機期間。
+#                      semver-*-days は SemVer に対応したパッケージマネージャーでのみ有効。
+#
+# ■ groups
+# - グループは上から順に判定され、最初に当てはまったグループに入る。
+# - update-types を書かないグループは、メジャー更新も含めてまとめる（一緒に上げないと壊れる組に使う）。
+# - minor/patch はまとめて 1 つの PR にし、PR の数を抑える。
+# - どのグループにも入らないメジャー更新は、依存ごとに個別の PR になる（意図どおり）。
+# - グループ名はブランチ名と PR タイトルに使われるため、エコシステムが分かる名前にする。
+#
+# ■ open-pull-requests-limit
+# - 同時に開いておけるバージョン更新 PR の上限（既定 5）。セキュリティ更新は別枠。
+#
+# ■ commit-message
+# - CONTRIBUTING.md の「コミットとプルリクエスト」の種類にそろえる（依存関係の変更は build:、GitHub Actions は ci:）。
+# - include: scope で、npm は "build(deps): ..."（開発用の依存は "build(deps-dev): ..."）、Actions は "ci(deps): ..." になる。
+# - 指定しないと、Dependabot が直近の履歴から種類を推測し、更新ごとに揺れる（build と chore が混ざった）ため、明示する。
+# - 先頭の種類とスコープだけを決められる。後ろの本文（"bump X from a to b" など。英語）は変えられない。
+#
+# ■ schedule.time
+# - 必ずクォートする（09:00 を YAML 1.1 のパーサーが 60 進数として解釈する事故を防ぐ）。
+
+version: 2
+updates:
+  # npm（package.json / package-lock.json）
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 7
+      semver-major-days: 28   # 破壊的変更を含みうるため、周辺の対応が出そろうまで長めに待つ
+      semver-minor-days: 14
+      semver-patch-days: 7
+    open-pull-requests-limit: 5
+    # package.json の範囲指定（^ や ~）も新しいバージョンに引き上げる。
+    # アプリなので、lock だけでなく package.json でも下限を上げて、実際に使う版を明示する。
+    versioning-strategy: increase
+    commit-message:
+      prefix: build
+      prefix-development: build
+      include: scope
+    groups:
+      # React 本体と型定義は、メジャー更新も含めて同じ PR で上げる（型だけ先行すると型チェックが壊れる）
+      npm-react:
+        patterns:
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
+      # Vite・プラグイン・Vitest・Rolldown は互いの対応バージョンに依存するため、メジャーも含めて一緒に上げる
+      npm-build-tools:
+        patterns:
+          - vite
+          - '@vitejs/plugin-react'
+          - vitest
+          - rolldown
+      # 上のどちらにも入らない依存の minor/patch をまとめる（typescript・@playwright/test・react-router-dom など）
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  # GitHub Actions（.github/workflows/ を対象。SHA 固定の Action も、SHA と末尾のバージョンのコメントを更新する）
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      # minor/patch はまとめる。メジャー（例：actions/checkout v7 → v8）は入力や既定値が変わりうるため個別 PR にする
+      actions-minor-patch:
+        update-types: [minor, patch]

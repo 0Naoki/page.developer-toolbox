@@ -1,0 +1,78 @@
+name: 不具合の報告
+description: ツールの計算結果の誤り、画面の表示崩れ、エラーなど
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        報告ありがとうございます。
+        **トークン・パスワード・業務データなど、実在する秘密情報は貼り付けないでください。** 再現には、置き換えたダミーの値を使ってください。
+        セキュリティ上の問題は、この Issue ではなく非公開の窓口（SECURITY.md）から報告してください。
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: ツール
+      options:
+        - JSON整形
+        - CSV ⇔ JSON
+        - Base64 / URLエンコード
+        - 進数変換・ビット演算
+        - 正規表現テスター
+        - テキスト差分
+        - 文字数・バイト数
+        - UNIX時間変換
+        - cron式の解説
+        - 和暦 ⇔ 西暦
+        - 営業日計算
+        - IPアドレス・サブネット計算
+        - パスワード生成
+        - UUID / ULID
+        - ハッシュ生成
+        - JWTデコーダー
+        - 証明書デコーダー
+        - 全体（サイドバー・検索・保存設定など）
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 入力した値（ダミー）と、押したボタンや選んだ設定を順に書いてください。
+      placeholder: |
+        1. 「生年月日」に 1850-01-01 を入力する
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する結果
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の結果
+      description: エラーメッセージや、開発者ツール（F12）の Console に出たエラーがあれば貼ってください。
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: ブラウザと OS
+      placeholder: 例：Chrome 141 / Windows 11、Safari / iOS 26
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 確認
+      options:
+        - label: 実在する秘密情報（トークン・パスワード・個人情報・業務データ）を含めていません
+          required: true

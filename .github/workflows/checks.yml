@@ -1,0 +1,74 @@
+# CI と公開で共通の検査（再利用するワークフロー）
+#
+# CI（ci.yml）と公開（deploy.yml）の両方から呼び、検査の内容がずれないようにする。
+# 公開のときは、E2E まで通ったのと同じ dist を Pages の成果物として保存する（検査していないビルドを公開しない）。
+#
+# セキュリティ方針
+# - 使用する Action はタグではなくコミットSHAで固定（タグの付け替えによるすり替えを防ぐ）。更新は Dependabot が行う
+# - 権限は既定ですべて無効にし、ジョブには読み取りだけを付与する（呼び出し側の権限を超えられない）
+# - checkout で認証情報を残さない（persist-credentials: false）
+name: Checks
+
+on:
+  workflow_call:
+    inputs:
+      upload-pages:
+        description: 検査に通った dist を GitHub Pages の成果物として保存する
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # E2E を3種類のブラウザ・5つの環境で実行するため、Chromium だけのときより長めにする
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # package-lock.json どおりに入れる（lock が無い・食い違う場合は失敗する）。
+      # 依存のインストールスクリプトは実行しない。次の署名の検証より前に、改ざんされたパッケージのコードを動かさないため。
+      # いまの依存でスクリプトを持つのは fsevents（macOS 専用の任意の依存で、Linux には入らない）だけで、ビルド・テストに要らない。
+      # スクリプトが必要な依存を足したときは、署名の検証の後に npm rebuild <パッケージ名> を足す
+      - run: npm ci --ignore-scripts
+
+      # npm レジストリの署名を検証し、改ざんされたパッケージを入れていないか確認する
+      # （手元では npm run audit で同じ2つを実行する。オプションは package.json の scripts だけに書く）
+      - run: npm run audit:signatures
+
+      # 公開物に含まれる依存（react など）に重大な既知の脆弱性がないか
+      - run: npm run audit:deps
+
+      # 型チェック → 単体テスト → 本番ビルド（CSP 付き）
+      - run: npm run check
+
+      # 本番ビルドを Chromium・Firefox・WebKit で開き、全画面の表示・CSP違反・外部通信がないことを確認する
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - id: e2e
+        run: npm run e2e:run -- --workers=2
+
+      # E2E が失敗したときだけ、HTML のレポート（再実行のトレース・スクリーンショットを含む）を保存する。
+      # ジョブが終わるとランナーのファイルは消え、CI でだけ起きる失敗を調べられないため。
+      # 中身はテスト用の入力だけで、秘密情報は含まない。取り出し方は docs/TESTING.md の「E2E の書き方」
+      - if: ${{ failure() && steps.e2e.outcome == 'failure' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - if: ${{ inputs.upload-pages }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist

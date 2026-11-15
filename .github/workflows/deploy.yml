@@ -1,0 +1,52 @@
+# main への push で GitHub Pages に公開する
+#
+# 公開の前に、CI と同じ検査（checks.yml。型チェック・単体テスト・E2E など）を公開するコミットで実行し、
+# 通ったときだけ、その検査で使った dist を公開する（main への直接の push でも E2E を省かない）。
+#
+# GitHub Free の private リポジトリでは Pages を使えず、公開の処理が必ず失敗するため、
+# 公開リポジトリのときだけ実行する（private の間はスキップされ、Actions の無料枠も使わない）。
+#
+# セキュリティ方針
+# - 使用する Action はタグではなくコミットSHAで固定（タグの付け替えによるすり替えを防ぐ）。更新は Dependabot が行う
+# - 権限は既定ですべて無効にし、必要なジョブにだけ最小限を付与する
+# - checkout で認証情報を残さない（persist-credentials: false）
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# 公開処理は途中で中断しない（GitHub の推奨）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    # push・workflow_dispatch のどちらのイベントにも repository.private が含まれる。
+    # deploy は check の完了を待つので、check がスキップされれば deploy もスキップされる。
+    # 手動実行（workflow_dispatch）では別のブランチも選べるため、main 以外からは公開しない
+    # （GitHub の環境の設定に加えて、リポジトリの中でも公開元を main に限る）
+    if: ${{ !github.event.repository.private && github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/checks.yml
+    with:
+      upload-pages: true
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
