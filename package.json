@@ -1,0 +1,41 @@
+{
+  "name": "dev-toolbox",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "preview:pages": "vite build && npm run serve:pages",
+    "serve:pages": "vite preview --config pages-preview.config.ts",
+    "check": "npm run typecheck && npm test && vite build",
+    "e2e:install": "playwright install chromium firefox webkit",
+    "e2e": "vite build && playwright test",
+    "e2e:run": "playwright test",
+    "audit": "npm run audit:signatures && npm run audit:deps",
+    "audit:signatures": "npm audit signatures",
+    "audit:deps": "npm audit --omit=dev --audit-level=high"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "rolldown": "~1.2.16",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.0.5"
+  }
+}
