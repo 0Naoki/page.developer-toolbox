@@ -1,0 +1,57 @@
+/*
+  CSS の入口。各ファイルを cascade layers の層（layer(...)）に入れて読み込む。
+  後の層の規則は、詳細度に関係なく前の層の規則より優先される。同じ層の中では、詳細度と読み込み順で決まる。
+  新しいファイルは、該当する番号の見出しの下に、その層の名前を付けて置く。
+  コントラストの検査（src/styles.contrast.test.ts）も、この順で読む。
+  読み込み忘れ・二重の読み込み・層の名前と順は、src/styles.classes.test.ts で確かめる。
+*/
+
+/* 層の優先順（後ほど優先）。下の番号付きの見出しと同じ順にする */
+@layer theme, base, parts, app, tools, stack;
+
+/* 1. 色・大きさの変数（ライト・ダークのテーマ） */
+@import './styles/theme.css' layer(theme);
+@import './styles/theme-status.css' layer(theme);
+
+/* 2. 要素の基本 */
+@import './styles/base.css' layer(base);
+
+/* 3. ツールをまたいで使う部品（部品ごとのファイル。名前は src/components/ の部品に合わせる） */
+@import './styles/text.css' layer(parts);
+@import './styles/forms.css' layer(parts);
+@import './styles/segmented.css' layer(parts);
+@import './styles/pane.css' layer(parts);
+@import './styles/code.css' layer(parts);
+@import './styles/error-message.css' layer(parts);
+@import './styles/notice.css' layer(parts);
+@import './styles/badge.css' layer(parts);
+@import './styles/kv.css' layer(parts);
+@import './styles/command-palette.css' layer(parts);
+@import './styles/panels.css' layer(parts);
+@import './styles/check.css' layer(parts);
+@import './styles/stat.css' layer(parts);
+@import './styles/data-display.css' layer(parts);
+@import './styles/file-drop.css' layer(parts);
+
+/* 4. アプリの枠組み（サイドバー・本文・ツールの見出し）とトップページ */
+@import './styles/layout.css' layer(app);
+@import './styles/home.css' layer(app);
+
+/* 5. ツール別（そのツールだけが使うクラス。ファイル名はツールのフォルダ名と同じ） */
+@import './styles/csv-json.css' layer(tools);
+@import './styles/base64.css' layer(tools);
+@import './styles/radix.css' layer(tools);
+@import './styles/regex.css' layer(tools);
+@import './styles/text-diff.css' layer(tools);
+@import './styles/text-count.css' layer(tools);
+@import './styles/unix-time.css' layer(tools);
+@import './styles/wareki.css' layer(tools);
+@import './styles/business-days.css' layer(tools);
+@import './styles/subnet.css' layer(tools);
+@import './styles/password-generator.css' layer(tools);
+@import './styles/uuid.css' layer(tools);
+@import './styles/hash.css' layer(tools);
+@import './styles/cert.css' layer(tools);
+
+/* 6. 縦の並びの余白（親が決める。最後の層なので、部品の側に書いた上下のマージンより優先される） */
+@import './styles/stack.css' layer(stack);

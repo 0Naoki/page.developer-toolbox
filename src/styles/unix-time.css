@@ -1,0 +1,26 @@
+/* ---- UNIX時間変換 ---- */
+/* タイムゾーン名（America/Los_Angeles など）は長いため、見出しの列を折り返す */
+.kv-wrap th {
+  width: 10em;
+  white-space: normal;
+}
+
+.zone-add {
+  max-width: 420px;
+}
+
+.big {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.now-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

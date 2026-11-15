@@ -1,0 +1,35 @@
+/* ---- 証明書デコーダー ---- */
+.cert-table th {
+  width: 9.5em;
+}
+
+.san-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ext-oid {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.chain-list {
+  margin: 0;
+  padding-left: 1.4em;
+  line-height: 1.9;
+}
+
+.chain-ok {
+  color: var(--muted);
+}
+
+.chain-ng {
+  color: var(--bad);
+}
+
+.cert-help summary,
+.cert-card summary {
+  cursor: pointer;
+  color: var(--accent);
+}

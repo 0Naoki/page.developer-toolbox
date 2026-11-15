@@ -1,0 +1,8 @@
+/* ---- Base64 / URLエンコード ---- */
+/* 16進ダンプ（Base64）：列がずれないよう折り返さず、横にスクロールする */
+.hexdump {
+  max-height: 480px;
+  font-size: 12px;
+  white-space: pre;
+  word-break: normal;
+}

@@ -1,0 +1,80 @@
+import { useMemo } from 'react';
+import { useInput } from '../../hooks/useInput';
+import { usePreference } from '../../hooks/usePreference';
+import { integerBetween } from '../../lib/settings';
+import { WEEKDAYS_JA, dayOfWeek, type Ymd } from '../../lib/time/date';
+import { nthBusinessDayOfMonth, yearSummary, type Calendar } from './logic';
+import { attempt } from '../../lib/errors';
+import { ErrorText } from '../../components/ErrorMessage';
+
+export function MonthTab({ cal, today }: { cal: Calendar; today: Ymd }) {
+  const minYear = today.y - 10;
+  const maxYear = today.y + 10;
+  const isYear = integerBetween(minYear, maxYear);
+  const [savedYear, setYear] = usePreference('bizdays:year', today.y, isYear);
+  const year = isYear(savedYear) ? savedYear : today.y;
+  const [nthText, setNthText] = useInput('bizdays:nth', '5');
+  const nth = /^\d+$/.test(nthText) && Number(nthText) > 0 ? Number(nthText) : null;
+
+  const r = useMemo(
+    () =>
+      attempt(() => ({
+        months: yearSummary(year, cal).map((s) => ({ ...s, nth: nth === null ? null : nthBusinessDayOfMonth(year, s.month, nth, cal) })),
+      })),
+    [year, cal, nth],
+  );
+
+  const short = (d: Ymd | null) => (d ? `${d.m}/${d.d}（${WEEKDAYS_JA[dayOfWeek(d)]}）` : '—');
+
+  return (
+    <>
+      <div className="toolbar">
+        <label>
+          年
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i).map((y) => (
+              <option key={y} value={y}>
+                {y}年
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          第
+          <input className="input input-num mono" inputMode="numeric" value={nthText} onChange={(e) => setNthText(e.target.value.replace(/[^\d]/g, ''))} />
+          営業日も表示
+        </label>
+      </div>
+      {!r.ok && <ErrorText message={r.error} />}
+      {r.ok && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>月</th>
+              <th className="right">営業日数</th>
+              <th>第1営業日</th>
+              {nth !== null && <th>第{nth}営業日</th>}
+              <th>最終営業日</th>
+            </tr>
+          </thead>
+          <tbody>
+            {r.months.map((m) => (
+              <tr key={m.month} className={year === today.y && m.month === today.m ? 'current' : undefined}>
+                <td>{m.month}月</td>
+                <td className="right mono">{m.business}</td>
+                <td className="mono">{short(m.first)}</td>
+                {nth !== null && <td className="mono">{short(m.nth)}</td>}
+                <td className="mono">{short(m.last)}</td>
+              </tr>
+            ))}
+            <tr className="total">
+              <td>合計</td>
+              <td className="right mono">{r.months.reduce((s, m) => s + m.business, 0)}</td>
+              <td colSpan={nth !== null ? 3 : 2} />
+            </tr>
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}

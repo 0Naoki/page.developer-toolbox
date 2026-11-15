@@ -1,0 +1,177 @@
+/**
+ * IPv4（number）と IPv6（bigint）で共通の、アドレスの範囲と CIDR の計算。
+ *
+ * @remarks
+ * 手順は1つにし、アドレスの種類ごとの違い（ビット数・数の型・解析・書式・文言）は {@link Family} にまとめる。
+ * IPv4 も bigint で計算すると10万件の集約・重複チェックが遅くなるため、数の演算は Family の関数を通して、
+ * IPv4 は number のまま計算する。
+ * ブロードキャストの有無や予約アドレス・アドレスの種別（subnetInfo・kindOf）は、種類ごとに意味が違うので、ここでは扱わない。
+ */
+import { splitLines } from '../../lib/text/lines';
+import { detailPreview } from '../../lib/text/textPreview';
+import { errorMessage } from '../../lib/errors';
+
+/** アドレスの種類ごとの違い。A は IPv4 なら number、IPv6 なら bigint */
+export type Family<A extends number | bigint> = {
+  /** アドレスのビット数（32・128） */
+  bits: number;
+  zero: A;
+  one: A;
+  add: (a: A, b: A) => A;
+  sub: (a: A, b: A) => A;
+  /** 2 の n 乗 */
+  pow2: (n: number) => A;
+  /** a が 2 の n 乗の倍数か（n ビットの大きさの CIDR の先頭にできるか） */
+  aligned: (a: A, n: number) => boolean;
+  /** 1つのアドレスを読む */
+  parseAddress: (text: string) => A;
+  /** CIDR（種類によってはマスク表記やアドレスだけも）を読み、範囲の先頭と末尾を返す */
+  parseRange: (text: string) => { ip: A; prefix: number; first: A; last: A };
+  format: (a: A) => string;
+  /** 「先頭 - 末尾」の範囲として読む行の形（1番目と2番目の組がアドレス） */
+  rangePattern: RegExp;
+  /** この種類のアドレスの行か（IPv4 と IPv6 が混ざった一覧から、片方だけを読むため） */
+  accepts: (line: string) => boolean;
+  /** CIDR の書き方の例（エラーの文言に入れる） */
+  cidrExample: string;
+  /** 範囲の先頭でない CIDR を、先頭に直して読んだときの警告 */
+  notAlignedWarning: (cidr: string, normalized: string) => string;
+};
+
+/** 一覧の1行の CIDR */
+export type RangeBlock<A extends number | bigint> = { line: number; text: string; label: string; start: A; end: A; prefix: number };
+
+const compare = (a: number | bigint, b: number | bigint) => (a < b ? -1 : a > b ? 1 : 0);
+
+/** 一覧の行のうち、この種類の行の本文（# の後ろのコメントを除く）と行番号。空の行と、ほかの種類の行は除く */
+function linesOf<A extends number | bigint>(f: Family<A>, text: string): { line: number; body: string }[] {
+  const out: { line: number; body: string }[] = [];
+  splitLines(text).forEach((raw, i) => {
+    const body = raw.replace(/#.*/, '').trim();
+    if (body && f.accepts(raw)) out.push({ line: i + 1, body });
+  });
+  return out;
+}
+
+/** 開始〜終了の範囲を、それをちょうど覆う最小個数の CIDR にする */
+export function rangeToCidrsIn<A extends number | bigint>(f: Family<A>, start: A, end: A): { network: A; prefix: number }[] {
+  if (start > end) throw new Error('開始アドレスが終了アドレスより後ろにあります');
+  const out: { network: A; prefix: number }[] = [];
+  let cur = start;
+  while (cur <= end) {
+    /** cur を先頭にできる最大の大きさ（cur の末尾の0の数）と、残りの範囲に収まる大きさの小さい方 */
+    let bits = f.bits;
+    while (bits > 0 && !f.aligned(cur, bits)) bits--;
+    while (bits > 0 && f.sub(f.add(cur, f.pow2(bits)), f.one) > end) bits--;
+    out.push({ network: cur, prefix: f.bits - bits });
+    cur = f.add(cur, f.pow2(bits));
+  }
+  return out;
+}
+
+/**
+ * CIDR・アドレスの範囲（「10.0.0.0 - 10.0.0.255」）・アドレスを1行ずつ書いた一覧を、
+ * 重なりや隣り合う範囲をまとめた最小個数の CIDR にする
+ */
+export function aggregateIn<A extends number | bigint>(f: Family<A>, text: string): { cidrs: string[]; addresses: A; errors: ListError[] } {
+  const ranges: [A, A][] = [];
+  const errors: ListError[] = [];
+  for (const { line, body } of linesOf(f, text)) {
+    try {
+      const range = f.rangePattern.exec(body);
+      if (range) {
+        const a = f.parseAddress(range[1] ?? '');
+        const b = f.parseAddress(range[2] ?? '');
+        if (a > b) throw new Error('開始アドレスが終了アドレスより後ろにあります');
+        ranges.push([a, b]);
+      } else {
+        const { first, last } = f.parseRange(body);
+        ranges.push([first, last]);
+      }
+    } catch (e) {
+      errors.push({ line, message: errorMessage(e) });
+    }
+  }
+
+  ranges.sort((a, b) => compare(a[0], b[0]));
+  const merged: [A, A][] = [];
+  for (const [s, e] of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && s <= f.add(last[1], f.one)) last[1] = last[1] > e ? last[1] : e;
+    else merged.push([s, e]);
+  }
+  const cidrs = merged.flatMap(([s, e]) => rangeToCidrsIn(f, s, e)).map((c) => `${f.format(c.network)}/${c.prefix}`);
+  const addresses = merged.reduce((n, [s, e]) => f.add(n, f.add(f.sub(e, s), f.one)), f.zero);
+  return { cidrs, addresses, errors };
+}
+
+/**
+ * 1行に1つずつ書いた CIDR を読む。行の残りは名前（「10.0.0.0/16 本番VPC」）、# の後ろはコメント。
+ * 範囲の先頭でない値（192.168.1.5/24）は、先頭（192.168.1.0/24）に直して読み、warnings に入れる
+ */
+export function parseCidrListIn<A extends number | bigint>(f: Family<A>, text: string): { blocks: RangeBlock<A>[]; errors: ListError[]; warnings: ListError[] } {
+  const blocks: RangeBlock<A>[] = [];
+  const errors: ListError[] = [];
+  const warnings: ListError[] = [];
+  for (const { line, body } of linesOf(f, text)) {
+    const [cidr = '', ...rest] = body.split(/\s+/);
+    try {
+      if (!cidr.includes('/')) throw new Error(`「${detailPreview(cidr)}」は CIDR（${f.cidrExample} など）の形式ではありません`);
+      const { ip, prefix, first, last } = f.parseRange(cidr);
+      const normalized = `${f.format(first)}/${prefix}`;
+      if (first !== ip) warnings.push({ line, message: f.notAlignedWarning(cidr, normalized) });
+      blocks.push({ line, text: normalized, label: rest.join(' '), start: first, end: last, prefix });
+    } catch (e) {
+      errors.push({ line, message: errorMessage(e) });
+    }
+  }
+  return { blocks, errors, warnings };
+}
+
+/** ネットワークを newPrefix の大きさに均等に分ける（先頭から limit 件まで） */
+export function splitNetworkIn<A extends number | bigint>(f: Family<A>, network: A, prefix: number, newPrefix: number, limit: number): { count: A; subnets: A[] } {
+  if (!Number.isInteger(newPrefix) || newPrefix < prefix || newPrefix > f.bits) {
+    throw new Error(`分割後のプレフィックス長は /${prefix}〜/${f.bits} で指定してください`);
+  }
+  const count = f.pow2(newPrefix - prefix);
+  const size = f.pow2(f.bits - newPrefix);
+  const shown = Math.min(Number(count), limit);
+  const subnets: A[] = [];
+  for (let i = 0, cur = network; i < shown; i++, cur = f.add(cur, size)) subnets.push(cur);
+  return { count, subnets };
+}
+
+/** 一覧の行の読み取りの誤り（行番号は1から） */
+export type ListError = { line: number; message: string };
+
+/** 一覧に表示する上限（分割の結果など） */
+export const MAX_ROWS = 1024;
+
+/** 重なりの検出 */
+
+/** 範囲を持つ一覧の要素。IPv4 は number、IPv6 は bigint（同じ一覧の中では混ぜない） */
+type Ranged = { start: number | bigint; end: number | bigint };
+
+export type Overlap<B extends Ranged = RangeBlock<number>> = { a: B; b: B; kind: 'same' | 'contains' };
+
+/** 表示する重なりの上限（入れ子が多いと組み合わせの数が大きくなるため） */
+export const MAX_OVERLAPS = 1000;
+
+/**
+ * 重なっている組み合わせ。CIDR の範囲は「一方がもう一方を含む」か「重ならない」かのどちらかになる。
+ * 開始アドレスの順に並べ、まだ終わっていない範囲だけと比べるので、全組み合わせを比べるより速い
+ */
+export function findOverlaps<B extends Ranged>(blocks: B[]): { overlaps: Overlap<B>[]; truncated: boolean } {
+  const sorted = [...blocks].sort((x, y) => compare(x.start, y.start) || compare(y.end, x.end));
+  const overlaps: Overlap<B>[] = [];
+  let open: B[] = [];
+  for (const b of sorted) {
+    open = open.filter((o) => o.end >= b.start);
+    for (const o of open) {
+      if (overlaps.length >= MAX_OVERLAPS) return { overlaps, truncated: true };
+      overlaps.push({ a: o, b, kind: o.start === b.start && o.end === b.end ? 'same' : 'contains' });
+    }
+    open.push(b);
+  }
+  return { overlaps, truncated: false };
+}

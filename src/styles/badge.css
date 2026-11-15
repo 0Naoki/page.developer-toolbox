@@ -1,0 +1,49 @@
+/* =========================================================
+   バッジと、バッジを並べる行（src/components/Badge.tsx）
+   ========================================================= */
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.badge-good {
+  background: var(--good-soft);
+  color: var(--good);
+  border-color: transparent;
+}
+
+.badge-bad {
+  background: var(--bad-soft);
+  color: var(--bad);
+  border-color: transparent;
+}
+
+/* 差分の追加・削除の件数（Badge の tone="add"・"del"） */
+.badge-add {
+  background: var(--add-soft);
+  color: var(--add);
+  border-color: transparent;
+}
+
+.badge-del {
+  background: var(--del-soft);
+  color: var(--del);
+  border-color: transparent;
+}
+
+.badge-small {
+  font-size: 10px;
+  padding: 0 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: 500;
+}

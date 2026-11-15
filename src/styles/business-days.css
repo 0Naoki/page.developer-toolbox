@@ -1,0 +1,91 @@
+/* =========================================================
+   営業日
+   ========================================================= */
+.biz-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .biz-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.biz-main {
+  min-width: 0;
+}
+
+.weekday-row {
+  display: flex;
+  gap: 4px;
+}
+
+.day-toggle {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.day-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.day-toggle.on {
+  background: var(--bad-soft);
+  border-color: var(--bad);
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.day-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.holiday-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.holiday-list li {
+  display: flex;
+  gap: 16px;
+  padding: 7px 12px;
+  font-size: 14px;
+}
+
+.holiday-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.holiday-list li .mono {
+  min-width: 10.5em;
+}
+
+.holiday-list li.past {
+  color: var(--muted);
+}
+
+.data-table tr.total td {
+  font-weight: 600;
+  border-bottom: none;
+}

@@ -1,0 +1,17 @@
+/* ---- ハッシュ ---- */
+.hash-table th {
+  width: 10em;
+}
+
+.hash-value {
+  font-size: 13px;
+}
+
+.hash-table tr.match td,
+.hash-table tr.match th {
+  background: var(--good-soft);
+}
+
+.field.narrow {
+  max-width: 520px;
+}

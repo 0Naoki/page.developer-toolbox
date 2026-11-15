@@ -1,0 +1,23 @@
+/* =========================================================
+   案内・警告・判定の結果（src/components/Notice.tsx）
+   ========================================================= */
+.notice {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.notice.good {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.notice.bad {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.notice.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}

@@ -1,0 +1,44 @@
+.year-table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.year-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.year-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+  padding: 6px 10px;
+}
+
+.year-table td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.year-table tr.current td {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.cards-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .cards-2 {
+    grid-template-columns: 1fr;
+  }
+}

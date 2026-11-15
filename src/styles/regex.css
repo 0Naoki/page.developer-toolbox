@@ -1,0 +1,13 @@
+/* ---- 正規表現テスター ---- */
+.regex-preview { min-height: 220px; max-height: 480px; }
+.regex-hit {
+  color: var(--accent);
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent);
+}
+.regex-empty { color: var(--accent); font-weight: 700; }
+.regex-matches { display: grid; gap: 10px; }
+.regex-match summary { cursor: pointer; overflow-wrap: anywhere; }
+.regex-match pre { max-height: 160px; }
+.regex-capture-wrap { overflow-x: auto; }
+.regex-value { white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -1,0 +1,35 @@
+/* =========================================================
+   ファイルのドロップ欄（src/components/FileDrop.tsx）
+   ========================================================= */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 160px;
+  padding: 20px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dropzone:hover,
+.dropzone.over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* 入力欄の下に添える小さな欄（FileDrop の small） */
+.dropzone-small {
+  min-height: 72px;
+}
+
+/* 中のファイル入力は見えないため、キーボードで選んだときは枠に表示する */
+.dropzone:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

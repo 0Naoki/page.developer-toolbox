@@ -1,0 +1,24 @@
+/* =========================================================
+   エラーの表示（src/components/ErrorMessage.tsx）
+   ========================================================= */
+.error-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.error-box code {
+  font-family: var(--mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.error-text {
+  margin: 0;
+  color: var(--bad);
+  font-size: 13px;
+}

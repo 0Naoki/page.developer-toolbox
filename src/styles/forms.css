@@ -1,0 +1,133 @@
+/* =========================================================
+   ツールバー・入力欄・ボタン・入力欄の見出し・設定欄・メーター
+   ========================================================= */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+select,
+.input {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 8px 10px;
+}
+
+.btn {
+  white-space: nowrap;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.link-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* 設定欄と進捗・強度のメーター */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.2s;
+}
+
+.meter-fill.lv0 { background: var(--bad); }
+
+.meter-fill.lv1 { background: var(--caution); }
+
+.meter-fill.lv2 { background: var(--good); }
+
+.meter-fill.lv3 { background: var(--accent); }
+
+.input-num {
+  width: 6em;
+  padding: 5px 8px;
+}
+
+.input-num-wide {
+  width: 14em;
+  padding: 5px 8px;
+}

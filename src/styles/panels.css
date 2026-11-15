@@ -1,0 +1,23 @@
+/* =========================================================
+   パネル・入力の行（和暦・証明書・cron・JWT・進数・正規表現などで共通）
+   ========================================================= */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}

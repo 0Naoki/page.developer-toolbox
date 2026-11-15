@@ -1,0 +1,15 @@
+/* =========================================================
+   チェックボックス（src/components/Check.tsx）
+   ========================================================= */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.check.small {
+  font-size: 12px;
+  font-weight: 400;
+  gap: 4px;
+}

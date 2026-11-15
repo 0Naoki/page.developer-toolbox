@@ -1,0 +1,21 @@
+/* ---- IPアドレス・サブネット計算 ---- */
+.net-part {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 3px;
+}
+
+.binary {
+  word-break: break-all;
+}
+
+.kind-item {
+  margin-right: 10px;
+}
+
+.overlap-list {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 14px;
+  line-height: 1.8;
+}

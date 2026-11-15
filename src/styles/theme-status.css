@@ -1,0 +1,37 @@
+/* =========================================================
+   色の追加（差分の追加・削除、警告。部品は notice.css・badge.css・text-diff.css）
+   ========================================================= */
+:root {
+  --add: #1a7f37;
+  --add-soft: #e6f6ea;
+  --add-strong: #abf2bc;
+  --del: #cf222e;
+  --del-soft: #ffebe9;
+  --del-strong: #ffc1c0;
+  --warn: #9a6700;
+  --warn-soft: #fff8c5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --add: #3fb950;
+    --add-soft: #12261a;
+    --add-strong: #1f5a2f;
+    --del: #f85149;
+    --del-soft: #2d1416;
+    --del-strong: #6e2228;
+    --warn: #d29922;
+    --warn-soft: #2e2510;
+  }
+}
+
+:root[data-theme='dark'] {
+  --add: #3fb950;
+  --add-soft: #12261a;
+  --add-strong: #1f5a2f;
+  --del: #f85149;
+  --del-soft: #2d1416;
+  --del-strong: #6e2228;
+  --warn: #d29922;
+  --warn-soft: #2e2510;
+}
