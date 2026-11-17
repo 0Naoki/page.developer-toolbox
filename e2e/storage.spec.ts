@@ -113,6 +113,8 @@ test('和暦の西暦入力をタブ内に保持し、移動・再読込後に�
 test('修正確認：全消去で各タブの入力・機密値・編集履歴を破棄し、再保存しない', CROSS_BROWSER, async ({ page, context }) => {
   /** 4タブの再読み込みと再確認を行うため、WebKitでも全手順を検証できる時間を確保する。 */
   test.setTimeout(60_000);
+  /** 入力した値と、消えたことを確かめる値は同じ定数にする（別々に書くと、綴りの違いで確認が空振りするため） */
+  const SESSION_ONLY_VALUE = 'private-data';
   await page.goto('./#/json');
   await page.getByRole('textbox', { name: '入力', exact: true }).fill('{"secret":123}');
   const other = await context.newPage();
@@ -122,7 +124,7 @@ test('修正確認：全消去で各タブの入力・機密値・編集履歴�
     await other.goto('./#/json');
     await other.getByRole('textbox', { name: '入力', exact: true }).fill('{"secret":456}');
     await sessionOnly.goto('./#/base64');
-    await sessionOnly.getByRole('textbox', { name: '入力', exact: true }).fill('private-data');
+    await sessionOnly.getByRole('textbox', { name: '入力', exact: true }).fill(SESSION_ONLY_VALUE);
     await memoryOnly.goto('./#/jwt');
     await memoryOnly.getByRole('textbox', { name: 'トークン', exact: true }).fill('memory-secret');
     const reloaded = Promise.all([page, other, sessionOnly, memoryOnly].map((tab) => tab.waitForEvent('load')));
@@ -133,7 +135,7 @@ test('修正確認：全消去で各タブの入力・機密値・編集履歴�
       await expect(tab.getByRole('textbox', { name: '入力', exact: true })).toHaveValue('');
       const stored = await tab.evaluate(() => [...Object.values(localStorage), ...Object.values(sessionStorage)].join('\n'));
       expect(stored).not.toContain('secret');
-      expect(stored).not.toContain('private_data');
+      expect(stored).not.toContain(SESSION_ONLY_VALUE);
       await tab.reload();
       await expect(tab.getByRole('textbox', { name: '入力', exact: true })).toHaveValue('');
     }

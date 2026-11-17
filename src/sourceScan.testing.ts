@@ -53,16 +53,65 @@ export const codeOf = (source: string, file = SNIPPET): string => parseSource(so
 
 /**
  * 外部と通信する API の名前。呼び出しの形（fetch(...)）だけでなく、変数に入れる・window['fetch'] のように
- * 文字列で参照するなど、どの形で参照しても検出する（connect-src 'none' は開発サーバーでは効かないため）
+ * 文字列で参照するなど、どの形で参照しても検出する（connect-src 'none' は開発サーバーでは効かないため）。
+ * WebRTC（RTCPeerConnection など）は本番の CSP でも塞げず、E2E の通信の監視（e2e/watch.ts）にも現れないため、ここで止める
  */
-export const NETWORK_NAMES = new Set(['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'WebTransport']);
+export const NETWORK_NAMES = new Set([
+  'fetch', 'XMLHttpRequest', 'WebSocket', 'WebSocketStream', 'EventSource', 'sendBeacon', 'WebTransport',
+  'RTCPeerConnection', 'webkitRTCPeerConnection', 'RTCDataChannel',
+]);
+
+/**
+ * 通信の API を持つグローバルなオブジェクト。これらを動的なキー（window[name]・window['fe' + 'tch'] など）で参照したり、
+ * Reflect・Object.getOwnPropertyDescriptor などに渡したりすると、名前を書かずに通信の API を取り出せるため、それ自体を検出する
+ */
+const GLOBAL_OBJECTS = new Set(['window', 'self', 'globalThis', 'navigator', 'top', 'parent', 'frames']);
+
+/** 第1引数のオブジェクトのプロパティを、キーの名前で取り出せる関数（Reflect.get(window, 'fetch') など） */
+const PROPERTY_READERS: Record<string, Set<string>> = {
+  Reflect: new Set(['get', 'getOwnPropertyDescriptor', 'ownKeys']),
+  Object: new Set(['getOwnPropertyDescriptor', 'getOwnPropertyDescriptors', 'entries', 'values']),
+};
 
 /** オブジェクトや型のキーとしての名前（{ fetch: 1 } など）。API の参照ではない */
 const KEY_PARENTS = new Set(['Property', 'PropertyDefinition', 'MethodDefinition', 'TSPropertySignature', 'TSMethodSignature']);
 
+type MemberNode = AstNode & { object?: AstNode & { property?: AstNode }; property?: AstNode };
+type CallNode = AstNode & { callee?: MemberNode; arguments?: AstNode[] };
+
+/** グローバルなオブジェクト（window、または window.navigator のような、その名前のプロパティ）か */
+function isGlobalObject(node: AstNode | undefined): boolean {
+  if (!node) return false;
+  if (node.type === 'Identifier') return typeof node.name === 'string' && GLOBAL_OBJECTS.has(node.name);
+  const member = node as MemberNode;
+  return node.type === 'MemberExpression' && !member.computed && member.property?.type === 'Identifier'
+    && typeof member.property.name === 'string' && GLOBAL_OBJECTS.has(member.property.name);
+}
+
+/** グローバルなオブジェクトを、静的に決まらないキーで参照しているか（window[0] のような数値のキーは除く） */
+function isDynamicGlobalAccess(node: AstNode): boolean {
+  const member = node as MemberNode;
+  if (node.type !== 'MemberExpression' || member.computed !== true || !isGlobalObject(member.object)) return false;
+  const key = member.property;
+  return staticString(key) === null && !(key?.type === 'Literal' && typeof key.value === 'number');
+}
+
+/** グローバルなオブジェクトを、キーの名前でプロパティを取り出す関数に渡しているか（Reflect.get(window, name) など） */
+function isGlobalPropertyRead(node: AstNode): boolean {
+  const call = node as CallNode;
+  const callee = call.callee;
+  if (node.type !== 'CallExpression' || callee?.type !== 'MemberExpression' || callee.computed) return false;
+  const owner = callee.object?.type === 'Identifier' ? callee.object.name : undefined;
+  const method = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
+  return typeof owner === 'string' && typeof method === 'string' && PROPERTY_READERS[owner]?.has(method) === true
+    && isGlobalObject(call.arguments?.[0]);
+}
+
 /**
  * 構文木から、通信の API を参照している箇所を探す。文字列・コメント・JSX の属性名は対象外。
- * 分割代入（const { fetch: send } = window）のキーは、取り出す元の名前なので参照として数える
+ * 分割代入（const { fetch: send } = window）のキーは、取り出す元の名前なので参照として数える。
+ * 名前の文字列（式を含まないテンプレートを含む）は、計算したプロパティのキー・分割代入のキー・関数の引数（Reflect.get(window, 'fetch')）を数える。
+ * グローバルなオブジェクトへの動的なキーでの参照は、取り出す名前が分からないため、名前によらず数える
  */
 export function networkReferences(source: string, file = SNIPPET): string[] {
   const { program } = parseSource(source, file);
@@ -79,9 +128,15 @@ export function networkReferences(source: string, file = SNIPPET): string[] {
       const patternKey = parent?.type === 'Property' && grandparent?.type === 'ObjectPattern' && key === 'key';
       const asName = node.type === 'Identifier' && typeof node.name === 'string' && NETWORK_NAMES.has(node.name)
         && (patternKey || !(parent && KEY_PARENTS.has(parent.type) && key === 'key' && !parent.computed));
-      const asString = node.type === 'Literal' && typeof node.value === 'string' && NETWORK_NAMES.has(node.value)
-        && (patternKey || (parent?.type === 'MemberExpression' && key === 'property' && parent.computed === true));
-      if (asName || asString) found.set(node.start, `${file}：${String(node.name ?? node.value)}（${node.start}文字目）`);
+      const text = staticString(node);
+      const asString = text !== null && NETWORK_NAMES.has(text)
+        && (patternKey
+          || (parent?.type === 'MemberExpression' && key === 'property' && parent.computed === true)
+          || ((parent?.type === 'CallExpression' || parent?.type === 'NewExpression') && key === 'arguments'));
+      if (asName) found.set(node.start, `${file}：${String(node.name)}（${node.start}文字目）`);
+      else if (asString) found.set(node.start, `${file}：${text}（${node.start}文字目）`);
+      else if (isDynamicGlobalAccess(node)) found.set(node.start, `${file}：グローバルなオブジェクトへの動的なキーでの参照（${node.start}文字目）`);
+      else if (isGlobalPropertyRead(node)) found.set(node.start, `${file}：グローバルなオブジェクトのプロパティの取り出し（${node.start}文字目）`);
     }
     for (const [childKey, child] of Object.entries(node)) {
       if (child && typeof child === 'object') {
@@ -94,8 +149,11 @@ export function networkReferences(source: string, file = SNIPPET): string[] {
   return [...found.values()];
 }
 
-/** 文字列リテラルと、式を含まないテンプレートだけをモジュールの静的なパスとして読む。実行時の値は推測しない。 */
-function staticModulePath(value: unknown): string | null {
+/**
+ * 文字列リテラルと、式を含まないテンプレートだけを、静的に決まる文字列として読む（モジュールのパス・プロパティのキー）。
+ * 実行時の値は推測しない。
+ */
+function staticString(value: unknown): string | null {
   if (!value || typeof value !== 'object') return null;
   const node = value as AstNode & { expressions?: unknown[]; quasis?: { value?: { cooked?: unknown } }[] };
   if (node.type === 'Literal' && typeof node.value === 'string') return node.value;
@@ -117,7 +175,7 @@ export function localImports(file: string, source: string): string[] {
     if (!value || typeof value !== 'object') return;
     const node = value as AstNode & { source?: AstNode };
     if (['ImportDeclaration', 'ExportNamedDeclaration', 'ExportAllDeclaration', 'ImportExpression', 'TSImportType'].includes(node.type)) {
-      const spec = staticModulePath(node.source);
+      const spec = staticString(node.source);
       if (typeof spec === 'string' && (spec.startsWith('.') || spec.startsWith('/src/'))) {
         found.push(new URL(spec, `http://repo${file}`).pathname);
       }

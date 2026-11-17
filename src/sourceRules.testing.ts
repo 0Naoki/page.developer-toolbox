@@ -8,7 +8,7 @@
  * 規則の例外（allowed）には理由を書く。使わなくなった例外は検査で失敗する。
  * 外部と通信する API（fetch・XMLHttpRequest など）は、ここの正規表現ではなく、構文木からどの形の参照でも探す
  * 解析の処理（src/sourceScan.testing.ts の networkReferences）で検査する。正規表現の規則より検出の範囲が広い
- * （変数に入れる・`window['fetch']`・分割代入・WebTransport も見つける）ため、二重には持たない。
+ * （変数に入れる・`window['fetch']`・分割代入・WebTransport・WebRTC・グローバルなオブジェクトへの動的なキーでの参照も見つける）ため、二重には持たない。
  */
 export type SourceRule = {
   /** 規則の名前（テストの名前になる） */

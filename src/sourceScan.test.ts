@@ -79,13 +79,33 @@ describe('コメントの除去と通信の API の参照', () => {
       "const { 'fetch': send } = window;",
       "const { ['XMLHttpRequest']: X } = globalThis;",
       'function f({ sendBeacon: beacon } = navigator) { return beacon; }',
+      'new RTCPeerConnection();',
+      'const P = window.webkitRTCPeerConnection;',
+      'let channel: RTCDataChannel;',
+      'new WebSocketStream(url);',
+      'window[`fetch`](url);',
+      'const { [`sendBeacon`]: beacon } = navigator;',
+      "window['fe' + 'tch'](url);",
+      'globalThis[name](url);',
+      'window.navigator[method](url, data);',
+      "const send = Reflect.get(window, name);",
+      "Object.getOwnPropertyDescriptor(globalThis, name);",
     ]) expect(networkReferences(code), code).toHaveLength(1);
+    /** 名前を文字列で渡す取り出し方は、取り出す処理と名前の両方を報告する */
+    expect(networkReferences("Reflect.get(window, 'fetch')(url);")).toHaveLength(2);
+    expect(networkReferences("Reflect.get(api, 'fetch');")).toHaveLength(1);
     /** オブジェクトや型のキー、JSX の属性名、文字列・コメントの中は、API の参照ではない */
     for (const code of [
       'const o = { fetch: 1 };',
       'type T = { fetch: string };',
       "const label = <a title='fetch'>fetch</a>;",
       "const s = 'fetch(url)'; // fetch(url)",
+      "const t = `fetch`;",
+      /** 数値のキー（フレームの番号）や、グローバルでないオブジェクトへの動的なキーは対象外 */
+      'const first = window[0];',
+      'const value = record[key];',
+      'Reflect.get(record, key);',
+      "Object.entries(settings);",
     ]) expect(networkReferences(code), code).toEqual([]);
   });
 
