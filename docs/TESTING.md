@@ -162,7 +162,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | Kubernetesのcron式 | `src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
 | UUID v7・ULID の生成順 | `src/tools/uuid/logic.test.ts` |
 | UUID の形式と時刻 | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |
-| サブネット | `e2e/subnet.spec.ts`・`src/tools/subnet/ipv4.test.ts` |
+| サブネット | `e2e/subnet.spec.ts`・`src/tools/subnet/ipv4.test.ts`・`src/tools/subnet/ipv6.test.ts` |
 
 純粋関数の境界値・大きな整数や小数の表記・日時の夏時間・パーサーの上限などは `src/**/*.test.ts` で検査します。ユニットテストの環境分離は、ストレージやモジュールの状態を他のテストへ漏らさないため維持します。
 

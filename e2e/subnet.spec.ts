@@ -3,7 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - サブネット：集約10万件の表示上限と全文コピー、VLSMの表示上限と入力順の全文コピー、CR・LF・CRLF混在の一覧の重複と行番号、壊れた分割設定からの復旧。IPv6 のグループや VLSM の名前が長くても、
- *   エラーの文言を抜粋にして、末尾の理由を表示の上限で切らないこと（あわせて `src/tools/subnet/ipv4.test.ts`）
+ *   エラーの文言を抜粋にして、末尾の理由を表示の上限で切らないこと。IPv6 の範囲の区切りの記号が多く並んだ長い行でも、入力長の2乗の時間をかけないこと（あわせて `src/tools/subnet/ipv4.test.ts`・`src/tools/subnet/ipv6.test.ts`）
  * - クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件：5アドレスの計算とサービスごとの案内を分け、範囲の両端と刻みの対象外を検証する（あわせて `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`）
  */
 import { expect, test } from './fixtures';

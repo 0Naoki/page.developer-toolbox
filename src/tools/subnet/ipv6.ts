@@ -223,8 +223,11 @@ const IPV6: Family<bigint> = {
     return { ip, prefix, first: info.network, last: info.last };
   },
   format: formatIpv6,
-  /** 範囲の区切りの - は、アドレスの中には出てこない */
-  rangePattern: /^(\S+)\s*(?:-|–|〜|~)\s*(\S+)$/,
+  /**
+   * 範囲の区切りの - は、アドレスの中には出てこない。
+   * 値の文字クラスから区切りの文字を除く（\S+ にすると、区切りが多く並んだ行で、どこで区切るかを総当たりして入力長の2乗の時間がかかるため）
+   */
+  rangePattern: /^([^\s~〜–-]+)\s*(?:-|–|〜|~)\s*([^\s~〜–-]+)$/,
   accepts: isIpv6Text,
   cidrExample: '2001:db8::/32',
   notAlignedWarning: (cidr, normalized) => `${cidr} はプレフィックスの先頭ではないため、${normalized} として扱いました`,

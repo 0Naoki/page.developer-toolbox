@@ -182,6 +182,24 @@ describe('一覧（重複チェック・分割・集約）', () => {
     expect(r.errors).toEqual([]);
   });
 
+  it('範囲は、空白の有無や区切りの記号（- – 〜 ~）によらず読む', () => {
+    for (const line of ['2001:db9::1-2001:db9::2', '2001:db9::1 – 2001:db9::2', '2001:db9::1〜2001:db9::2', '2001:db9::1 ~2001:db9::2']) {
+      const r = aggregate6(line);
+      expect(r.errors, line).toEqual([]);
+      expect(r.cidrs, line).toEqual(['2001:db9::1/128', '2001:db9::2/128']);
+    }
+  });
+
+  it('回帰：区切りの記号が多く並んだ長い行でも、すぐにエラーを返す（入力長の2乗の時間をかけない）', () => {
+    /** 値に区切りの記号も含めていたため、どこで区切るかを総当たりし、4万字で約0.8秒、12万字で約8秒かかっていた */
+    const line = `:${'-'.repeat(120_000)} a b`;
+    const start = performance.now();
+    const r = aggregate6(line);
+    expect(performance.now() - start).toBeLessThan(200);
+    expect(r.cidrs).toEqual([]);
+    expect(r.errors).toHaveLength(1);
+  });
+
   it('行の振り分け', () => {
     expect(isIpv6Text('2001:db8::/32 # コメント')).toBe(true);
     expect(isIpv6Text('10.0.0.0/8 # 説明: IPv4')).toBe(false);
