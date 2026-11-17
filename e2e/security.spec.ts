@@ -3,7 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - 設定・opener：不正設定からの復旧、有効設定の保持、opener解除と独立したタブへの案内
- * - 表示設定の保存：生成できない途中のパスワード設定を保存せず、再読み込みで直前の有効な設定に戻すこと。別タブで変えた設定を、無関係な操作や再描画で古い値に書き戻さないこと
+ * - 表示設定の保存：生成できない途中のパスワード設定を保存せず、再読み込みで直前の有効な設定に戻すこと。別タブで変えた設定を、無関係な操作や再描画で古い値に書き戻さないこと。最近使ったツールの更新で、別タブで開いたツールを消さないこと
  */
 import { expect, test } from '@playwright/test';
 import { CROSS_BROWSER } from './tags';
@@ -106,6 +106,20 @@ test('別タブで変えた表示設定を、無関係な操作や再描画で�
   /** A で曜日を変えたときは、A の画面の値で保存する */
   await a.locator('label.day-toggle', { hasText: '金' }).click();
   await expect.poll(() => weekend(a)).toBe('[0,5,6]');
+});
+
+test('回帰：最近使ったツールを、別タブで開いたツールを消さずに更新する', CROSS_BROWSER, async ({ context }) => {
+  /** 別タブの変更を受け取らない設定の更新関数が、このタブの古い一覧に適用され、別タブで開いたツールを上書きしていた */
+  const a = await context.newPage();
+  const b = await context.newPage();
+  const recent = () => a.evaluate(() => JSON.parse(localStorage.getItem('dev-toolbox:pref:recent') ?? '[]') as string[]);
+  await a.goto('./');
+  await b.goto('./');
+  await a.goto('./#/json');
+  await expect.poll(recent).toEqual(['json']);
+  /** B は A の変更を受け取っていない（一覧は空のまま）が、保存値を読み直してから先頭に足す */
+  await b.goto('./#/base64');
+  await expect.poll(recent).toEqual(['base64', 'json']);
 });
 
 test('openerがあるタブでは入力せず、参照のない新しいタブで開き直せる', CROSS_BROWSER, async ({ page, context, baseURL }) => {

@@ -63,6 +63,18 @@ function receiveClear(): void {
   clearTabData();
 }
 
+/**
+ * 消去世代が、このタブを開いたときから変わっていれば、通知を受けたときと同じく、このタブのデータを消して再読み込みさせる。
+ *
+ * @remarks
+ * 全消去の通知（storage イベント・BroadcastChannel）は、受け取りを登録する前や、キャッシュにある間には届かない。
+ * 届かないまま世代だけが変わると、isClearingData が true のまま保存を黙って止め続け、メモリ内の入力も残るため、
+ * 「世代がずれたら必ず receiveClear」を、受け取りの登録の直後・storage イベント・タブへの復帰のすべてで確かめる。
+ */
+function receiveClearIfGenerationChanged(): void {
+  if (readClearGeneration() !== tabGeneration) receiveClear();
+}
+
 /** このタブの sessionStorage だけを消す。失敗したら、同じ処理を再試行として渡す */
 function clearTabData(): void {
   const clearTab = () => notifyResult(safe(() => clearAppData(sessionStorage), false), clearTabData);
@@ -72,21 +84,27 @@ function clearTabData(): void {
 /** 現在のタブや別タブで始めた全消去の結果を受け取る。 */
 export function subscribeClearData(listener: ClearListener): () => void {
   clearListeners.add(listener);
+  /** 全消去の通知のほか、ほかのキーの変更でも世代を確かめる（世代の記録の通知だけを取りこぼした場合に備える） */
   const onStorage = (event: StorageEvent) => {
-    if (safe(() => event.storageArea === localStorage, false) && isClearEvent(event)) receiveClear();
+    if (!safe(() => event.storageArea === localStorage, false)) return;
+    if (isClearEvent(event)) receiveClear();
+    else receiveClearIfGenerationChanged();
   };
   window.addEventListener('storage', onStorage);
   /**
    * 戻る・進むのキャッシュ（bfcache）から戻ったとき。キャッシュにある間は storage イベントも BroadcastChannel も届かないため、
-   * 消去世代が変わっていれば、通知を受けたときと同じく、このタブのデータを消して再読み込みさせる
+   * 消去世代が変わっていれば、通知を受けたときと同じく、このタブのデータを消して再読み込みさせる。
+   * キャッシュからでない表示（通常の読み込み）は、起動時の照合（discardClearedTabData）に任せる
    */
   const onPageShow = (event: PageTransitionEvent) => {
-    if (event.persisted && readClearGeneration() !== tabGeneration) receiveClear();
+    if (event.persisted) receiveClearIfGenerationChanged();
   };
   window.addEventListener('pageshow', onPageShow);
   /** タブ間だけの通知。入力値は送らず、ストレージが使用できない場合も消去を伝える。 */
   const channel = safe(() => new BroadcastChannel(CLEAR_CHANNEL), undefined);
   if (channel) channel.onmessage = (event) => { if (event.data === 'clear') receiveClear(); };
+  /** 起動（このモジュールの読み込み）から受け取りを登録するまでの間に、別タブで全消去された場合は、通知が届かない */
+  receiveClearIfGenerationChanged();
   return () => {
     clearListeners.delete(listener);
     window.removeEventListener('storage', onStorage);

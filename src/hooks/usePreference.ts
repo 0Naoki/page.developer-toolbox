@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { useLatest } from './useLatest';
 import { isClearingData, pruneInvalidSetting, settingStorageKey, settingValueFromEvent, writeStoredSetting } from '../lib/storage';
-import { readSetting, type SettingKey, type SettingValidator } from '../lib/settings';
+import { isValidSetting, readSetting, type SettingKey, type SettingValidator } from '../lib/settings';
 
 /**
  * 検証済みの表示設定を localStorage に保存する。
@@ -10,7 +10,8 @@ import { readSetting, type SettingKey, type SettingValidator } from '../lib/sett
  * 保存領域を使えなくてもメモリ内の状態で動作する。入力内容や機密値には使わない（入力は useInput）。
  * 名前は保存先（localStorage）ではなく用途（表示設定。保存キーの pref: の名前空間）を表す。
  * 保存するのは、利用者が更新関数で値を変えたときだけ。復元・別タブからの通知・再描画では保存しない
- * （別タブで変えた設定を、このタブの古い値で書き戻さないため）。初期値と同じ値は保存キーを削除する。
+ * （別タブで変えた設定を、このタブの古い値で書き戻さないため）。更新関数を渡したときは、保存値を読み直してから適用する。
+ * 初期値と同じ値は保存キーを削除する。
  * 保存も復元と同じ `validate` を通る値だけに限り、通らない値の間は画面にだけ持ち、直前に保存した値を残す。
  * 保存キーは `dev-toolbox:pref:<key>`。
  *
@@ -48,17 +49,42 @@ export function usePreference<T>(key: SettingKey, initial: T, validate: SettingV
     }
   }, [storageKey]);
 
+  /** 直前の保存に失敗したか（このタブの値が、保存値より新しい） */
+  const unsaved = useRef(false);
+
+  /**
+   * 更新関数（`setX((previous) => …)`）に渡す、元の値。
+   *
+   * @remarks
+   * 別タブの変更を受け取らない設定（syncTabs が false）では、このタブの値が古いことがある。古い値に更新関数を適用して保存すると、
+   * 別タブが保存した値を上書きする（「最近使ったツール」が、別タブで開いたツールを消すなど）。そこで、保存値を読み直して適用する。
+   * ただし、このタブの値が検証に通らない途中の値（画面にだけ持つ値）のときや、直前の保存に失敗したときは、このタブの値の方が新しいため、それを使う。
+   * 検証に通る値は変えたときに保存しているので、保存値と違えば、保存値の方が新しい。
+   */
+  const previousForUpdate = useCallback((): T => {
+    const current = latest.current;
+    if (unsaved.current || isClearingData() || !isValidSetting(JSON.stringify(current), validateRef.current)) return current;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw === null ? initialRef.current : readSetting(raw, current, validateRef.current);
+    } catch {
+      return current;
+    }
+  }, [storageKey, latest, validateRef, initialRef]);
+
   const update = useCallback((action: SetStateAction<T>) => {
-    const next = typeof action === 'function' ? (action as (previous: T) => T)(latest.current) : action;
+    const next = typeof action === 'function' ? (action as (previous: T) => T)(previousForUpdate()) : action;
     latest.current = next;
     setValue(next);
     if (isClearingData()) return;
     try {
       writeStoredSetting(localStorage, storageKey, JSON.stringify(next), initialJson, validateRef.current);
+      unsaved.current = false;
     } catch {
       /** 保存できなくても動作は継続 */
+      unsaved.current = true;
     }
-  }, [storageKey, initialJson, latest, validateRef]);
+  }, [storageKey, initialJson, latest, validateRef, previousForUpdate]);
 
   useEffect(() => {
     if (!syncTabs) return;

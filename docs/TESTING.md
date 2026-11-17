@@ -127,6 +127,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | 保存と全消去の競合 | `e2e/storage.spec.ts` |
 | 入力を localStorage に保存しない | `src/lib/storage/index.test.ts` |
 | 全消去の順序と遅れた通知 | `src/lib/storage/clear.test.ts` |
+| 取りこぼした通知 | `src/lib/storage/clear.test.ts` |
 | 離れていた間の全消去 | `e2e/storage.spec.ts`・`src/lib/storage/index.test.ts`・`src/lib/storage/clear.test.ts` |
 | 表示設定の保存 | `e2e/security.spec.ts` |
 | 古いキーの整理 | `src/lib/storage/index.test.ts`・`src/lib/storage/preferences.test.ts`・`src/registry.test.ts`・`e2e/storage.spec.ts` |
