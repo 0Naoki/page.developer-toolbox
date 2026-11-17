@@ -4,7 +4,7 @@
 
 ## 実行コマンド
 
-初回は `npm ci` と `npm run e2e:install` で依存パッケージとブラウザを準備します。
+初回は `npm run setup` と `npm run e2e:install` で依存パッケージとブラウザを準備します（`npm run setup` は CI と同じ手順です）。
 
 ```bash
 npm run check        # 型チェック・単体テスト・本番ビルド

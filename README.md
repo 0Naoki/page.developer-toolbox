@@ -40,14 +40,16 @@
 
 ## 起動する
 
-Node.js 22.12 以上が必要です（推奨は `.nvmrc` のバージョン）。
+Node.js 24 が必要です（`.nvmrc`。22.12 以上の 22 と、26 以上でも動きます）。
 
 ```bash
-npm ci
+npm run setup
 npm run preview:pages
 ```
 
-[本番相当の画面](http://localhost:4173/dev-toolbox/)を開きます。停止は起動したターミナルで `Ctrl+C` です。Windowsでは `start.ps1` でも起動できます。準備・スクリプトの使い方・開発サーバーの起動は [ローカル確認手順](docs/LOCAL_CHECK.md) を参照してください。
+`npm run setup` は、CI と同じく、依存パッケージのインストールスクリプトを実行せずに取得し、npm レジストリの署名を検証します。
+
+ブラウザで `http://localhost:4173/dev-toolbox/` の本番相当の画面を開きます。停止は起動したターミナルで `Ctrl+C` です。Windowsでは `start.ps1` でも起動できます。準備・スクリプトの使い方・開発サーバーの起動は [ローカル確認手順](docs/LOCAL_CHECK.md) を参照してください。
 
 ## 目的別のドキュメント
 

@@ -19,7 +19,9 @@ on:
 
 permissions: {}
 
-# 公開処理は途中で中断しない（GitHub の推奨）
+# 公開処理は途中で中断しない（GitHub の推奨）。
+# 検査（check）を含むワークフロー全体を1つずつ実行する。deploy のジョブだけに付けると、続けて push したとき、
+# 検査が遅く終わった古いコミットが、新しいコミットの公開の後に公開され、古い版で上書きしてしまうため
 concurrency:
   group: pages
   cancel-in-progress: false

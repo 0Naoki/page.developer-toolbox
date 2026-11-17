@@ -16,20 +16,20 @@ node -v   # v22.12.0 以上（推奨は v24.x）であること
 - Windows：`winget install Volta.Volta` → 新しいターミナルで `volta install node@24`
 - macOS / Linux：`nvm install` （`.nvmrc` を読んで 24 を入れる）
 
-コミット済みの `package-lock.json` に従って依存パッケージを入れます。
+コミット済みの `package-lock.json` に従って依存パッケージを入れます。`npm run setup` は CI と同じ手順で、インストールスクリプトを実行せずに取得し（`npm ci --ignore-scripts`）、npm レジストリの署名を検証します（`npm run audit:signatures`）。
 
 ```bash
-npm ci
+npm run setup
 npm run e2e:install   # E2E テスト用のブラウザ（Chromium・Firefox・WebKit）。初回のみ
 ```
 
 ### Windowsの起動スクリプト
 
 Windowsでは、リポジトリ直下の `start.ps1` をPowerShellから実行して起動できます。
-依存パッケージが未導入なら取得し、毎回本番ビルドを作成して、CSPが有効な画面をブラウザで開きます。
-依存パッケージは、CIと同じく、インストールスクリプトを実行せずに取得し（`npm ci --ignore-scripts`）、npm レジストリの署名を検証します（`npm run audit:signatures`）。検証に通らなければ、取得した依存パッケージを削除して止まります。
+依存パッケージの準備が済んでいなければ `npm run setup` で準備し、毎回本番ビルドを作成して、CSPが有効な画面をブラウザで開きます。
+準備が済んだかは、署名の検証が通ったときに `node_modules/.dev-toolbox-verified` に書く `package-lock.json` のハッシュで判断します。取得や検証の途中で止めたときや、`git pull` などで `package-lock.json` が変わったときは、準備し直します。取得や検証に失敗したら、取得した依存パッケージを削除して止まります。
 表示先は `http://localhost:4173/dev-toolbox/`、停止は起動したウィンドウで `Ctrl+C` です。
-依存パッケージを更新した後は、先に `npm ci` を実行してください。ポート4173が使用中の場合は、既存のサーバーを停止してから起動します。
+ポート4173が使用中の場合は、既存のサーバーを停止してから起動します。
 
 リポジトリのフォルダーで、次のコマンドを実行します。実行ポリシーの指定は、このPowerShellプロセスだけに適用されます。
 
@@ -113,7 +113,7 @@ git ls-files            # 意図しないファイル（.env、鍵、個人の�
 
 | 症状 | 対処 |
 |---|---|
-| `npm ci` で engines のエラー | Node.js が古い。手順 0 で 24（または 22.12 以上）を入れる |
+| `npm run setup` で engines のエラー | 対応していない版の Node.js。手順 0 で 24 を入れる（22.12 以上の 22 と、26 以上でも動く。23・25 などの奇数の版は対応しない） |
 | `npm run e2e` で「ブラウザがない」 | `npm run e2e:install` を実行（Linux は `npx playwright install --with-deps chromium firefox webkit`） |
 | Windows で Firefox だけが `spawn UNKNOWN` で起動しない | PC の環境によって、Playwright の Firefox が Windows に起動を止められることがある。手元では `npx playwright test --project=desktop --project=mobile --project=webkit --project=iphone` で残りを確認し、Firefox は CI（Linux）の結果で確認する |
 | `Port 4173 is already in use` | 前回のプレビューを、そのサーバーを起動したターミナルで `Ctrl + C` により停止する。E2Eは4173番を使うため、別ポートのプレビューでは代用できない |
