@@ -6,6 +6,7 @@ import { limitMessage } from '../../lib/text/textPreview';
 import { cronWarnings, describeCron, fieldRows } from './describe';
 import { formatRun, nextRuns } from './nextRuns';
 import { MAX_INPUT, parseCron, type Dialect } from './parse';
+import { buildCron, type CronSpec } from './build';
 
 const JST = 'Asia/Tokyo';
 const at = (text: string) => Date.parse(text);
@@ -385,5 +386,48 @@ describe('Date の上限の近くの探索', () => {
   it('タイムゾーンのずれで上限を超える壁時計も、範囲外として探索を終える', () => {
     const runs = nextRuns(parseCron('* * * * *', 'unix'), 'Asia/Tokyo', Date.parse('+275760-09-12T23:58:00Z'), 5);
     expect(runs.map((ms) => new Date(ms).toISOString())).toEqual(['+275760-09-12T23:59:00.000Z', '+275760-09-13T00:00:00.000Z']);
+  });
+});
+
+describe('buildCron（式の組み立て）', () => {
+  const base: CronSpec = { frequency: 'daily', interval: 5, minute: 30, hour: 9, weekdays: [1, 2, 3, 4, 5], day: 1 };
+  const DIALECTS: Dialect[] = ['unix', 'kubernetes', 'quartz', 'aws'];
+  const built = (spec: Partial<CronSpec>, dialect: Dialect) => {
+    const r = buildCron({ ...base, ...spec }, dialect);
+    if (!r.ok) throw new Error(r.error);
+    return r.expression;
+  };
+
+  it.each([
+    [{ frequency: 'minutes', interval: 1 }, ['* * * * *', '* * * * *', '0 * * * * ?', '* * * * ? *']],
+    [{ frequency: 'minutes', interval: 15 }, ['*/15 * * * *', '*/15 * * * *', '0 */15 * * * ?', '*/15 * * * ? *']],
+    [{ frequency: 'hourly', minute: 5 }, ['5 * * * *', '5 * * * *', '0 5 * * * ?', '5 * * * ? *']],
+    [{ frequency: 'daily' }, ['30 9 * * *', '30 9 * * *', '0 30 9 * * ?', '30 9 * * ? *']],
+    [{ frequency: 'weekly' }, ['30 9 * * MON-FRI', '30 9 * * MON-FRI', '0 30 9 ? * MON-FRI', '30 9 ? * MON-FRI *']],
+    [{ frequency: 'weekly', weekdays: [6, 0, 3, 3] }, ['30 9 * * SUN,WED,SAT', '30 9 * * SUN,WED,SAT', '0 30 9 ? * SUN,WED,SAT', '30 9 ? * SUN,WED,SAT *']],
+    [{ frequency: 'monthly', day: 15 }, ['30 9 15 * *', '30 9 15 * *', '0 30 9 15 * ?', '30 9 15 * ? *']],
+  ] as [Partial<CronSpec>, string[]][])('%o', (spec, expected) => {
+    expect(DIALECTS.map((d) => built(spec, d))).toEqual(expected);
+  });
+
+  it('組み立てた式は、どの形式でも読めて、同じ意味の説明になる', () => {
+    for (const dialect of DIALECTS) {
+      expect(describeOf(built({ frequency: 'weekly' }, dialect), dialect), dialect).toBe('毎週月〜金曜日 09:30');
+      expect(describeOf(built({ frequency: 'monthly', day: 15 }, dialect), dialect), dialect).toBe('毎月15日 09:30');
+      /** 曜日を名前で書くので、日曜の数え方（0 か 1 か）の違いで別の曜日にならない */
+      const sunday = parseCron(built({ frequency: 'weekly', weekdays: [0] }, dialect), dialect);
+      expect(nextRuns(sunday, 'UTC', Date.UTC(2026, 9, 5), 1).map((ms) => new Date(ms).getUTCDay()), dialect).toEqual([0]);
+    }
+  });
+
+  it('範囲外の値や、曜日を選んでいない毎週は、理由を返す', () => {
+    expect(buildCron({ ...base, frequency: 'minutes', interval: 0 }, 'unix')).toEqual({ ok: false, error: '何分ごとかは 1〜59 の整数で指定してください' });
+    expect(buildCron({ ...base, frequency: 'hourly', minute: 60 }, 'unix')).toMatchObject({ ok: false });
+    expect(buildCron({ ...base, hour: 24 }, 'unix')).toMatchObject({ ok: false });
+    expect(buildCron({ ...base, hour: 1.5 }, 'unix')).toMatchObject({ ok: false });
+    expect(buildCron({ ...base, frequency: 'weekly', weekdays: [] }, 'unix')).toEqual({ ok: false, error: '曜日を1つ以上選んでください' });
+    expect(buildCron({ ...base, frequency: 'monthly', day: 32 }, 'unix')).toMatchObject({ ok: false });
+    /** 使わない欄の値は確かめない（毎分なら時・分は見ない） */
+    expect(buildCron({ ...base, frequency: 'minutes', minute: 99, hour: 99 }, 'unix')).toEqual({ ok: true, expression: '*/5 * * * *' });
   });
 });

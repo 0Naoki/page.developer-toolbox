@@ -160,6 +160,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | UNIX時間の期間計算 | `src/tools/unix-time/logic.test.ts`・`src/lib/time/civilTime.test.ts`・`e2e/unix-time.spec.ts` |
 | 営業日の期間集計 | `src/tools/business-days/logic.test.ts`・`e2e/business-days.spec.ts` |
 | Kubernetesのcron式 | `src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
+| cron式の組み立て | `e2e/cron.spec.ts`・`src/tools/cron/logic.test.ts` |
 | cron の実行日時の貼り戻し | `e2e/cron.spec.ts`・`src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts` |
 | UUID v7・ULID の生成順 | `src/tools/uuid/logic.test.ts` |
 | UUID の形式と時刻 | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |

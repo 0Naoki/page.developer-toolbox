@@ -3,6 +3,7 @@
  * - `parse.ts`：構文解析
  * - `nextRuns.ts`：次回の実行日時の探索
  * - `describe.ts`：説明文の生成
+ * - `build.ts`・`Builder.tsx`：頻度と時刻から式を組み立てる
  */
 import { useMemo } from 'react';
 import { Notice } from '../../components/Notice';
@@ -21,6 +22,7 @@ import { SEARCH_YEARS, formatRun, nextRuns } from './nextRuns';
 import { parseCron, type Dialect } from './parse';
 import { ErrorBox } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
+import { Builder } from './Builder';
 
 const RUN_COUNT = 10;
 const REFRESH_MS = 30_000;
@@ -107,6 +109,7 @@ export default function CronTool() {
         <button type="button" className="btn btn-ghost" onClick={() => setInput('')}>クリア</button>
       </div>
       <p className="hint">{format.hint}</p>
+      <Builder dialect={dialect} onUse={setInput} />
 
       {result && !result.ok && <ErrorBox alert message={result.error} />}
       {result?.ok && (

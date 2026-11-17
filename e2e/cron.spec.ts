@@ -3,6 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - Kubernetesのcron式：単一値からの間隔、?、曜日の範囲、日と曜日のORを検証し、標準形式との差と再読み込み後の形式を保つこと。Date の上限の直前を基準にしても、範囲外の候補を試し続けずに探索を終えること（あわせて `src/tools/cron/logic.test.ts`）
+ * - cron式の組み立て：頻度と時刻から、今の形式の書き方で式を作ること。曜日は名前で書き、形式による日曜の数え方の違いで別の曜日にならないこと。範囲外の値では式を作らないこと（あわせて `src/tools/cron/logic.test.ts`）
  * - cron の実行日時の貼り戻し：日本時間の列（曜日の添え書き付き）も、ほかのタイムゾーンの列（オフセット付き）も、基準日時に貼り戻すと同じ時刻として読むこと。曜日が日付と合わなければ拒否すること（あわせて `src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts`）
  * - Date の範囲より前の現地日付 × cron の曜日判定：最初の実行を飛ばさず、現地日付と日本時間の曜日を表示する（あわせて `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`）
  */
@@ -146,4 +147,27 @@ test('cron式：意味と次回の実行日時を JST で表示し、式を読�
   await expect(page.getByText('200年先まで探しましたが', { exact: false })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'cron式', exact: true })).toHaveValue('0 0 31 2 ? *');
+});
+
+test('cron式：頻度と時刻を選んで式を組み立て、今の形式の書き方で式の欄に入れる', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/cron');
+  await page.getByText('式を組み立てる', { exact: true }).click();
+  await page.getByRole('group', { name: '頻度' }).getByRole('button', { name: '毎週', exact: true }).click();
+  const weekdays = page.getByRole('group', { name: '曜日', exact: true });
+  /** 月〜金が選ばれている。土曜を足し、月曜を外す */
+  await weekdays.getByText('土', { exact: true }).click();
+  await weekdays.getByText('月', { exact: true }).click();
+  await page.getByRole('spinbutton', { name: '時', exact: true }).fill('18');
+  await page.getByRole('spinbutton', { name: '分', exact: true }).fill('45');
+  await expect(page.getByLabel('組み立てた式', { exact: true })).toHaveText('45 18 * * TUE-SAT');
+  await page.getByRole('button', { name: 'この式を入れる', exact: true }).click();
+  await expect(expression(page)).toHaveValue('45 18 * * TUE-SAT');
+  await expect(page.getByText('毎週火〜土曜日 18:45', { exact: true })).toBeVisible();
+  /** 形式を変えると、その形式の書き方で組み立てる（Quartz は秒と ?、曜日は名前で書くので数え方の違いに左右されない） */
+  await selectDialect(page, 'Quartz');
+  await expect(page.getByLabel('組み立てた式', { exact: true })).toHaveText('0 45 18 ? * TUE-SAT');
+  /** 範囲外の値は、理由を示して式を作らない */
+  await page.getByRole('spinbutton', { name: '時', exact: true }).fill('24');
+  await expect(page.getByText('時は 0〜23 の整数で指定してください', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'この式を入れる', exact: true })).toHaveCount(0);
 });
