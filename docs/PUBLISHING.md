@@ -159,6 +159,14 @@ git -c push.followTags=false push -u origin develop
 - [ ] **Pull Requests** で **Allow squash merging** だけを残す（`main` の履歴を、プルリクエスト1つにつき1つのコミットにするため）
 - [ ] **Automatically delete head branches** を有効にする（マージした作業ブランチを残さないため）
 
+**Releases（公開の節目ごと）**
+
+画面のサイドバーの一番下に「版：v0.1.0（abc1234）」を表示します（`src/buildInfo.ts`）。版は `package.json` の `version`、括弧の中は公開したコミットの先頭7文字です。不具合の報告（Issue のテンプレート）では、この表示を書いてもらいます。
+
+- [ ] 節目にする変更は、先に `package.json` の `version` を上げるプルリクエストを `main` にマージする（最初の節目は、今の `0.1.0` のままでよい）
+- [ ] **Releases → Draft a new release** で、`main` に `v<version>` のタグ（最初は `v0.1.0`）を作り、**Generate release notes** で本文を作る。分類は `.github/release.yml` で決めている
+- [ ] 公開した画面の版の表示が、作ったタグと同じであることを確かめる
+
 ## 9. 公開後の確認
 
 - [ ] 公開URLで開発者ツールの Console にエラー（`Refused to ...` を含む）が出ていないこと

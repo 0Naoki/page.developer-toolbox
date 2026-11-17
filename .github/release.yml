@@ -1,0 +1,18 @@
+# リリースノートの自動生成（Releases の「Generate release notes」）で、マージしたプルリクエストを分類する
+# リファレンス: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+#
+# - 分類は上から順に判定し、最初に当てはまった分類に入れる
+# - 依存関係の更新（Dependabot のプルリクエスト。既定で dependencies のラベルが付く）は除かず、分けて載せる。
+#   セキュリティ更新も含むため、どの版で依存を上げたかをリリースノートから追えるようにする
+changelog:
+  categories:
+    - title: セキュリティ
+      labels: [security]
+    - title: 不具合修正
+      labels: [bug]
+    - title: 新機能
+      labels: [enhancement]
+    - title: 依存関係の更新
+      labels: [dependencies]
+    - title: その他
+      labels: ['*']
