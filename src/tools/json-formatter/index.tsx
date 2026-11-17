@@ -5,7 +5,7 @@
  * - `TreeView.tsx`：ツリーの表示（開いた子だけを描画し、パスと値をコピーできる）
  * 構文木（元の表記を保つ解析）は src/lib/jsonTree.ts にある。
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pane } from '../../components/Pane';
 import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Notice } from '../../components/Notice';
@@ -25,6 +25,7 @@ import { attempt } from '../../lib/errors';
 import { parseJsonTree } from '../../lib/jsonTree';
 import { formatNumber } from '../../lib/number';
 import { MAX_TREE_INPUT } from './tree';
+import { takeHandoff } from '../../lib/handoff';
 import { TreeView } from './TreeView';
 
 type View = 'text' | 'tree';
@@ -38,6 +39,11 @@ export default function JsonFormatter() {
     setInput(value);
     setInputRevision((revision) => revision + 1);
   };
+  /** ほかのツールの「JSON整形で開く」から渡された値を、開いたときに1回だけ入れる（src/lib/handoff.ts） */
+  useEffect(() => {
+    const received = takeHandoff('json');
+    if (received !== null) replaceInput(received);
+  }, []);
   const [indent, setIndent] = usePreference<JsonIndent>('json:indent', 2, oneOf<JsonIndent>(2, 4, 'tab', 'minify'));
   const [sortKeys, setSortKeys] = usePreference('json:sort', false, isBoolean);
   const [view, setView] = usePreference<View>('json:view', 'text', oneOf<View>('text', 'tree'));

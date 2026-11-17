@@ -102,6 +102,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 件数の多い一覧 | `src/lib/listPreview.ts` の `previewList`・`src/components/ListRest.tsx` | `src/lib/listPreview.test.ts` |
 | エラーの表示 | `src/components/ErrorMessage.tsx` の `ErrorText`・`ErrorBox`（`children` には入力を含まないものだけを置く） | 静的検査（`error-text`・`error-box` のクラスを直接書かない） |
 | 案内・警告・判定の結果の表示 | `src/components/Notice.tsx`（入力を含む文言は `message` で渡し、`children` には置かない） | 静的検査（`notice` のクラスを直接書かない） |
+| ツール間の受け渡し | `src/lib/handoff.ts`（タブ内のメモリだけで1件を渡す。URL に載せない）・`src/components/OpenInToolButton.tsx`（「〇〇で開く」）。受け取る側は、画面を開いたときに `takeHandoff` で1回だけ受け取る | `src/lib/handoff.test.ts`・`e2e/tools.spec.ts` |
 | エラー・判定の結果の読み上げ | `src/components/LiveAnnouncer.tsx`（App に1つだけ置く読み上げの領域。`ErrorText`・`ErrorBox` は自動で読む。判定の結果は、同じ要素の文言が変わる `Notice` なら `role="status"` で示し、表示のたびに差し込むバッジなどは `useAnnounce` で読む） | `e2e/smoke.spec.ts` の「読み上げ」 |
 | エラー・警告・バッジ・見出しに入れる入力 | `src/lib/text/textPreview.ts` の `detailPreview`（作る側で抜粋にする。文言の途中の長い入力で、後ろの理由が表示の上限で切れるため） | `src/lib/text/textPreview.test.ts`・使う側の単体テスト |
 | 例外の文言 | `src/lib/errors.ts` の `errorMessage`（描画中の計算は `attempt`） | 静的検査（`(e as Error).message` を書かない）・`src/lib/errors.test.ts` |

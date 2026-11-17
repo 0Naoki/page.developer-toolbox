@@ -24,6 +24,7 @@ import { TextOutputPreview } from '../../components/FormattedOutput';
 import { ErrorBox } from '../../components/ErrorMessage';
 import { type Delimiter } from './csvFormat';
 import type { Direction } from './fileOptions';
+import { OpenInToolButton } from '../../components/OpenInToolButton';
 import { useCsvJson } from './useCsvJson';
 
 const DELIMITERS: { value: Delimiter; label: string }[] = [
@@ -190,6 +191,7 @@ export default function CsvJson() {
             <button type="button" className="btn btn-ghost" onClick={download}>
               保存
             </button>
+            {direction === 'csv2json' && <OpenInToolButton to="json" text={result.output} limit={MAX_CALCULATION_INPUT} />}
             <CopyButton text={result.output} />
           </>}
         >

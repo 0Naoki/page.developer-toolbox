@@ -30,6 +30,8 @@ import { previewList } from '../../lib/listPreview';
 import { ListRest } from '../../components/ListRest';
 import { TextOutputPreview } from '../../components/FormattedOutput';
 import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
+import { OpenInToolButton } from '../../components/OpenInToolButton';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { ClippedText } from '../../components/ClippedText';
 
 export default function JwtDecoder() {
@@ -158,6 +160,8 @@ function Decoded({ parsed }: { parsed: ParsedJwt }) {
 
       <VerifyPanel data={data} verification={verification} />
 
+      {/** トークンはどこにも保存しないが、JSON整形は入力をこのタブに保存する。渡す前に分かるようにする */}
+      <p className="hint">「JSON整形で開く」と、その内容は JSON整形の入力として、このタブを閉じるまで残ります（全消去でも消せます）。</p>
       <div className="split">
         <JsonPane title="ヘッダ" text={data.headerJson} />
         <JsonPane title="ペイロード" text={data.payloadJson} />
@@ -253,7 +257,10 @@ function VerifyPanel({ data, verification: v }: { data: DecodedJwt; verification
 
 function JsonPane({ title, text }: { title: string; text: string }) {
   return (
-    <Pane title={title} actions={<CopyButton text={text} />}>
+    <Pane title={title} actions={<>
+      <OpenInToolButton to="json" text={text} limit={MAX_CALCULATION_INPUT} />
+      <CopyButton text={text} />
+    </>}>
       {/** 長い JSON を丸ごと描画すると画面が止まるため、表示は先頭だけにする。コピーは全文を対象にする */}
       <TextOutputPreview label={title} text={text} as="pre" />
     </Pane>

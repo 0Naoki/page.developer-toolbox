@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - JSON整形・和暦・テキスト差分：JSON整形で値が変わらないこと（ツリー表示でも元の表記を保ち、値の場所と値をコピーできること）、1873年より前の生年月日でもエラーを表示して画面が消えないこと、比較結果が変わると展開した箇所を閉じること
+ * - JSON整形・和暦・テキスト差分：JSON整形で値が変わらないこと（ツリー表示でも元の表記を保ち、値の場所と値をコピーできること。ほかのツールの結果を URL に載せずに受け取り、二重に受け取らないこと）、1873年より前の生年月日でもエラーを表示して画面が消えないこと、比較結果が変わると展開した箇所を閉じること
  *   日本時間の誕生日とタブ復帰で空の基準日を更新し、明示した基準日は保つこと。
  * - UUID の形式と時刻：片側の括弧を拒否し、RFC 9562 の v6 の時刻を表示すること。v4 の時刻なしと v8 の解析未対応を区別し、不正な入力から復帰すること。
  * - 日本時間の日付・年の変更 × 誕生日・空の基準日・タブ復帰：空の基準日は新しい今日で判定し、入力した基準日・営業日の入力は保つ。年の選択範囲は新年に更新する（あわせて `e2e/business-days.spec.ts`）
@@ -109,4 +109,36 @@ test('JSON整形：ツリーで開いた値の場所（JSONPath）と、元の�
   /** テキストの表示に戻せる */
   await page.getByRole('group', { name: '表示', exact: true }).getByRole('button', { name: 'テキスト', exact: true }).click();
   await expect(tree).toHaveCount(0);
+});
+
+test('JSON整形で開く：JWT・Base64・CSV の結果を、URL に載せずに JSON整形の入力として開く', CROSS_BROWSER, async ({ page }) => {
+  const jsonInput = page.getByRole('textbox', { name: '入力', exact: true });
+  /** JWT のペイロード */
+  await page.goto('./#/jwt');
+  await page.getByRole('button', { name: 'サンプル', exact: true }).click();
+  await page.getByRole('region', { name: 'ペイロード', exact: true }).waitFor();
+  const payloadPane = page.locator('.pane').filter({ has: page.getByRole('region', { name: 'ペイロード', exact: true }) });
+  await payloadPane.getByRole('button', { name: 'JSON整形で開く', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('JSON整形');
+  await expect(jsonInput).toHaveValue(/"sub": "1234567890"/);
+  /** 渡した値は URL に載らない */
+  expect(new URL(page.url()).hash).toBe('#/json');
+  /** 戻ってからもう一度 JSON整形を開いても、同じ値を二重に受け取らない（今の入力のまま） */
+  await jsonInput.fill('{"edited":true}');
+  await page.goto('./#/base64');
+  await page.goto('./#/json');
+  await expect(jsonInput).toHaveValue('{"edited":true}');
+
+  /** Base64 をデコードしたテキスト */
+  await page.goto('./#/base64');
+  await page.getByRole('group', { name: '方向', exact: true }).getByRole('button', { name: 'デコード', exact: true }).click();
+  await page.getByRole('textbox', { name: '入力', exact: true }).fill('eyJiYXNlNjQiOnRydWV9');
+  await page.getByRole('button', { name: 'JSON整形で開く', exact: true }).click();
+  await expect(jsonInput).toHaveValue('{"base64":true}');
+
+  /** CSV から変換した JSON */
+  await page.goto('./#/csv');
+  await page.getByRole('button', { name: 'サンプル', exact: true }).click();
+  await page.getByRole('button', { name: 'JSON整形で開く', exact: true }).click();
+  await expect(jsonInput).toHaveValue(/"社員番号"/);
 });

@@ -36,6 +36,7 @@ import {
 import { type Direction, type Source } from './conversion';
 import { decodedResultText, presentResult, savedFileOf, type View } from './presentation';
 import { useBase64File } from './useBase64File';
+import { OpenInToolButton } from '../../components/OpenInToolButton';
 import { useBase64Conversion } from './useBase64Conversion';
 
 const MODES: { value: EncodeMode; label: string }[] = [
@@ -207,6 +208,7 @@ export default function Base64Tool() {
               </button>
             )}
             {/** 16進ダンプは表示と同じ先頭 HEX_DUMP_MAX までを作るため、コピーも表示中の範囲になる。全体は「ファイルに保存」で取り出す */}
+            {!showHex && direction === 'decode' && <OpenInToolButton to="json" text={outputText} limit={MAX_CALCULATION_INPUT} />}
             <CopyButton text={showHex ? dump : outputText} label={showHex ? '表示中のダンプをコピー' : 'コピー'} />
           </>}
         >
