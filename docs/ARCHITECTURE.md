@@ -92,7 +92,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 大容量の計算 | `src/hooks/useCalculation.ts`・`src/calculation/protocol.ts`・`src/lib/worker/calculationLimits.ts`（Worker の扱いは正規表現と共通の `src/hooks/useWorkerJob.ts`。流れは「[計算と表示の流れ](#計算と表示の流れ)」） | 静的検査（`runWorker` を `useWorkerJob` の外で呼ばない。振り分けを Worker の入口の外で読み込まない）・`src/calculation/handlers.test.ts`・`src/lib/worker/runWorker.test.ts` |
 | 画面の非同期の結果（署名の検証・指紋・ハッシュなど） | `src/hooks/useAsyncFor.ts`（計算処理に渡す型は `src/lib/asyncContext.ts` の `AsyncContext`） | 静的検査（取り消しの印 `cancelled` を画面で直接持たない） |
 | ファイルの読み込み | `src/hooks/useFileLoader.ts`（ツールの画面の入口）・`src/lib/file.ts`（`readFileWithin`・上限超過と読み込み失敗の文言） | 静的検査（`arrayBuffer` と上限超過の文言を直接書かない）・`src/lib/file.test.ts` |
-| テキストの行 | `src/lib/text/lines.ts`（`splitLines`。CRLF・LF・CR とその混在を区切りにする） | 静的検査（`split` に改行を直接渡さない）・`src/lib/text/lines.test.ts` |
+| テキストの行 | `src/lib/text/lines.ts`（`splitLines`。CRLF・LF・CR とその混在を区切りにする。行の文字列を作らずに走査するときは、同じ規則の `eachLineRange`（行の範囲）・`endsLineAt`（位置で行が終わるか）） | 静的検査（`split` に改行を直接渡さない）・`src/lib/text/lines.test.ts` |
 | UTF-8 にできない文字の検出 | `src/lib/text/surrogate.ts`（`findLoneSurrogate`・`describeAt`・`replacementWarning`。拒否と警告の使い分けは [USAGE.md](USAGE.md#utf-8に変換できない文字)） | 使う側の単体テスト（CSV・Base64・ハッシュ・署名） |
 | 長い出力の表示 | `src/components/FormattedOutput.tsx` の `TextOutputPreview` | 静的検査（ツールの画面で `textPreview` を直接呼ばない。差分の行は除く） |
 | 長い1つの値（表のマス・一覧の項目） | `src/components/ClippedText.tsx` | E2E |

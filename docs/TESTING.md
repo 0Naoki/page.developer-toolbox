@@ -131,7 +131,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | 離れていた間の全消去 | `e2e/storage.spec.ts`・`src/lib/storage/index.test.ts`・`src/lib/storage/clear.test.ts` |
 | 表示設定の保存 | `e2e/security.spec.ts` |
 | 古いキーの整理 | `src/lib/storage/index.test.ts`・`src/lib/storage/preferences.test.ts`・`src/registry.test.ts`・`e2e/storage.spec.ts` |
-| 保存失敗・編集 | `e2e/edit-storage.spec.ts` |
+| 保存失敗・編集 | `e2e/edit-storage.spec.ts`・`src/lib/text/textEdit.test.ts` |
 
 ### 大容量の計算と表示
 

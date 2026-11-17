@@ -1,5 +1,6 @@
 /** 数値・文字列・重複キーを元の表記で保持するJSON構文木。 */
 import { detailPreview } from './text/textPreview';
+import { endsLineAt } from './text/lines';
 
 export type JsonNode =
   | { kind: 'object'; entries: { key: string; name: string; value: JsonNode }[] }
@@ -209,13 +210,10 @@ export function serializeJsonTree(node: JsonNode, unit: string | null, sortKeys:
 }
 
 /**
- * i の文字で行が終わるか。CR・LF・CRLF をどれも1つの改行として数える（CRLF は LF の位置で数える）。
+ * i の文字で行が終わるか。CR・LF・CRLF をどれも1つの改行として数える（lib/text/lines.ts の endsLineAt）。
  * 入力を正規化せずに行番号を求めるため、エラーの位置と重複キーの警告で共通に使う
  */
-function endsLine(text: string, i: number): boolean {
-  const c = text.charCodeAt(i);
-  return c === 10 || (c === 13 && text.charCodeAt(i + 1) !== 10);
-}
+const endsLine = endsLineAt;
 
 /** pos の位置の行と列（どちらも1から）。列はコードポイントで数える */
 export function lineColumn(text: string, pos: number): { line: number; column: number } {

@@ -7,25 +7,38 @@ function sourceOffset(text: string, position: number): number {
   return offset;
 }
 
-/** 改行を保持して置換し、textarea 上で挿入直後になる位置も返す。 */
-export function replaceTextSelectionWithCaret(text: string, start: number, end: number, inserted: string): { value: string; caret: number } {
-  const before = text.slice(0, sourceOffset(text, start));
-  const after = text.slice(sourceOffset(text, end));
-  /** 別々の改行が境界でCRLFに結合しないよう、必要な箇所だけCRLFにそろえる。 */
+/**
+ * 置換の前・挿入する文字列・後ろをつなぐ。つなぎ目で、CR の改行と LF の改行が1つの CRLF に結合して改行が1つ消えないよう、
+ * 必要な箇所だけ CRLF にそろえる（CR + CRLF、CRLF + LF にする）。2つの置換（貼り付け・入力欄の編集）で共通に使う。
+ *
+ * @returns prefix は、挿入した文字列の終わりまで（挿入直後の位置を求めるため）。全体は prefix + after。
+ */
+function joinKeepingLineBreaks(before: string, inserted: string, after: string): { prefix: string; after: string } {
   const pasted = before.endsWith('\r') && inserted.startsWith('\n') ? '\r' + inserted : inserted;
   let prefix = before + pasted;
   if (prefix.endsWith('\r') && after.startsWith('\n')) prefix += '\n';
+  return { prefix, after };
+}
+
+/** 改行を保持して置換し、textarea 上で挿入直後になる位置も返す。 */
+export function replaceTextSelectionWithCaret(text: string, start: number, end: number, inserted: string): { value: string; caret: number } {
+  const { prefix, after } = joinKeepingLineBreaks(text.slice(0, sourceOffset(text, start)), inserted, text.slice(sourceOffset(text, end)));
   return { value: prefix + after, caret: prefix.replace(/\r\n?/g, '\n').length };
 }
 
 export type TextEditSelection = { start: number; end: number; inputType: string };
 
 function replaceNativeSelection(text: string, start: number, end: number, inserted: string): string {
-  const prefix = text.slice(0, sourceOffset(text, start));
+  const before = text.slice(0, sourceOffset(text, start));
   const suffix = text.slice(sourceOffset(text, end));
-  /** 既存の CR と新しい LF が結合して、Enter の1行分が失われるのを防ぐ。 */
-  if (inserted === '\n' && prefix.endsWith('\r')) inserted = suffix.startsWith('\n') ? '\r\n' : '\r';
-  return prefix + inserted + suffix;
+  /** CR の改行の後ろで Enter を押したときは、新しい改行も同じ CR にそろえる */
+  if (inserted === '\n' && before.endsWith('\r')) inserted = suffix.startsWith('\n') ? '\r\n' : '\r';
+  /**
+   * 改行で始まる文字列の貼り付けや、CR の改行と LF の改行の間の文字の削除でも、つなぎ目で CRLF に結合させない
+   * （以前は Enter の1文字だけを扱っていたため、これらの操作で行が1つ消えていた）
+   */
+  const { prefix, after } = joinKeepingLineBreaks(before, inserted, suffix);
+  return prefix + after;
 }
 
 /** beforeinput の選択位置を優先し、同じ見た目の改行が続く場合も実際の編集範囲を使う。 */
