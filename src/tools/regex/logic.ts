@@ -1,4 +1,5 @@
 import { errorMessage } from '../../lib/errors';
+import { detailPreview } from '../../lib/text/textPreview';
 import type { SettingValidator } from '../../lib/settings';
 
 /** 画面で選べるフラグ（d は一致の位置を得るため、計算のときに付ける） */
@@ -98,6 +99,29 @@ export function validateRegexInputSize({ pattern, text, replacement }: RegexInpu
   if (replacement.length > MAX_TEXT) throw new Error(`置換文字列は${MAX_TEXT / 10_000}万文字までです`);
 }
 
+/**
+ * 正規表現を作る。書き方の誤りは、理由を先に、パターンは抜粋にした文言の例外にする。
+ *
+ * @remarks
+ * Chromium のエラーは「Invalid regular expression: /パターン全文/フラグ: 理由」の形で、パターンが長いと、
+ * 表示の上限（limitMessage）で末尾の理由が切れて見えなくなる。ブラウザによってはパターンを含まないため、
+ * 決まった形のときだけ理由を取り出し、それ以外もパターンの全文は抜粋に置き換える。
+ */
+function compileRegex(pattern: string, flags: string): RegExp {
+  try {
+    return new RegExp(pattern, flags);
+  } catch (e) {
+    const message = errorMessage(e);
+    /** フラグの並び順はエンジンが並べ直すことがあるため、パターンの後ろの「フラグ: 」までを読み飛ばす */
+    const prefix = `Invalid regular expression: /${pattern}/`;
+    const afterFlags = message.startsWith(prefix) ? /^[a-z]*: /.exec(message.slice(prefix.length)) : null;
+    const reason = afterFlags
+      ? message.slice(prefix.length + afterFlags[0].length)
+      : pattern !== '' && message.includes(pattern) ? message.split(pattern).join(detailPreview(pattern)) : message;
+    throw new Error(`正規表現の書き方に誤りがあります：${detailPreview(reason)}（正規表現：${detailPreview(pattern)}）`);
+  }
+}
+
 /** 時間のかかる式に備え、画面からは Worker 内で呼ぶ。 */
 export function evaluateRegex(input: RegexInput, timeBudgetMs = TIME_BUDGET_MS): RegexResult {
   try {
@@ -105,7 +129,7 @@ export function evaluateRegex(input: RegexInput, timeBudgetMs = TIME_BUDGET_MS):
     const { pattern, flags, text, replacement } = input;
     if (!/^[dgimsuy]*$/.test(flags)) throw new Error('使用できるフラグは d・g・i・m・s・u・y です');
     /** d により、未参加のキャプチャと空文字のキャプチャを区別し、位置も取得する。 */
-    const regex = new RegExp(pattern, flags.includes('d') ? flags : flags + 'd');
+    const regex = compileRegex(pattern, flags.includes('d') ? flags : flags + 'd');
     const matches: Match[] = [];
     const output: string[] = [];
     let outputLength = 0;

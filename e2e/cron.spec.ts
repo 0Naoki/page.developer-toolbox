@@ -3,6 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - Kubernetesのcron式：単一値からの間隔、?、曜日の範囲、日と曜日のORを検証し、標準形式との差と再読み込み後の形式を保つこと。Date の上限の直前を基準にしても、範囲外の候補を試し続けずに探索を終えること（あわせて `src/tools/cron/logic.test.ts`）
+ * - cron の実行日時の貼り戻し：日本時間の列（曜日の添え書き付き）も、ほかのタイムゾーンの列（オフセット付き）も、基準日時に貼り戻すと同じ時刻として読むこと。曜日が日付と合わなければ拒否すること（あわせて `src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts`）
  * - Date の範囲より前の現地日付 × cron の曜日判定：最初の実行を飛ばさず、現地日付と日本時間の曜日を表示する（あわせて `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`）
  */
 import { expect, test } from './fixtures';
@@ -21,7 +22,7 @@ test('cron式：日時の下限付近でも現地日付の最初の実行と曜�
   await page.getByLabel('式を読むタイムゾーン', { exact: true }).selectOption('America/Phoenix');
   await page.getByLabel('基準日時', { exact: true }).fill('-271821-04-20T00:00:00.000Z');
   await expression(page).fill('0 17 * * *');
-  await expect(runs(page).nth(1)).toContainText('-271821-04-19 17:00:00（月）');
+  await expect(runs(page).nth(1)).toContainText('-271821-04-19 17:00:00 -07:28:18（月）');
   await expect(runs(page).nth(1)).toContainText('-271821-04-20 09:47:17（火）');
 });
 
@@ -65,7 +66,7 @@ test('cron式：EventBridge は cron(...) の書き方と年を読み、UTC の�
   await expect(page.getByText('毎週月〜金曜日 09:00', { exact: true })).toBeVisible();
   /** 基準日時は JST の 12:00（UTC の 03:00）。同じ日の UTC 09:00 が最初 */
   await expect(runs(page).nth(1)).toContainText('2026-10-02 18:00:00（金）');
-  await expect(runs(page).nth(1)).toContainText('2026-10-02 09:00:00（金）');
+  await expect(runs(page).nth(1)).toContainText('2026-10-02 09:00:00 +00:00（金）');
   await expect(runs(page).nth(2)).toContainText('2026-10-05 18:00:00（月）');
 
   await expression(page).fill('0 12 L * ? 2027');
@@ -75,6 +76,27 @@ test('cron式：EventBridge は cron(...) の書き方と年を読み、UTC の�
 
   await expression(page).fill('@daily');
   await expect(page.getByRole('alert')).toHaveText('@daily などのマクロは標準の cron と Kubernetes で使えます');
+});
+
+test('回帰：cron式：次回の実行日時（日本時間・ほかのタイムゾーンの列）を基準日時に貼り戻せる', CROSS_BROWSER, async ({ page }) => {
+  /** 曜日の添え書きで読めず、ほかのタイムゾーンの列はオフセットがないため日本時間として読み、時刻がずれていた */
+  await page.goto('./#/cron');
+  await page.getByLabel('式を読むタイムゾーン', { exact: true }).selectOption('UTC');
+  const base = page.getByRole('textbox', { name: '基準日時', exact: true });
+  await base.fill('2026-10-02 12:00');
+  await expression(page).fill('0 9 * * 1-5');
+  const third = (await runs(page).nth(3).getByRole('cell').first().textContent()) ?? '';
+  expect(third).toBe('2026-10-06 18:00:00（火）');
+  /** 日本時間の列：貼り戻すと、その次の実行が先頭になる */
+  await base.fill((await runs(page).nth(2).getByRole('cell').first().textContent()) ?? '');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(runs(page).nth(1).getByRole('cell').first()).toHaveText(third);
+  /** UTC の列（オフセット付き）：同じ時刻として読む */
+  await base.fill('2026-10-02 12:00');
+  await expect(runs(page).nth(2).getByRole('cell').nth(1)).toHaveText('2026-10-05 09:00:00 +00:00（月）');
+  await base.fill('2026-10-05 09:00:00 +00:00（月）');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(runs(page).nth(1).getByRole('cell').first()).toHaveText(third);
 });
 
 test('cron式：Kubernetes の単一値からの間隔を計算し、形式を再読み込み後も保つ', CROSS_BROWSER, async ({ page }) => {

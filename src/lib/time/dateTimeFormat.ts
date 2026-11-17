@@ -53,8 +53,14 @@ export function formatInZone(date: Date, zone: Zone): string {
 /** 日本時間の「2026-10-02 09:00:00」の形（末尾に「JST」は付けない。見出しや表の列で JST と示す画面向け） */
 export const formatJst = (date: Date): string => formatInZone(date, JST_ZONE);
 
-/** 日本時間の「2026-10-02 09:00:00 JST」の形（1つの値だけで日本時間と分かるように示す画面向け） */
-export const formatJstLabeled = (date: Date): string => `${formatJst(date)} JST`;
+/**
+ * 日本時間の「2026-10-02 09:00:00 JST」の形（1つの値だけで日本時間と分かるように示す画面向け）。
+ * withMillis ならミリ秒も付ける（「09:00:00.123 JST」。showsMillis で決める）
+ */
+export const formatJstLabeled = (date: Date, withMillis = false): string => {
+  const millis = withMillis ? `.${String(((date.getTime() % 1000) + 1000) % 1000).padStart(3, '0')}` : '';
+  return `${formatJst(date)}${millis} JST`;
+};
 
 /**
  * 日時の表示にミリ秒を含めるか。画面・一括変換のどちらもこれで決める。

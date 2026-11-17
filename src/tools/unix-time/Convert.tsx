@@ -9,6 +9,7 @@ import { parseDateTime } from '../../lib/time/dateTimeInput';
 import { hasWrittenFraction, showsMillis } from '../../lib/time/dateTimeFormat';
 import { ViewTable, ZoneSelect, zoneRows, type ZoneProps } from './parts';
 import { ErrorText } from '../../components/ErrorMessage';
+import { Notice } from '../../components/Notice';
 import { attempt } from '../../lib/errors';
 
 /** エポック時間と日時の相互変換のパネル */
@@ -37,7 +38,7 @@ export function Convert({ now, zones, inputZone, inputZones, setZone }: ZoneProp
 
   /** 入力の解析は編集時だけ行い、毎秒の更新では相対時間を含む表示だけを作り直す。 */
   const fromEpoch = useMemo(() => parsedEpoch?.ok
-    ? attempt(() => ({ date: parsedEpoch.date, unit: parsedEpoch.unit, view: toView(parsedEpoch.date, now) }))
+    ? attempt(() => ({ date: parsedEpoch.date, unit: parsedEpoch.unit, alternative: parsedEpoch.alternative, view: toView(parsedEpoch.date, now) }))
     : parsedEpoch, [parsedEpoch, now]);
   const fromDate = useMemo(() => parsedDate?.ok
     ? attempt(() => ({ date: parsedDate.date, view: toView(parsedDate.date, now) }))
@@ -69,6 +70,15 @@ export function Convert({ now, zones, inputZone, inputZones, setZone }: ZoneProp
               ['相対', fromEpoch.view.relative],
             ]}
           />
+        )}
+        {/** 桁数だけでは単位を決めきれない（1973〜2001年のミリ秒は12桁で、秒として読むと西暦2万年台になる） */}
+        {fromEpoch?.ok && fromEpoch.alternative && (
+          <Notice tone="warn">
+            桁数から{UNIT_LABELS[fromEpoch.unit]}として読みました。{UNIT_LABELS[fromEpoch.alternative]}の値なら、単位を選んでください。
+            <button type="button" className="link-btn" onClick={() => setUnit(fromEpoch.alternative ?? 'auto')}>
+              {UNIT_LABELS[fromEpoch.alternative]}として読む
+            </button>
+          </Notice>
         )}
       </Pane>
 

@@ -149,17 +149,18 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | CSVの読込・編集 | `e2e/csv-file-edit.spec.ts` |
 | CSV変換 | `src/tools/csv-json/logic.test.ts`・`src/tools/csv-json/parseCsv.test.ts`・`src/tools/csv-json/writeCsv.test.ts`・`src/tools/csv-json/roundTrip.test.ts`・`src/tools/csv-json/csvFormat.test.ts`・`e2e/csv.spec.ts`・`e2e/calculation.spec.ts` |
 | Base64 | `src/tools/base64/conversion.test.ts`・`src/tools/base64/presentation.test.ts`・`e2e/base64.spec.ts` |
-| 正規表現 | `e2e/regex.spec.ts` |
+| 正規表現 | `e2e/regex.spec.ts`・`src/tools/regex/logic.test.ts` |
 | ハッシュ | `e2e/hash.spec.ts` |
 | JWT | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts` |
 | 証明書 | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts` |
 | JSON整形・和暦・テキスト差分 | `e2e/tools.spec.ts` |
 | 独自休日の診断 | `src/tools/business-days/logic.test.ts` |
-| UNIX時間の入力単位 | `e2e/unix-time.spec.ts` |
+| UNIX時間の入力単位 | `e2e/unix-time.spec.ts`・`src/tools/unix-time/logic.test.ts` |
 | 日時の拡張年と往復 | `src/lib/time/dateTimeInput.test.ts`・`e2e/unix-time.spec.ts` |
 | UNIX時間の期間計算 | `src/tools/unix-time/logic.test.ts`・`src/lib/time/civilTime.test.ts`・`e2e/unix-time.spec.ts` |
 | 営業日の期間集計 | `src/tools/business-days/logic.test.ts`・`e2e/business-days.spec.ts` |
 | Kubernetesのcron式 | `src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
+| cron の実行日時の貼り戻し | `e2e/cron.spec.ts`・`src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts` |
 | UUID v7・ULID の生成順 | `src/tools/uuid/logic.test.ts` |
 | UUID の形式と時刻 | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |
 | サブネット | `e2e/subnet.spec.ts`・`src/tools/subnet/ipv4.test.ts`・`src/tools/subnet/ipv6.test.ts` |

@@ -1,6 +1,7 @@
 /** 検査の対象：parse.ts・describe.ts・nextRuns.ts（このツールに logic.ts はない）（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
 import { describe, expect, it } from 'vitest';
 import { formatInZone } from '../../lib/time/dateTimeFormat';
+import { parseDateTime } from '../../lib/time/dateTimeInput';
 import { limitMessage } from '../../lib/text/textPreview';
 import { cronWarnings, describeCron, fieldRows } from './describe';
 import { formatRun, nextRuns } from './nextRuns';
@@ -262,6 +263,19 @@ describe('formatRun', () => {
     expect(formatRun(ms, 'UTC')).toBe(`${formatInZone(new Date(ms), 'UTC')}（日）`);
     expect(formatRun(ms, JST)).toContain('2026-10-05');
     expect(formatRun(ms, 'UTC')).toContain('2026-10-04');
+  });
+
+  it('回帰：表示した次回の実行日時を、基準日時（日本時間として読む）に貼り戻しても同じ時刻になる', () => {
+    /** 曜日の添え書きで読めず、日本時間以外の列はオフセットがないため、日本時間として読んで時刻がずれていた */
+    const ms = at('2026-10-04T15:30:00Z');
+    expect(parseDateTime(formatRun(ms, JST), JST).getTime()).toBe(ms);
+    /** コピーのボタンの形（「…（月） JST」） */
+    expect(parseDateTime(`${formatRun(ms, JST)} JST`, JST).getTime()).toBe(ms);
+    for (const zone of ['UTC', 'America/New_York', 'Asia/Kolkata']) {
+      const shown = formatRun(ms, zone, true);
+      expect(parseDateTime(shown, JST).getTime(), shown).toBe(ms);
+    }
+    expect(formatRun(ms, 'America/New_York', true)).toBe('2026-10-04 11:30:00 -04:00（日）');
   });
 });
 

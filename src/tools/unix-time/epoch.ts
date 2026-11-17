@@ -12,6 +12,21 @@ function unitOf(digits: number): EpochUnit {
 }
 
 /**
+ * 桁数だけでは単位を決めきれないときの、もう1つの読み方（1つ細かい単位）。
+ *
+ * @remarks
+ * 自動の判定は、今の時刻に近い値の桁数（秒10桁・ミリ秒13桁・マイクロ秒16桁・ナノ秒19桁）を基準にする。
+ * その間の桁数（11〜12桁など）は、遠い将来の粗い単位とも、過去の細かい単位とも読める。
+ * たとえば 1973〜2001年のミリ秒は12桁で、秒として読むと西暦2万年台になる。
+ */
+function alternativeUnitOf(digits: number): EpochUnit | undefined {
+  if (digits === 11 || digits === 12) return 'ms';
+  if (digits === 14 || digits === 15) return 'us';
+  if (digits === 17 || digits === 18) return 'ns';
+  return undefined;
+}
+
+/**
  * 数値文字列をエポック時間として解釈する。
  * マイクロ秒（Python の time_ns() // 1000、PostgreSQL など）やナノ秒（Go の UnixNano など）を
  * ミリ秒として読むと西暦5万年のような日時になるため、桁数で単位を判定する。
@@ -21,8 +36,10 @@ function unitOf(digits: number): EpochUnit {
  * 秒は文字列から整数のミリ秒を組み立て、マイクロ秒・ナノ秒は末尾の桁を除いてミリ秒にする。
  * 範囲を文字列の桁数と辞書順で確認してから Number にし、巨大な範囲外値から BigInt を作らない。
  * ミリ秒未満は、Date と同じく 0 の方向へ切り捨てる
+ *
+ * @returns 日時と、読んだ単位。自動の判定で、桁数だけでは単位を決めきれないときは、もう1つの読み方（alternative）も返す
  */
-export function parseEpoch(input: string, selectedUnit: EpochUnit | 'auto' = 'auto'): { date: Date; unit: EpochUnit } {
+export function parseEpoch(input: string, selectedUnit: EpochUnit | 'auto' = 'auto'): { date: Date; unit: EpochUnit; alternative?: EpochUnit } {
   const s = input.trim();
   const m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(s);
   if (!m) throw new Error('数値を入力してください');
@@ -45,7 +62,8 @@ export function parseEpoch(input: string, selectedUnit: EpochUnit | 'auto' = 'au
     throw new Error('日時に変換できない値です');
   }
   const date = new Date(Number(sign + millis));
-  return { date, unit };
+  const alternative = selectedUnit === 'auto' ? alternativeUnitOf(digits.length) : undefined;
+  return alternative ? { date, unit, alternative } : { date, unit };
 }
 
 /** エポック時間の入力が、ミリ秒以上の精度で書かれているか（ミリ秒以下の単位、または秒の小数部） */

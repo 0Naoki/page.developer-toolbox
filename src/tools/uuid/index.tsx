@@ -4,7 +4,7 @@ import { Segmented } from '../../components/Segmented';
 import { ToolShell } from '../../components/ToolShell';
 import { usePreference } from '../../hooks/usePreference';
 import { isBoolean, oneOf } from '../../lib/settings';
-import { formatJstLabeled } from '../../lib/time/dateTimeFormat';
+import { formatJstLabeled, showsMillis } from '../../lib/time/dateTimeFormat';
 import { createSortableIdGenerators, inspectId, uuidV4 } from './logic';
 import { ErrorText } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
@@ -134,7 +134,7 @@ export default function UuidTool() {
               <th>生成日時</th>
               <td className="mono">
                 {inspection.info.timeStatus === 'decoded'
-                  ? `${formatJstLabeled(new Date(inspection.info.time))}（${inspection.info.time}）`
+                  ? `${formatJstLabeled(new Date(inspection.info.time), showsMillis(new Date(inspection.info.time)))}（${inspection.info.time}）`
                   : inspection.info.timeStatus === 'absent' ? 'このバージョンは時刻を含みません' : 'この形式の時刻解析には未対応です'}
               </td>
             </tr>

@@ -2,7 +2,8 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - UNIX時間の入力単位：`1500` の自動判定と、ミリ秒を明示したときの表示を切り替えられること。パネルの移動と再読み込みで単位が「自動」に戻らず、同じ時刻のままであること
+ * - UNIX時間の入力単位：`1500` の自動判定と、ミリ秒を明示したときの表示を切り替えられること。パネルの移動と再読み込みで単位が「自動」に戻らず、同じ時刻のままであること。
+ *   12桁のミリ秒（`631152000000`）など、桁数だけでは単位を決めきれない値は、読んだ単位を示し、もう1つの単位で読み直せること（あわせて `src/tools/unix-time/logic.test.ts`）
  * - 日時の拡張年と往復：符号付き6桁の年のISO出力を読み戻せること。Dateの両端・うるう年・不正な年の表記を検証すること。Dateの両端・10000年・紀元前で、オフセット付きの表示が NaN にならず、
  *   日時入力で同じ時刻に読み戻せること。1秒未満の端数がある時刻は、入力の単位に関係なく各タイムゾーンの表示に端数を残し、貼り戻しても同じ時刻になること（あわせて `src/lib/time/dateTimeInput.test.ts`）
  * - UNIX時間の期間計算：大きな値の加減算で差の1ミリ秒を丸めないこと。UTC・正の時差・負の時差で、暦日を足し引きして Date の上限・下限に到達できること、年・月の加算でも上限に到達できること。
@@ -96,6 +97,18 @@ test('UNIX時間：短い数値をミリ秒として明示できる', CROSS_BROW
   await page.reload();
   await expect(unit).toHaveValue('ms');
   await expect(page.getByText('1970-01-01T00:00:01.500Z', { exact: true })).toBeVisible();
+});
+
+test('回帰：UNIX時間：12桁のミリ秒は、秒として読んだことを示し、ミリ秒として読み直せる', CROSS_BROWSER, async ({ page }) => {
+  /** 1990-01-01 のミリ秒（12桁）を、案内なく秒として読み、西暦2万年台の日時だけを表示していた */
+  await page.goto('./#/time');
+  await page.getByLabel('エポック時間（秒・ミリ秒・マイクロ秒・ナノ秒）').fill('631152000000');
+  await expect(page.getByText('桁数から秒として読みました。ミリ秒の値なら、単位を選んでください。')).toBeVisible();
+  await page.getByRole('button', { name: 'ミリ秒として読む', exact: true }).click();
+  await expect(page.getByLabel('エポック入力の単位')).toHaveValue('ms');
+  await expect(page.getByText('1990-01-01T00:00:00.000Z', { exact: true })).toBeVisible();
+  /** 単位を選んだ後は、案内を出さない */
+  await expect(page.getByText('桁数から秒として読みました', { exact: false })).toHaveCount(0);
 });
 
 test('UNIX時間：不正な単位の保存値は自動に戻す', async ({ page }) => {

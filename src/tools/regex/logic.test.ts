@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateRegex, isStoredFlags, MAX_MATCHES, MAX_OUTPUT, MAX_PATTERN, MAX_TEXT, type RegexInput } from './logic';
+import { limitMessage, MESSAGE_LIMIT } from '../../lib/text/textPreview';
 
 const run = (patch: Partial<RegexInput> = {}) => evaluateRegex({ pattern: '(a)', flags: 'g', text: 'aba', replacement: '[$1]', ...patch });
 
@@ -44,6 +45,22 @@ describe('正規表現のマッチとキャプチャ', () => {
     expect(run({ pattern: 'a'.repeat(MAX_PATTERN + 1) })).toMatchObject({ ok: false });
     expect(run({ replacement: 'a'.repeat(MAX_TEXT + 1) })).toMatchObject({ ok: false });
     expect(run({ pattern: '()'.repeat(51), text: '' })).toMatchObject({ ok: false });
+  });
+
+  it('回帰：長い正規表現の書き方の誤りでも、理由を表示の上限で切らない', () => {
+    /** エンジンのエラーにパターンの全文が先に入り、表示の上限で末尾の理由が切れていた */
+    const pattern = `(${'a'.repeat(5_000)}`;
+    const r = run({ pattern, text: 'a' });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    const shown = limitMessage(r.error);
+    expect(shown).toContain('正規表現の書き方に誤りがあります');
+    /** 理由（Chromium・Node は「Unterminated group」）が、表示する文言の中に残る */
+    expect(shown).toContain('Unterminated group');
+    expect(r.error.length).toBeLessThanOrEqual(MESSAGE_LIMIT);
+    /** 短い正規表現は、全文をそのまま示す */
+    const short = run({ pattern: 'a{2,1}', text: 'a' });
+    expect(!short.ok && short.error).toBe('正規表現の書き方に誤りがあります：numbers out of order in {} quantifier（正規表現：a{2,1}）');
   });
 
   it('表示は先頭だけに制限し、置換はすべてのマッチに適用する', () => {

@@ -1,10 +1,20 @@
 /** 日時の入力の解析。表示した日時（dateTimeFormat.ts）を入力に貼り戻すと、同じ時刻に読む。 */
-import { daysInMonth } from './date';
+import { dayOfWeek, daysInMonth, WEEKDAYS_JA } from './date';
 import { checked, isValidZone, utcOf, zonedToUtc, type Wall, type Zone } from './timezone';
 
-/** 日時文字列を解釈する。秒付きのオフセット（+09:18:59）も読める。指定がなければ zone の時刻として解釈する。 */
+/** 表示に添えた曜日（「（月）」「(月)」）。cron の次回の実行日時などの表示を、そのまま貼り戻せるようにする */
+const WEEKDAY_NOTE = /\s*[（(]([日月火水木金土])[)）]\s*/;
+
+/**
+ * 日時文字列を解釈する。秒付きのオフセット（+09:18:59）も読める。指定がなければ zone の時刻として解釈する。
+ * 曜日（「（月）」）が添えてあれば、書かれた日付の曜日と一致するかを確かめる（合わなければ、日付か曜日の書き誤り）。
+ */
 export function parseDateTime(input: string, zone: Zone): Date {
-  const s = input.trim().replace(/\//g, '-');
+  const weekdayNote = WEEKDAY_NOTE.exec(input);
+  const weekday = weekdayNote?.[1];
+  const s = (weekdayNote ? `${input.slice(0, weekdayNote.index)} ${input.slice(weekdayNote.index + weekdayNote[0].length)}` : input)
+    .trim()
+    .replace(/\//g, '-');
   const m = /^(\d{4}|[+-]\d{6})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(\.\d+)?)?)?\s*(Z|UTC|GMT|JST|[+-]\d{2}(?::\d{2}(?::\d{2})?|\d{2})?)?$/i.exec(s);
   /** 時刻のない「2026-1-5-09」の -09 は、オフセットとは読まない */
   if (!m || (!m[4] && /^[+-]\d{2}$/.test(m[8] ?? ''))) throw new Error('「2026-10-02 15:30:00」「2026-10-02 15:30:00 +09:00」やISO8601形式で入力してください');
@@ -17,6 +27,9 @@ export function parseDateTime(input: string, zone: Zone): Date {
     throw new Error('存在しない日付です');
   }
   if (Number(h) > 23 || Number(mi) > 59 || Number(sec) > 59) throw new Error('存在しない時刻です');
+  if (weekday !== undefined && WEEKDAYS_JA[dayOfWeek({ y: Number(y), m: month, d: Number(d) })] !== weekday) {
+    throw new Error(`曜日（${weekday}）が日付と合いません`);
+  }
   const wall: Wall = { y: Number(y), mo: month, d: Number(d), h: Number(h), mi: Number(mi), s: Number(sec), ms: Number(frac.slice(1, 4).padEnd(3, '0')) };
   if (tz) {
     if (/^[a-z]/i.test(tz)) return checked(utcOf(wall) - (tz.toUpperCase() === 'JST' ? 540 : 0) * 60000);
