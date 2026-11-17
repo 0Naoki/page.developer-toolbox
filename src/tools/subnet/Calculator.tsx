@@ -3,6 +3,7 @@ import { Badge } from '../../components/Badge';
 import { Notice } from '../../components/Notice';
 import { KvRow } from '../../components/KvRow';
 import { useInput } from '../../hooks/useInput';
+import { useAnnounce } from '../../components/LiveAnnouncer';
 import { binaryOf, contains, formatIpv4, kindOf, parseIpv4, parseNetwork, subnetInfo, type ParsedNetwork } from './ipv4';
 import { binaryOf6, contains6, expandIpv6, formatCount, formatIpv6, kindOf6, parseIpv6, parseNetwork6, subnetInfo6 } from './ipv6';
 import { cidr } from './format';
@@ -39,6 +40,8 @@ export function Calculator({ cloud }: { cloud: boolean }) {
     if (!check.trim() || !target) return null;
     return attempt(() => ({ inside: target.inside(check) }));
   }, [target, check]);
+  /** 判定の結果（バッジ）を読み上げる */
+  useAnnounce(checked?.ok ? `${target?.label ?? ''} に${checked.inside ? '含まれます' : '含まれません'}` : null);
 
   return (
     <>

@@ -153,7 +153,7 @@ export default function HashTool() {
         />
       </label>
       {expected.trim() && rows.length > 0 && (
-        <Notice tone={matched ? 'good' : 'bad'} message={matched ? `✓ ${matched.algorithm} の値と一致しました` : '✗ どのアルゴリズムの値とも一致しません'} />
+        <Notice tone={matched ? 'good' : 'bad'} role="status" message={matched ? `✓ ${matched.algorithm} の値と一致しました` : '✗ どのアルゴリズムの値とも一致しません'} />
       )}
 
       {needsKey && <Notice tone="warn">HMAC の秘密鍵を入力してください</Notice>}

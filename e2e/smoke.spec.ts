@@ -88,3 +88,33 @@ test.describe('サンプルの入力', () => {
     await noError(page);
   });
 });
+
+/** エラーと判定の結果を、画面に1つだけある読み上げの領域（aria-live）で、入力が止まってから読む（src/components/LiveAnnouncer.tsx） */
+test.describe('読み上げ', () => {
+  const liveRegion = (page: import('@playwright/test').Page) => page.locator('[data-live-region]');
+
+  test('入力のエラーを、入力が止まってから読み上げる', async ({ page }) => {
+    await page.goto('./#/radix');
+    await expect(liveRegion(page)).toHaveAttribute('aria-live', 'polite');
+    await page.getByRole('textbox', { name: '10進数', exact: true }).fill('12x');
+    await expect(liveRegion(page)).toHaveText(/^エラー：/);
+    /** 直すと、エラーは読まない（領域の文言は最後に読んだもののまま） */
+    await page.getByRole('textbox', { name: '10進数', exact: true }).fill('12');
+    await expect(page.locator('.error-text')).toHaveCount(0);
+  });
+
+  test('判定の結果（含まれるか）を読み上げる', async ({ page }) => {
+    await page.goto('./#/subnet');
+    await page.getByRole('button', { name: 'サンプル', exact: true }).click();
+    await expect(liveRegion(page)).toHaveText('192.168.10.0/24 に含まれます');
+    await page.getByRole('textbox', { name: '判定するアドレス', exact: true }).fill('10.0.0.1');
+    await expect(liveRegion(page)).toHaveText('192.168.10.0/24 に含まれません');
+  });
+
+  test('同時に出た複数のエラーは、まとめて読む', async ({ page }) => {
+    await page.goto('./#/subnet');
+    await page.getByRole('button', { name: '集約・範囲変換', exact: true }).click();
+    await page.getByRole('textbox', { name: 'CIDR・アドレスの範囲・アドレスの一覧（1行に1つ）', exact: true }).fill('x\ny\nz\nw');
+    await expect(liveRegion(page)).toHaveText(/^エラー：1行目：.*。エラー：2行目：.*。エラー：3行目：.*。ほか 1 件$/);
+  });
+});

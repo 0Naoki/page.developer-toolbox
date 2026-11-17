@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { CommandPalette } from './components/CommandPalette';
+import { LiveRegion } from './components/LiveAnnouncer';
 import { usePreference } from './hooks/usePreference';
 import { toolOf } from './registry';
 import { isToolId, type ToolId } from './toolCatalog';
@@ -90,6 +91,8 @@ export function App() {
       </main>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {/** エラーと判定の結果を、入力が止まってから読み上げる（src/components/LiveAnnouncer.tsx） */}
+      <LiveRegion />
     </div>
   );
 }

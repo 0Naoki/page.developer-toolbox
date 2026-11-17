@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Badge } from '../../components/Badge';
 import { Notice } from '../../components/Notice';
 import { useAsyncFor } from '../../hooks/useAsyncFor';
+import { useAnnounce } from '../../components/LiveAnnouncer';
 import { useNow } from '../../hooks/useNow';
 import { ClippedText } from '../../components/ClippedText';
 import { KvRow } from '../../components/KvRow';
@@ -50,6 +51,8 @@ export function useVerification(item: Certificate | Csr, certs: Certificate[]): 
 }
 
 function VerificationRow({ v }: { v: ItemVerification | null | 'pending' }) {
+  /** 署名の検証の結果を読み上げる（検証は非同期で、表示が後から変わるため） */
+  useAnnounce(v !== null && v !== 'pending' ? `署名の検証：${v.result.message}` : null);
   return (
     <tr>
       <th>署名の検証</th>
