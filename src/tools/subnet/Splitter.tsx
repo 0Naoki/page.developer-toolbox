@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Badge } from '../../components/Badge';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Notice } from '../../components/Notice';
 import { CalculationStatus } from '../../components/CalculationStatus';
 import { CopyButton } from '../../components/CopyButton';
@@ -104,7 +105,7 @@ export function Splitter({ cloud }: { cloud: boolean }) {
       {base?.ok && mode === 'vlsm' && (
         <>
           {/** 数万行の一覧を普通の textarea で描画すると画面が止まるため、表示を先頭までにする */}
-          <LargeTextInput
+          <LargeTextInput limit={MAX_CALCULATION_INPUT}
             label="サブネットの名前と必要なホスト数（1行に1つ）"
             className="code code-short"
             value={requestsText}

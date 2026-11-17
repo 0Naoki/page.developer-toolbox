@@ -42,15 +42,24 @@ export function Calculator({ cloud }: { cloud: boolean }) {
 
   return (
     <>
-      <input
-        aria-label="アドレスとプレフィックス長、またはマスク"
-        className="input mono"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        spellCheck={false}
-        autoComplete="off"
-        placeholder="192.168.10.0/24 / 10.0.0.5 255.255.255.0 / 2001:db8::/32"
-      />
+      <div className="input-row">
+        <input
+          aria-label="アドレスとプレフィックス長、またはマスク"
+          className="input mono"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          spellCheck={false}
+          autoComplete="off"
+          placeholder="192.168.10.0/24 / 10.0.0.5 255.255.255.0 / 2001:db8::/32"
+        />
+        {/** ネットワークと、含まれるかを判定するアドレスの両方を入れる（プライベートアドレスの架空の値） */}
+        <button type="button" className="btn btn-ghost" onClick={() => {
+          setInput('192.168.10.0/24');
+          setCheck('192.168.10.200');
+        }}>
+          サンプル
+        </button>
+      </div>
       {result && !result.ok && <ErrorText message={result.error} />}
       {!network.v6 && network.result?.ok && <SubnetTable parsed={network.result.parsed} info={network.result.info} />}
       {network.v6 && network.result?.ok && <SubnetTable6 parsed={network.result.parsed} info={network.result.info} />}

@@ -9,6 +9,7 @@
  * - `InvisibleCharacters.tsx`：不可視文字の表示
  */
 import { Badge } from '../../components/Badge';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Notice } from '../../components/Notice';
 import { CalculationStatus } from '../../components/CalculationStatus';
 import { LargeTextInput } from '../../components/LargeTextInput';
@@ -61,7 +62,7 @@ export default function TextCount() {
         </button>
       </div>
 
-      <LargeTextInput
+      <LargeTextInput limit={MAX_CALCULATION_INPUT}
         label="テキスト"
         className="code code-mid"
         value={text}

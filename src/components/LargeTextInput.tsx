@@ -4,16 +4,22 @@ import { TEXT_PREVIEW_LIMIT, TEXT_PREVIEW_LIMIT_LABEL, textPreview } from '../li
 import { applyTextEdit, replaceTextSelectionWithCaret, TextEditHistory, type TextEditSelection } from '../lib/text/textEdit';
 import { isImeComposing } from '../lib/keyboard';
 import { useLatest } from '../hooks/useLatest';
+import { formatNumber } from '../lib/number';
 
 /**
  * 大きな入力は全文を状態に保持し、ネイティブ textarea の大量レイアウトを避ける。
  * 大きな貼り付けは部品が自分で入力を置き換えてブラウザの編集履歴に残らないため、元に戻す・やり直すは
  * 改行を保持するかどうかに関係なく、部品の履歴（TextEditHistory）で行う。
  */
-export function LargeTextInput({ value, onChange, label, className = 'code', placeholder, preserveLineEndings = false, resetKey = 0 }: {
+export function LargeTextInput({ value, onChange, label, className = 'code', placeholder, preserveLineEndings = false, resetKey = 0, limit }: {
   value: string; onChange: (value: string) => void; label: string; className?: string; placeholder?: string;
   preserveLineEndings?: boolean;
   resetKey?: number;
+  /**
+   * 入力の上限（UTF-16 の単位）。渡すと、欄の下に「今の文字数 / 上限」を表示する（上限を USAGE.md を読まなくても分かるように）。
+   * 上限を超えたときの扱い（エラーの表示）は、各ツールの計算の側で行う
+   */
+  limit?: number;
 }) {
   const [showFull, setShowFull] = useState(false);
   const large = value.length > TEXT_PREVIEW_LIMIT;
@@ -138,6 +144,12 @@ export function LargeTextInput({ value, onChange, label, className = 'code', pla
           commit(next.value);
         }}
       />
+      {limit !== undefined && (
+        <p className="hint">
+          {formatNumber(value.length)} / {formatNumber(limit)} 文字
+          {value.length > limit && '（上限を超えています）'}
+        </p>
+      )}
     </>
   );
 }

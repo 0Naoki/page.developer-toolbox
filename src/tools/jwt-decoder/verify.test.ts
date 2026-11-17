@@ -4,6 +4,7 @@ import { ED25519, LEAF, ROOT_CA } from '../cert/certificates.fixtures';
 import { LEAF_JWK, P384_JWK, P521_PUBLIC_PEM, RSA_JWK, RSA_PUBLIC_PEM, RSA_PUBLIC_PKCS1_PEM, SECRET, SECRET_BASE64, TOKENS, base64Url, decodeJwt } from './tokens.fixtures';
 import { readPublicKey, secretBytes, shortSecretWarning } from './keys';
 import { verifyJwt, type VerifyKey } from './verify';
+import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
 import { limitMessage, MESSAGE_LIMIT } from '../../lib/text/textPreview';
 
 /** トークンの署名を、ヘッダの alg で検証する */
@@ -404,5 +405,13 @@ describe('verifyJwt：b64（RFC 7797）', () => {
   it('b64 が true（既定と同じ）か、ないときは検証する', async () => {
     expect(await sign({ alg: 'HS256', b64: true })).toMatchObject({ status: 'valid' });
     expect(await sign({ alg: 'HS256' })).toMatchObject({ status: 'valid' });
+  });
+});
+
+describe('サンプルのトークン', () => {
+  it('テスト用の TOKENS.HS256・SECRET と同じで、サンプルの秘密鍵で署名を確かめられる', async () => {
+    expect(SAMPLE_TOKEN).toBe(TOKENS.HS256);
+    expect(SAMPLE_SECRET).toBe(SECRET);
+    expect(await verify(SAMPLE_TOKEN, secret(SAMPLE_SECRET))).toMatchObject({ status: 'valid' });
   });
 });

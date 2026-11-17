@@ -10,6 +10,7 @@
  * 画面・Worker・テストは、それぞれの定義元を直接読み込む。両方向を組み合わせる検査は `roundTrip.test.ts` にある。
  */
 import { useRef } from 'react';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Pane } from '../../components/Pane';
 import { Check } from '../../components/Check';
 import { Notice } from '../../components/Notice';
@@ -167,7 +168,7 @@ export default function CsvJson() {
           title={direction === 'csv2json' ? 'CSV' : 'JSON'}
           actions={<button type="button" className="link-btn" onClick={() => resetInput('')}>クリア</button>}
         >
-          <LargeTextInput
+          <LargeTextInput limit={MAX_CALCULATION_INPUT}
             label={`入力（${direction === 'csv2json' ? 'CSV' : 'JSON'}）`}
             value={input}
             onChange={replaceInput}

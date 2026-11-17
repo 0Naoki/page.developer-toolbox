@@ -8,6 +8,7 @@
  * 表示形式の切り替えでは、Base64 の復号と文字コードの変換をやり直さない。
  */
 import { useMemo } from 'react';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Pane } from '../../components/Pane';
 import { Badge } from '../../components/Badge';
 import { Check } from '../../components/Check';
@@ -49,6 +50,9 @@ const CHARSETS: { value: Charset; label: string }[] = [
   { value: 'euc-jp', label: 'EUC-JP' },
   { value: 'utf-16le', label: 'UTF-16LE' },
 ];
+
+/** サンプルの入力（日本語・記号・URL を含む、架空の値） */
+const SAMPLE = 'こんにちは、Dev Toolbox! https://example.com/search?q=日本語&page=2';
 
 export default function Base64Tool() {
   const [input, setInput] = useInput('base64');
@@ -99,6 +103,14 @@ export default function Base64Tool() {
         />
         <button type="button" className="btn btn-ghost" onClick={swap} disabled={!canSwap} title="出力を入力に移して方向を反転">
           ⇄ 入れ替え
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={() => {
+          /** どの形式でも読めるよう、テキストのエンコードにして入れる（「⇄ 入れ替え」でデコードも試せる） */
+          setSource('text');
+          setDirection('encode');
+          setInput(SAMPLE);
+        }}>
+          サンプル
         </button>
         {swapTooLarge && !fromFile && <span className="hint">変換結果が逆方向の入力上限を超えています</span>}
       </div>
@@ -177,7 +189,7 @@ export default function Base64Tool() {
              * 長いテキストをそのまま textarea に描画すると、90万単位で約1秒止まるため、表示を先頭までにする部品を使う。
              * エンコードでは CRLF と LF で結果が変わるため、元の改行を保つ
              */
-            <LargeTextInput
+            <LargeTextInput limit={MAX_CALCULATION_INPUT}
               label="入力"
               value={input}
               onChange={setInput}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pane } from '../../components/Pane';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Notice } from '../../components/Notice';
 import { CalculationStatus } from '../../components/CalculationStatus';
 import { FormattedOutput } from '../../components/FormattedOutput';
@@ -66,6 +67,7 @@ export default function JsonFormatter() {
             value={input}
             onChange={setInput}
             resetKey={inputRevision}
+            limit={MAX_CALCULATION_INPUT}
             placeholder='{"key": "value"}'
           />
         </Pane>

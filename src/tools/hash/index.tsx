@@ -26,6 +26,9 @@ import { computeHashes, type HashInput, type HashResult, type Row } from './comp
 type Source = 'text' | 'file';
 type OutputFormat = 'hex' | 'HEX' | 'base64';
 
+/** サンプルの入力（架空の値） */
+const SAMPLE = 'Hello, Dev Toolbox!';
+
 export default function HashTool() {
   /** 入力値・鍵は機密になり得るため保存しない */
   const [source, setSource] = usePreference<Source>('hash:source', 'text', oneOf('text', 'file'));
@@ -83,6 +86,12 @@ export default function HashTool() {
       description="SHA系は Web Crypto API、MD5 は自前実装で計算します。ファイルも外部に送信されません。"
     >
       <div className="toolbar">
+        <button type="button" className="btn btn-ghost" onClick={() => {
+          setSource('text');
+          setText(SAMPLE);
+        }}>
+          サンプル
+        </button>
         <Segmented<Source>
           label="入力"
           value={source}

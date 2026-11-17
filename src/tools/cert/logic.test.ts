@@ -5,6 +5,7 @@ import { SMALL_INTEGER_BYTES, parseDer, parseDerExact, readInteger, readOid, rea
 import { ED25519, ENCODING_CA_PRINTABLE, ENCODING_LEAF, LEAF, LEAF_CSR, ROOT_CA, ROOT_CA_ROLLOVER } from './certificates.fixtures';
 import { checkChain, fingerprints, parseCertificate, parseItem, validityOf, type Certificate, type Csr } from './logic';
 import { diagnoseItems } from './diagnostics';
+import { SAMPLE_CERTIFICATE } from './sample';
 import { readExtensions } from './extensions';
 import { containsPrivateKey } from '../../lib/crypto/privateKey';
 import { MAX_PEM_BLOCKS, readFileBytes, readPem } from './pem';
@@ -498,5 +499,14 @@ describe('formatIpv6Bytes（SAN・名前の制約の IPv6 アドレス）', () =
     /** DER の途中を指すバイト列（byteOffset が 0 でない）でも、その位置から読む */
     const inner = new Uint8Array([0xff, ...bytes(0xfe80, 0, 0, 0, 0, 0, 0, 1)]).subarray(1);
     expect(formatIpv6Bytes(inner)).toBe('fe80::1');
+  });
+});
+
+describe('サンプルの証明書', () => {
+  it('テスト用の ROOT_CA と同じで、2036年まで有効な自己署名の CA 証明書', () => {
+    expect(SAMPLE_CERTIFICATE).toBe(ROOT_CA);
+    const sample = cert(SAMPLE_CERTIFICATE);
+    expect(sample.selfIssued).toBe(true);
+    expect(sample.notAfter.toISOString().slice(0, 10)).toBe('2036-10-28');
   });
 });
