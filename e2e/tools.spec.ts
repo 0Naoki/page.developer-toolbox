@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - JSON整形・和暦・テキスト差分：JSON整形で値が変わらないこと、1873年より前の生年月日でもエラーを表示して画面が消えないこと、比較結果が変わると展開した箇所を閉じること
+ * - JSON整形・和暦・テキスト差分：JSON整形で値が変わらないこと（ツリー表示でも元の表記を保ち、値の場所と値をコピーできること）、1873年より前の生年月日でもエラーを表示して画面が消えないこと、比較結果が変わると展開した箇所を閉じること
  *   日本時間の誕生日とタブ復帰で空の基準日を更新し、明示した基準日は保つこと。
  * - UUID の形式と時刻：片側の括弧を拒否し、RFC 9562 の v6 の時刻を表示すること。v4 の時刻なしと v8 の解析未対応を区別し、不正な入力から復帰すること。
  * - 日本時間の日付・年の変更 × 誕生日・空の基準日・タブ復帰：空の基準日は新しい今日で判定し、入力した基準日・営業日の入力は保つ。年の選択範囲は新年に更新する（あわせて `e2e/business-days.spec.ts`）
@@ -10,6 +10,7 @@
  */
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
+import { captureClipboard, copiedText } from './clipboard';
 
 test('和暦：日付変更とタブへの復帰で今日を更新し、明示した基準日は保つ', CROSS_BROWSER, async ({ page }) => {
   await page.clock.install({ time: new Date('2026-11-12T14:58:00Z') });
@@ -75,4 +76,37 @@ test('テキスト差分：比較結果が変わると、展開した箇所を�
   /** 同じ位置に折りたたみができる編集でも、前に展開した位置を引き継がない */
   await after.fill(['changed 2', ...lines.slice(1)].join('\n'));
   await expect(fold).toHaveCount(1);
+});
+
+test('JSON整形：ツリーで開いた値の場所（JSONPath）と、元の表記の値をコピーできる', CROSS_BROWSER, async ({ page }) => {
+  await captureClipboard(page);
+  await page.goto('./#/json');
+  await page.getByRole('textbox', { name: '入力', exact: true }).fill('{"user":{"id":9007199254740993,"first name":"山田","roles":["admin","dev"]},"items":[' + Array.from({ length: 150 }, (_, i) => i).join(',') + ']}');
+  await page.getByRole('group', { name: '表示', exact: true }).getByRole('button', { name: 'ツリー', exact: true }).click();
+  const tree = page.getByRole('list', { name: 'JSON のツリー', exact: true });
+  await expect(tree).toBeVisible();
+  /** 根だけが開いていて、子は閉じている */
+  await expect(tree.getByRole('button', { name: 'user を開く', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  await tree.getByRole('button', { name: 'user を開く', exact: true }).click();
+  /** 大きな整数も元の表記のまま表示し、値をコピーできる */
+  await expect(tree.getByText('9007199254740993', { exact: true })).toBeVisible();
+  await tree.getByRole('button', { name: 'roles を開く', exact: true }).click();
+  const admin = tree.locator('li').filter({ hasText: '"admin"' }).last();
+  await admin.getByRole('button', { name: 'パスをコピー', exact: true }).click();
+  await expect.poll(() => copiedText(page)).toBe('$.user.roles[0]');
+  await admin.getByRole('button', { name: '値をコピー', exact: true }).click();
+  await expect.poll(() => copiedText(page)).toBe('"admin"');
+  /** 識別子でないキーは ["…"] の形にする */
+  const firstName = tree.locator('li').filter({ hasText: 'first name' }).last();
+  await firstName.getByRole('button', { name: 'パスをコピー', exact: true }).click();
+  await expect.poll(() => copiedText(page)).toBe('$.user["first name"]');
+  /** 大きな配列は100件ずつ表示する */
+  await tree.getByRole('button', { name: 'items を開く', exact: true }).click();
+  await expect(tree.getByText('残り 50 件', { exact: true })).toBeVisible();
+  await tree.getByRole('button', { name: 'さらに 50 件を表示', exact: true }).click();
+  await expect(tree.getByText('[149]', { exact: true })).toBeVisible();
+  await expect(tree.getByText(/^残り/)).toHaveCount(0);
+  /** テキストの表示に戻せる */
+  await page.getByRole('group', { name: '表示', exact: true }).getByRole('button', { name: 'テキスト', exact: true }).click();
+  await expect(tree).toHaveCount(0);
 });

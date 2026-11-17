@@ -12,6 +12,7 @@ import { MAX_INPUT as CRON_MAX_INPUT } from './tools/cron/parse';
 import { MAX_CSV_CELLS, MAX_CSV_OUTPUT } from './tools/csv-json/csvFormat';
 import { MAX_FILE as HASH_MAX_FILE, MD5_CHUNK } from './tools/hash/logic';
 import { MAX_OUTPUT as JSON_MAX_OUTPUT } from './tools/json-formatter/logic';
+import { MAX_TREE_INPUT, TREE_CHILD_PAGE } from './tools/json-formatter/tree';
 import { MAX_KEY } from './tools/jwt-decoder/keys';
 import { MAX_LENGTH, MIN_LENGTH } from './tools/password-generator/logic';
 import { MAX_DIGITS, MAX_SHIFT } from './tools/radix/logic';
@@ -49,7 +50,7 @@ describe('ドキュメントの制約と定数', () => {
     const mib = (n: number) => `${n / 1024 ** 2} MiB`;
     const sec = (ms: number) => `${ms / 1000}秒`;
     const expected: Record<string, [string[], string[], string[]]> = {
-      'JSON整形': [[`${man(MAX_CALCULATION_INPUT)}単位`], [`整形結果${man(JSON_MAX_OUTPUT)}単位`, `プレビュー先頭${num(TEXT_PREVIEW_LIMIT)}単位`], [`Workerで${sec(CALCULATION_TIMEOUT)}`]],
+      'JSON整形': [[`${man(MAX_CALCULATION_INPUT)}単位`], [`整形結果${man(JSON_MAX_OUTPUT)}単位`, `プレビュー先頭${num(TEXT_PREVIEW_LIMIT)}単位`, `ツリー表示は入力${man(MAX_TREE_INPUT)}単位まで`, `子は${num(TREE_CHILD_PAGE)}件ずつ表示`], [`Workerで${sec(CALCULATION_TIMEOUT)}`]],
       'CSV変換': [[`${man(MAX_CALCULATION_INPUT)}単位`, `ファイル${MAX_CALCULATION_INPUT * 3 / 1_000_000}MB`, `展開後${man(MAX_CSV_CELLS)}セル`], [`出力${man(MAX_CSV_OUTPUT)}単位`], []],
       '文字数・バイト数': [[`${man(MAX_CALCULATION_INPUT)}単位`, `UTF-8ファイル${MAX_CALCULATION_INPUT * 3 / 1_000_000}MB`], [`${LINE_PAGE_SIZE}行ずつ`], []],
       'テキスト差分': [[`合計${man(MAX_CALCULATION_INPUT)}単位`], [], [`下記の${sec(DIFF_TIMEOUT_MS)}制限`]],
