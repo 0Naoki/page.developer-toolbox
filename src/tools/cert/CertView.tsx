@@ -27,11 +27,25 @@ function useFingerprints(der: Uint8Array) {
 
 const NO_CERTS: Certificate[] = [];
 
+/**
+ * 同じ証明書と発行者の候補の組の検証は、1回だけ行う。
+ * チェーンの最後の自己発行の証明書は、チェーンの表示（自己署名か）とカードの表示の両方で検証するため。
+ * 解析の結果（証明書・一覧）を作り直すと別の組になり、古い結果は WeakMap から自然に消える
+ */
+const verifications = new WeakMap<Certificate | Csr, WeakMap<Certificate[], Promise<ItemVerification | null>>>();
+function verifyOnce(item: Certificate | Csr, certs: Certificate[]): Promise<ItemVerification | null> {
+  let byCerts = verifications.get(item);
+  if (!byCerts) verifications.set(item, (byCerts = new WeakMap()));
+  let pending = byCerts.get(certs);
+  if (!pending) byCerts.set(certs, (pending = verifyInList(item, certs)));
+  return pending;
+}
+
 /** 署名の検証（非同期）。'pending' は検証中、null は発行者の証明書がなく検証できない */
 export function useVerification(item: Certificate | Csr, certs: Certificate[]): ItemVerification | null | 'pending' {
   /** カードは作り直されないため、どの証明書・チェーンの結果かを組で持ち、内容を変えた直後の描画でも前の「正しい」を表示しない */
   const key = useMemo(() => ({ item, certs }), [item, certs]);
-  const result = useAsyncFor(key, (k) => verifyInList(k.item, k.certs), () => null);
+  const result = useAsyncFor(key, (k) => verifyOnce(k.item, k.certs), () => null);
   return result.ready ? result.value : 'pending';
 }
 
@@ -228,8 +242,14 @@ function Extensions({ item }: { item: Certificate | Csr }) {
   );
 }
 
-export function ChainView({ certs }: { certs: Certificate[] }) {
-  const result = checkChain(certs);
+/**
+ * 証明書チェーンの診断。
+ *
+ * @param positions - それぞれの証明書の、入力の中のブロックの位置（文言の「n 枚目」をカードの番号とそろえる）。
+ * @param unreadable - 読めなかったブロックの位置。
+ */
+export function ChainView({ certs, positions, unreadable }: { certs: Certificate[]; positions: readonly number[]; unreadable: readonly number[] }) {
+  const result = useMemo(() => checkChain(certs, { positions, unreadable }), [certs, positions, unreadable]);
   const last = certs.at(-1);
   return (
     <section className="cert-chain stack">

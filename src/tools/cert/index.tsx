@@ -79,7 +79,7 @@ export default function CertTool() {
       )}
       {result && !result.ok && <ErrorText message={result.error} />}
 
-      {result?.ok && result.certs.length >= 2 && <ChainView certs={result.certs} />}
+      {result?.ok && result.certs.length >= 2 && <ChainView certs={result.certs} positions={result.certPositions} unreadable={result.unreadable} />}
 
       {result?.ok &&
         result.cards.map((p) => (

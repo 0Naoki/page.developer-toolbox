@@ -114,20 +114,40 @@ export function readExtensions(list: Node | undefined): ExtensionSummary {
     authorityKeyId: null,
   };
   if (!list) return summary;
+  /**
+   * 同じ拡張は1つの証明書に1回まで（RFC 5280 4.2）。2回目以降は解読しない。
+   * - 解読すると、後の値が前の値（SAN・CA かどうかなど）を黙って上書きする
+   * - 壊れた同じ拡張を大量に並べると、読めない値ごとに例外を作り、7万件で1秒以上、画面を止める
+   * 例外を作る解読は、拡張の種類（OID）ごとに1回までになる
+   */
+  const seen = new Set<string>();
   for (const ext of list.children) {
     const oid = readOid(assertTag(ext.children[0], TAG.OID, '拡張'));
     const critical = isUniversal(ext.children[1], TAG.BOOLEAN) ? readBoolean(ext.children[1]) : false;
     const octets = assertTag(ext.children[ext.children.length - 1], TAG.OCTET_STRING, '拡張の値');
     const value = valueOf(octets);
     let values: string[];
-    try {
-      values = readExtensionValue(oid, value, summary);
-    } catch {
-      values = [`（読めない値：${toUpperHex(value).slice(0, 64)}）`];
+    if (seen.has(oid)) {
+      values = [`（同じ拡張が重複しています。RFC 5280 では1つの証明書に1回までのため、2つ目以降は読みません：${hexPreview(value)}）`];
+    } else {
+      seen.add(oid);
+      try {
+        values = readExtensionValue(oid, value, summary);
+      } catch {
+        values = [`（読めない値：${hexPreview(value)}）`];
+      }
     }
     summary.extensions.push({ oid, name: oidName(EXTENSIONS, oid), critical, values });
   }
   return summary;
+}
+
+/** 表示する値の先頭のバイト数 */
+const HEX_PREVIEW_BYTES = 32;
+
+/** 値の先頭だけを16進数にする（大きな値の全体を文字列にしない） */
+function hexPreview(value: Uint8Array): string {
+  return toUpperHex(value.subarray(0, HEX_PREVIEW_BYTES)) + (value.length > HEX_PREVIEW_BYTES ? '…' : '');
 }
 
 function readExtensionValue(oid: string, value: Uint8Array, s: ExtensionSummary): string[] {
@@ -181,6 +201,6 @@ function readExtensionValue(oid: string, value: Uint8Array, s: ExtensionSummary)
     case '1.3.6.1.4.1.11129.2.4.2':
       return ['（内容は表示しません）'];
     default:
-      return [toUpperHex(value, ' ').slice(0, 96) + (value.length > 32 ? ' …' : '')];
+      return [toUpperHex(value.subarray(0, HEX_PREVIEW_BYTES), ' ') + (value.length > HEX_PREVIEW_BYTES ? ' …' : '')];
   }
 }

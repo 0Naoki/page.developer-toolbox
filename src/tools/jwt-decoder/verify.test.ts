@@ -298,6 +298,16 @@ describe('verifyJwt：公開鍵（RS・PS・ES・EdDSA）', () => {
     expect(await verify(TOKENS.EDDSA, pub(ED25519), subtle)).toMatchObject({ status: 'unsupported', message: expect.stringContaining('Ed25519') });
   });
 
+  it('回帰：公開鍵を読み込めないときは「一致しない」でなく「検証できない」と返す（証明書デコーダーと同じ扱い）', async () => {
+    /** 鍵の読み込みの失敗を invalid にしていたため、画面に「署名が一致しない」のバッジが出ていた */
+    const subtle = {
+      importKey: () => Promise.reject(new DOMException('壊れた鍵', 'DataError')),
+    } as unknown as SubtleCrypto;
+    expect(await verify(TOKENS.RS256, pub(RSA_PUBLIC_PEM), subtle)).toEqual({ status: 'unsupported', message: '公開鍵を読み込めません（DataError）' });
+    /** Ed25519 でも、未対応（NotSupportedError）以外の失敗は「ブラウザが対応していない」とは言わない */
+    expect(await verify(TOKENS.EDDSA, pub(ED25519), subtle)).toEqual({ status: 'unsupported', message: '公開鍵を読み込めません（DataError）' });
+  });
+
   it('secp256k1 の鍵は「一致しない」でなく「検証できない」と返す', async () => {
     const k1 = JSON.stringify({ kty: 'EC', crv: 'secp256k1', x: 'AA', y: 'AA' });
     expect(await verify(TOKENS.ES256, pub(k1))).toMatchObject({ status: 'unsupported', message: expect.stringContaining('secp256k1') });

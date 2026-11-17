@@ -151,7 +151,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | Base64 | `src/tools/base64/conversion.test.ts`・`src/tools/base64/presentation.test.ts`・`e2e/base64.spec.ts` |
 | 正規表現 | `e2e/regex.spec.ts` |
 | ハッシュ | `e2e/hash.spec.ts` |
-| JWT | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts` |
+| JWT | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts` |
 | 証明書 | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts` |
 | JSON整形・和暦・テキスト差分 | `e2e/tools.spec.ts` |
 | 独自休日の診断 | `src/tools/business-days/logic.test.ts` |

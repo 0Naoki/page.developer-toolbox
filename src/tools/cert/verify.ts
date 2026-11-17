@@ -5,7 +5,7 @@
  */
 import { TAG, isContext, isUniversal, parseDerExact, readInteger, readOid, SMALL_INTEGER_BYTES, valueOf, type Node } from '../../lib/crypto/asn1';
 import { keyKindOf, type KeyKind } from '../../lib/crypto/spki';
-import type { SignatureVerification, WebCryptoHash } from '../../lib/crypto/signature';
+import { verifyWithPublicKey, type SignatureVerification, type WebCryptoHash } from '../../lib/crypto/signature';
 import { detailPreview } from '../../lib/text/textPreview';
 import { sameName } from './name';
 import { type Certificate, type Csr, type Signed } from './logic';
@@ -165,8 +165,6 @@ function ecdsaRaw(signature: Uint8Array, size: number): Uint8Array<ArrayBuffer> 
   return out;
 }
 
-const copy = (v: Uint8Array) => new Uint8Array(v);
-
 const KEY_NAMES: Record<KeyKind['kind'], string> = { rsa: 'RSA', ec: 'ECDSA', 'ec-unsupported': 'ECDSA', ed25519: 'Ed25519', other: 'その他' };
 const SCHEME_KEY: Record<Scheme['kind'], KeyKind['kind']> = { rsa: 'rsa', pss: 'rsa', ecdsa: 'ec', ed25519: 'ed25519' };
 
@@ -176,7 +174,7 @@ const SCHEME_KEY: Record<Scheme['kind'], KeyKind['kind']> = { rsa: 'rsa', pss: '
  * @param signed - 署名対象の元バイト列・署名・アルゴリズム。
  * @param issuerSpki - 発行者の公開鍵の SPKI（DER）。CSR では自身の公開鍵。
  * @param subtle - Web Crypto API。省略時はブラウザの実装を使う。
- * @returns 署名の一致・不正・未対応。鍵を読み込めない場合も未対応として返す。
+ * @returns 署名の一致・不正・未対応。鍵を読み込めない場合も未対応として返す（verifyWithPublicKey）。
  */
 export async function verifySigned(signed: Signed, issuerSpki: Uint8Array, subtle: SubtleCrypto = crypto.subtle): Promise<SignatureVerification> {
   if (signed.malformed) return { status: 'invalid', message: signed.malformed };
@@ -218,22 +216,13 @@ export async function verifySigned(signed: Signed, issuerSpki: Uint8Array, subtl
       break;
   }
 
-  let cryptoKey: CryptoKey;
+  let signature: Uint8Array;
   try {
-    cryptoKey = await subtle.importKey('spki', copy(issuerSpki), importAlg, false, ['verify']);
-  } catch (e) {
-    if (scheme.kind === 'ed25519') return { status: 'unsupported', message: 'このブラウザは Ed25519 の署名の検証に対応していません' };
-    return { status: 'unsupported', message: `発行者の公開鍵を読み込めません（${(e as Error).name}）` };
-  }
-  try {
-    const signature = scheme.kind === 'ecdsa' ? ecdsaRaw(signed.signature, (key as Extract<KeyKind, { kind: 'ec' }>).size) : copy(signed.signature);
-    const ok = await subtle.verify(verifyAlg, cryptoKey, signature, copy(signed.tbs));
-    return ok
-      ? { status: 'valid', message: '署名は正しく、この公開鍵と対になる秘密鍵で署名されています' }
-      : { status: 'invalid', message: '署名が一致しません（内容が書き換えられているか、別の鍵で署名されています）' };
+    signature = scheme.kind === 'ecdsa' ? ecdsaRaw(signed.signature, (key as Extract<KeyKind, { kind: 'ec' }>).size) : signed.signature;
   } catch {
     return { status: 'invalid', message: '署名の形式が正しくありません' };
   }
+  return verifyWithPublicKey({ format: 'spki', der: issuerSpki }, importAlg, verifyAlg, signature, signed.tbs, '発行者の公開鍵', subtle);
 }
 
 /** selfSigned は、自分自身の公開鍵で署名を確認できたとき（自己署名）だけ true */

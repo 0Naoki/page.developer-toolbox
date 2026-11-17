@@ -4,6 +4,8 @@ import { bytesToBase64 } from '../../lib/bytes';
 import { SMALL_INTEGER_BYTES, parseDer, parseDerExact, readInteger, readOid, readTime } from '../../lib/crypto/asn1';
 import { ED25519, ENCODING_CA_PRINTABLE, ENCODING_LEAF, LEAF, LEAF_CSR, ROOT_CA, ROOT_CA_ROLLOVER } from './certificates.fixtures';
 import { checkChain, fingerprints, parseCertificate, parseItem, validityOf, type Certificate, type Csr } from './logic';
+import { diagnoseItems } from './diagnostics';
+import { readExtensions } from './extensions';
 import { containsPrivateKey } from '../../lib/crypto/privateKey';
 import { MAX_PEM_BLOCKS, readFileBytes, readPem } from './pem';
 import { sameBytes, sameName, attributeKey, MAX_NAME_ATTRS, type ParsedName } from './name';
@@ -314,6 +316,82 @@ describe('checkChain', () => {
 
   it('名前だけで「自己署名のルート証明書」と断定しない（署名を検証してから画面で伝える）', () => {
     expect(checkChain([leaf, root]).messages.map((m) => m.text).join()).not.toContain('自己署名');
+  });
+
+  it('回帰：読めないブロックや CSR が間にあっても、文言の「n 枚目」をカードの番号とそろえる', () => {
+    /** 読めた証明書だけの並びの番号を使っていたため、カードの「n 枚目」とずれていた */
+    const broken = { type: 'CERTIFICATE', der: new Uint8Array([0x30, 0x03, 0x02, 0x01, 0x00]) };
+    const item = (pem: string) => readPem(pem)[0]!;
+    const d = diagnoseItems([broken, item(LEAF), item(LEAF_CSR), item(ED25519), item(ROOT_CA)]);
+    expect(d.certPositions).toEqual([1, 3, 4]);
+    expect(d.unreadable).toEqual([0]);
+    expect(d.cards.map((c) => c.index)).toEqual([0, 1, 2, 3, 4]);
+    const texts = checkChain(d.certs, { positions: d.certPositions, unreadable: d.unreadable }).messages.map((m) => m.text);
+    expect(texts).toContain('2 枚目と 4 枚目がつながっていません（発行者とサブジェクトが一致しません）。');
+    expect(texts.some((t) => t.startsWith('4 枚目は自己発行'))).toBe(true);
+  });
+
+  it('回帰：読めないブロックがあれば、読めた証明書がつながっていても「正しい順番」とは言わない', () => {
+    /** 読めないブロックが途中の中間 CA なら、実際のチェーンは切れている */
+    const r = checkChain([leaf, root], { positions: [0, 2], unreadable: [1] });
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]).toMatchObject({ level: 'warn', text: expect.stringContaining('読めないブロック（2 枚目）は確かめていません') });
+    const many = checkChain([leaf, root], { positions: [0, 8], unreadable: [1, 2, 3, 4, 5, 6, 7] });
+    expect(many.messages[0]?.text).toContain('（2・3・4・5・6 枚目ほか 2 件）');
+    /** 読めないブロックがなければ、これまでどおり */
+    expect(checkChain([leaf, root], { positions: [0, 1], unreadable: [] }).messages[0]).toMatchObject({ level: 'good' });
+  });
+});
+
+describe('拡張の読み取り', () => {
+  const len = (n: number) => (n < 0x80 ? [n] : n < 0x100 ? [0x81, n] : n < 0x10000 ? [0x82, n >> 8, n & 0xff] : [0x83, n >> 16, (n >> 8) & 0xff, n & 0xff]);
+  const tlv = (tag: number, body: number[]) => [tag, ...len(body.length), ...body];
+  const extension = (oid: number[], value: number[]) => tlv(0x30, [...tlv(0x06, oid), ...tlv(0x04, value)]);
+  const SAN = [0x55, 0x1d, 0x11];
+  const dnsName = (name: string) => tlv(0x82, [...new TextEncoder().encode(name)]);
+  const extensions = (items: number[][]) => parseDer(new Uint8Array(tlv(0x30, items.flat())));
+
+  it('回帰：壊れた同じ拡張が大量に並んでも、すぐに読み終える（読めない値ごとに例外を作らない）', () => {
+    /**
+     * 7万件で約1.2秒、画面（描画中の同期の解析）を止めていた（例外を作らない拡張の約10倍）。
+     * ほかのテストと並行に動かすと時間が数倍に揺れるため、決まった時間ではなく、同じ件数の、例外を作らない拡張（未知の OID）を
+     * 読む時間と比べる。どちらも件数に比例する読み取り（OID など）だけになっていればよい
+     */
+    const COUNT = 70_000;
+    const list = extensions(Array.from({ length: COUNT }, () => extension(SAN, [0xff])));
+    /** 未知の OID（1.2.<i>）は値を解読しないため、例外を作らない */
+    const unknown = extensions(Array.from({ length: COUNT }, (_, i) => extension([0x2a, 0x80 | ((i >> 14) & 0x7f), 0x80 | ((i >> 7) & 0x7f), i & 0x7f], [0xff])));
+    const timeOf = (node: ReturnType<typeof extensions>) => {
+      const start = performance.now();
+      readExtensions(node);
+      return performance.now() - start;
+    };
+    /** 1回目は JIT のコンパイルを含むため、両方を1回ずつ読んでから測る */
+    timeOf(unknown);
+    timeOf(list);
+    const baseline = timeOf(unknown);
+    expect(timeOf(list)).toBeLessThan(baseline * 3 + 50);
+    const summary = readExtensions(list);
+    expect(summary.extensions).toHaveLength(70_000);
+    expect(summary.extensions[0]?.values).toEqual(['（読めない値：FF）']);
+    expect(summary.extensions[1]?.values[0]).toContain('同じ拡張が重複しています');
+  });
+
+  it('同じ拡張が重複していたら、2つ目以降で SAN などを上書きしない', () => {
+    const list = extensions([
+      extension(SAN, tlv(0x30, dnsName('example.com'))),
+      extension(SAN, tlv(0x30, dnsName('attacker.example'))),
+    ]);
+    const summary = readExtensions(list);
+    expect(summary.san).toEqual([{ type: 'DNS', value: 'example.com' }]);
+    expect(summary.extensions[1]?.values[0]).toContain('同じ拡張が重複しています');
+  });
+
+  it('大きな値は、先頭だけを16進数で表示する', () => {
+    const big = Array.from({ length: 100_000 }, (_, i) => i & 0xff);
+    const summary = readExtensions(extensions([extension([0x2a, 0x03], big), extension(SAN, [0xff, ...big])]));
+    expect(summary.extensions[0]?.values).toEqual([`${Array.from({ length: 32 }, (_, i) => i.toString(16).toUpperCase().padStart(2, '0')).join(' ')} …`]);
+    expect(summary.extensions[1]?.values[0]).toBe(`（読めない値：FF${Array.from({ length: 31 }, (_, i) => i.toString(16).toUpperCase().padStart(2, '0')).join('')}…）`);
   });
 });
 
