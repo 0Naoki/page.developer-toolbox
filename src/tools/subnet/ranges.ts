@@ -10,6 +10,7 @@
 import { splitLines } from '../../lib/text/lines';
 import { detailPreview } from '../../lib/text/textPreview';
 import { errorMessage } from '../../lib/errors';
+import { formatNumber } from '../../lib/number';
 
 /** アドレスの種類ごとの違い。A は IPv4 なら number、IPv6 なら bigint */
 export type Family<A extends number | bigint> = {
@@ -28,8 +29,8 @@ export type Family<A extends number | bigint> = {
   /** CIDR（種類によってはマスク表記やアドレスだけも）を読み、範囲の先頭と末尾を返す */
   parseRange: (text: string) => { ip: A; prefix: number; first: A; last: A };
   format: (a: A) => string;
-  /** 「先頭 - 末尾」の範囲として読む行の形（1番目と2番目の組がアドレス） */
-  rangePattern: RegExp;
+  /** 「先頭 - 末尾」の字句を、ゾーンID内の記号と区別して分ける。例外で候補を探索しない。 */
+  splitRange: (text: string) => readonly [string, string] | null;
   /** この種類のアドレスの行か（IPv4 と IPv6 が混ざった一覧から、片方だけを読むため） */
   accepts: (line: string) => boolean;
   /** CIDR の書き方の例（エラーの文言に入れる） */
@@ -78,10 +79,10 @@ export function aggregateIn<A extends number | bigint>(f: Family<A>, text: strin
   const errors: ListError[] = [];
   for (const { line, body } of linesOf(f, text)) {
     try {
-      const range = f.rangePattern.exec(body);
+      const range = f.splitRange(body);
       if (range) {
-        const a = f.parseAddress(range[1] ?? '');
-        const b = f.parseAddress(range[2] ?? '');
+        const a = f.parseAddress(range[0]);
+        const b = f.parseAddress(range[1]);
         if (a > b) throw new Error('開始アドレスが終了アドレスより後ろにあります');
         ranges.push([a, b]);
       } else {
@@ -146,6 +147,17 @@ export type ListError = { line: number; message: string };
 
 /** 一覧に表示する上限（分割の結果など） */
 export const MAX_ROWS = 1024;
+
+/** 全件コピー・保存で生成する均等分割の件数上限。IPv6 の膨大な分割を列挙しないため。 */
+export const MAX_SPLIT_OUTPUT_ROWS = 100_000;
+
+/** 表示用の上限とは別に、件数上限内の均等分割を全文で出力する（Worker 内で呼ぶ）。 */
+export function splitNetworkOutputIn<A extends number | bigint>(f: Family<A>, network: A, prefix: number, newPrefix: number): string {
+  const { count } = splitNetworkIn(f, network, prefix, newPrefix, 0);
+  if (count > MAX_SPLIT_OUTPUT_ROWS) throw new Error(`分割結果の全件出力は${formatNumber(MAX_SPLIT_OUTPUT_ROWS)}件までです。分割元の範囲を小さくしてください。`);
+  return splitNetworkIn(f, network, prefix, newPrefix, MAX_SPLIT_OUTPUT_ROWS).subnets
+    .map((address) => `${f.format(address)}/${newPrefix}`).join('\n');
+}
 
 /** 重なりの検出 */
 

@@ -154,7 +154,7 @@ JWTの厳密な検証と、画面・Workerで同じ拒否になることも検�
 
 大容量計算は次の順に進みます。
 
-1. JSON整形・CSV変換・文字数計算・テキスト差分・UNIX時間の一括変換・Base64（10万単位を超えるテキスト）・サブネットの集約、重複チェック、VLSMの画面が、入力と設定を `useCalculation` に渡す。
+1. JSON整形・CSV変換・文字数計算・テキスト差分・UNIX時間の一括変換・Base64（10万単位を超えるテキスト）・サブネットの集約、重複チェック、VLSM、均等分割の全件出力の画面が、入力と設定を `useCalculation` に渡す。
 2. フックが入力上限の確認を加えて `useWorkerJob` に渡し、入力変更の待機の後、`src/calculation/createWorker.ts` の `createCalculationWorker` でWorkerを起動する。
 3. `src/calculation/worker.ts` が要求を受け取り、`src/calculation/handlers.ts` の `calculate` がツールのロジックを呼ぶ。ツールごとの処理は `HANDLERS` の表にあり（結果の形を整える処理はツールの側に置き、表は呼ぶだけにする）、要求と結果の型の組をコンパイル時に確かめる。応答にはツールの種類（`tool`）を含める。
 4. フックが現在の要求に対応する結果だけを画面へ返す（要求と違うツールの結果はエラーにする）。入力変更・中断・画面移動時はWorkerを終了する。

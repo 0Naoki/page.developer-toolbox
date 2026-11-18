@@ -10,7 +10,7 @@ import { measureText } from '../tools/text-count/logic';
 import { convertCsvRequest } from '../tools/csv-json/calculation';
 import { calculateDiff } from '../tools/text-diff/calculation';
 import { convertEpochsInText } from '../tools/unix-time/epoch';
-import { aggregateList, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
+import { aggregateList, calculateSplit, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
 import { convertText } from '../tools/base64/logic';
 import { INPUT_TOO_LARGE, MAX_CALCULATION_INPUT } from '../lib/worker/calculationLimits';
 import { calculationInputSize, type CalculationRequestOf, type CalculationResults, type CalculationTool } from './protocol';
@@ -26,6 +26,7 @@ const HANDLERS: { [T in CalculationTool]: (request: CalculationRequestOf<T>) => 
   base64: (request) => convertText(request),
   subnetAggregate: (request) => aggregateList(request.input),
   subnetOverlap: (request) => checkOverlapList(request.input),
+  subnetSplit: (request) => calculateSplit(request.input, request.newPrefix),
   subnetVlsm: (request) => calculateVlsm(request.input, request.network, request.prefix, request.cloud),
   diff: (request) => calculateDiff(request),
   csv: (request) => convertCsvRequest(request),

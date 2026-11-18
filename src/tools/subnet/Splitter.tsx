@@ -15,6 +15,7 @@ import { MAX_ROWS } from './ranges';
 import { formatCount, formatIpv6, splitNetwork6, subnetInfo6 } from './ipv6';
 import { cidr } from './format';
 import { formatNumber } from '../../lib/number';
+import { downloadText } from '../../lib/file';
 import { useNetwork } from './useNetwork';
 import { Errors } from './Errors';
 import { ErrorText } from '../../components/ErrorMessage';
@@ -131,8 +132,9 @@ function EqualSplit6({ network, prefix, newPrefix, cloud }: { network: bigint; p
       <div className="status-row">
         <Badge>{formatCount(result.count)} 個のサブネット</Badge>
         <Badge>1つあたり {formatCount(rows[0]?.info.usable ?? 0n)} アドレス</Badge>
-        <CopyButton text={rows.map((r) => `${formatIpv6(r.n)}/${p}`).join('\n')} label="一覧をコピー" />
+        <CopyButton text={rows.map((r) => `${formatIpv6(r.n)}/${p}`).join('\n')} label={result.count > BigInt(MAX_ROWS) ? `先頭${formatNumber(MAX_ROWS)}件をコピー` : '一覧をコピー'} />
       </div>
+      {result.count > BigInt(MAX_ROWS) && <SplitOutput input={`${formatIpv6(network)}/${prefix}`} newPrefix={p} />}
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -175,8 +177,9 @@ function EqualSplit({ network, prefix, newPrefix, cloud }: { network: number; pr
       <div className="status-row">
         <Badge>{formatNumber(result.count)} 個のサブネット</Badge>
         <Badge>1つあたり {formatNumber(rows[0]?.info.usable ?? 0)} ホスト</Badge>
-        <CopyButton text={rows.map((r) => cidr(r.n, p)).join('\n')} label="一覧をコピー" />
+        <CopyButton text={rows.map((r) => cidr(r.n, p)).join('\n')} label={result.count > MAX_ROWS ? `先頭${formatNumber(MAX_ROWS)}件をコピー` : '一覧をコピー'} />
       </div>
+      {result.count > MAX_ROWS && <SplitOutput input={cidr(network, prefix)} newPrefix={p} />}
       <SubnetRows rows={rows.map((r, i) => ({ key: String(i), name: String(i + 1), network: r.n, prefix: p, info: r.info }))} />
       {result.count > MAX_ROWS && (
         <p className="hint">
@@ -184,6 +187,21 @@ function EqualSplit({ network, prefix, newPrefix, cloud }: { network: number; pr
         </p>
       )}
     </>
+  );
+}
+
+/** 均等分割の全件出力。要求が変わった描画から古い出力をコピー・保存へ渡さない。 */
+function SplitOutput({ input, newPrefix }: { input: string; newPrefix: number }) {
+  const calculation = useCalculation({ tool: 'subnetSplit', input, newPrefix });
+  const output = calculation.result?.output ?? '';
+  return (
+    <div className="stack">
+      <CalculationStatus {...calculation} />
+      <div className="toolbar">
+        <CopyButton text={output} label="全件をコピー" />
+        <button type="button" className="btn btn-ghost" disabled={!output} onClick={() => downloadText('subnets.txt', output, 'text/plain')}>全件を保存</button>
+      </div>
+    </div>
   );
 }
 

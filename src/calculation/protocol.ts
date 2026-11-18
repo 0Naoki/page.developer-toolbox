@@ -12,7 +12,7 @@ import type { TextMeasurement, Measure } from '../tools/text-count/logic';
 import type { CsvConversion, CsvConversionRequest } from '../tools/csv-json/calculation';
 import type { DiffCalculation, DiffRequest } from '../tools/text-diff/calculation';
 import type { convertEpochsInText, BulkMode } from '../tools/unix-time/epoch';
-import type { aggregateList, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
+import type { aggregateList, calculateSplit, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
 import type { Zone } from '../lib/time/timezone';
 import type { TextConversion, TextConversionRequest } from '../tools/base64/logic';
 
@@ -25,6 +25,7 @@ export type CalculationRequest =
   | ({ tool: 'base64' } & TextConversionRequest)
   | { tool: 'subnetAggregate'; input: string }
   | { tool: 'subnetOverlap'; input: string }
+  | { tool: 'subnetSplit'; input: string; newPrefix: number }
   | { tool: 'subnetVlsm'; input: string; network: number; prefix: number; cloud: boolean };
 
 /** ツールごとの結果の型 */
@@ -37,6 +38,7 @@ export type CalculationResults = {
   base64: TextConversion;
   subnetAggregate: ReturnType<typeof aggregateList>;
   subnetOverlap: ReturnType<typeof checkOverlapList>;
+  subnetSplit: ReturnType<typeof calculateSplit>;
   subnetVlsm: ReturnType<typeof calculateVlsm>;
 };
 export type CalculationTool = CalculationRequest['tool'];

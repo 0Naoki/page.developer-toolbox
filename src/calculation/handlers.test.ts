@@ -8,6 +8,25 @@ import { DEFAULT_CSV_TO_JSON } from '../tools/csv-json/logic';
 import { DEFAULT_JSON_TO_CSV } from '../tools/csv-json/writeCsv';
 
 describe('画面から分離した計算', () => {
+  it('均等分割のコピー用出力は表示上限を超えても全件を返す', () => {
+    for (const [input, newPrefix, count, first, last] of [
+      ['10.0.0.0/16', 28, 4096, '10.0.0.0/28', '10.0.255.240/28'],
+      ['2001:db8::/48', 64, 65536, '2001:db8::/64', '2001:db8:0:ffff::/64'],
+    ] as const) {
+      const result = calculate({ tool: 'subnetSplit', input, newPrefix });
+      expect(result).toMatchObject({ output: expect.any(String) });
+      const lines = (result as { output: string }).output.split('\n');
+      expect(lines).toHaveLength(count);
+      expect(lines[0]).toBe(first);
+      expect(lines.at(-1)).toBe(last);
+    }
+  });
+
+  it('均等分割の出力上限を超えると、不完全な一覧を返さず拒否する', () => {
+    expect(() => calculate({ tool: 'subnetSplit', input: '::/0', newPrefix: 128 })).toThrow('100,000');
+    expect(() => calculate({ tool: 'subnetSplit', input: '10.0.0.0/8', newPrefix: 32 })).toThrow('100,000');
+  });
+
   it('HANDLERS にない計算の種類は、Object.prototype のメソッドも含めて呼ばずにエラーにする', () => {
     /** Worker が受け取るメッセージの tool は実行時には型で守られないため、決まった種類以外を呼ばないことを確かめる */
     for (const tool of ['toString', 'constructor', 'hasOwnProperty', '__proto__', 'unknown']) {

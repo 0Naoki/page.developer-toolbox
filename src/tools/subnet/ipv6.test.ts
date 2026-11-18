@@ -28,6 +28,37 @@ it('クラウドの予約数と、AWS・Azure の IPv6 サイズの案内を分�
 
 const ip = parseIpv6;
 
+it('ゾーンIDの区切り記号を範囲と取り違えず、単独解析と集約を一致させる', () => {
+  for (const zone of ['eth0-1', 'eth0~1', 'eth0_1']) {
+    const text = `fe80::1%${zone}`;
+    expect(parseIpv6(text)).toBe(parseIpv6('fe80::1'));
+    expect(aggregate6(text)).toMatchObject({ cidrs: ['fe80::1/128'], errors: [] });
+    for (const separator of [' - ', '–', '〜', '~']) {
+      expect(aggregate6(`${text}${separator}fe80::2%${zone}`)).toMatchObject({ cidrs: ['fe80::1/128', 'fe80::2/128'], errors: [] });
+    }
+  }
+});
+
+it('単独アドレスのゾーンIDで接尾辞や不正な構文を隠さない', () => {
+  for (const input of ['fe80::1%eth0/129', 'fe80::1%eth0/64x', 'fe80::1%', 'fe80::1%eth0%1', 'fe80::1%eth 0']) {
+    expect(() => parseIpv6(input), input).toThrow();
+  }
+  expect(parseIpv6('[fe80::1%eth0]')).toBe(parseIpv6('fe80::1'));
+  for (const input of ['fe80::1%eth0/129 - fe80::2', 'fe80::1%eth0/64x - fe80::2']) {
+    expect(aggregate6(input).cidrs, input).toEqual([]);
+    expect(aggregate6(input).errors, input).toHaveLength(1);
+  }
+});
+
+it('ゾーンIDで不正なプレフィックスを読み飛ばさない', () => {
+  expect(parseNetwork6('fe80::1%eth0/64').prefix).toBe(64);
+  for (const input of ['fe80::1%eth0/64x', 'fe80::1%eth0/', 'fe80::1%eth0/64/32']) {
+    expect(() => parseNetwork6(input), input).toThrow();
+    expect(parseCidrList6(input).blocks, input).toEqual([]);
+    expect(parseCidrList6(input).errors, input).toHaveLength(1);
+  }
+});
+
 describe('IPv6一覧の改行', () => {
   for (const newline of ['\n', '\r\n', '\r']) {
     it(`改行 ${JSON.stringify(newline)} で行番号と集約結果を保つ`, () => {

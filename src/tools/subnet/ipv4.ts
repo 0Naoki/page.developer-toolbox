@@ -1,10 +1,11 @@
+import { splitAddressRange } from './addressRange';
 /**
  * IPv4 のアドレス・サブネットの計算。
  * アドレスは 0 〜 2^32-1 の数（Number）で持つ。ビット演算は32ビットの符号付きになるため、結果は \>\>\> 0 で符号なしに戻す。
  */
 import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
-import { aggregateIn, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, type Family, type ListError, type RangeBlock } from './ranges';
+import { aggregateIn, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Family, type ListError, type RangeBlock } from './ranges';
 
 /** 「192.168.10.1」を数にする。各部は 0〜255 の10進数。先頭の0（8進数と解釈する実装がある）は受け付けない */
 export function parseIpv4(input: string): number {
@@ -201,6 +202,10 @@ export const parseCidrList = (text: string): { blocks: Block[]; errors: ListErro
 export const splitNetwork = (network: number, prefix: number, newPrefix: number): { count: number; subnets: number[] } =>
   splitNetworkIn(IPV4, network, prefix, newPrefix, MAX_ROWS);
 
+/** 均等分割した全件を出力する（表示の MAX_ROWS とは別の出力上限を適用する）。 */
+export const splitNetworkOutput = (network: number, prefix: number, newPrefix: number): string =>
+  splitNetworkOutputIn(IPV4, network, prefix, newPrefix);
+
 /** 集約・範囲変換 */
 
 /** 開始〜終了のアドレス範囲を、それをちょうど覆う最小個数の CIDR にする */
@@ -228,7 +233,7 @@ const IPV4: Family<number> = {
     return { ip, prefix, first: info.network, last: info.broadcast };
   },
   format: formatIpv4,
-  rangePattern: /^([\d.]+)\s*(?:-|–|〜|~)\s*([\d.]+)$/,
+  splitRange: (text) => splitAddressRange(text, false),
   accepts: () => true,
   cidrExample: '10.0.0.0/16',
   notAlignedWarning: (cidr, normalized) => `${cidr} はネットワークアドレスではないため、${normalized} として扱いました`,
