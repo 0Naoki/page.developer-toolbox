@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { useLatest } from './useLatest';
-import { isClearingData, pruneInvalidSetting, settingStorageKey, settingValueFromEvent, writeStoredSetting } from '../lib/storage';
-import { isValidSetting, readSetting, type SettingKey, type SettingValidator } from '../lib/settings';
+import { isClearingData, pruneInvalidSetting, readStoredSetting, storedSettingUpdateBase, settingStorageKey, settingValueFromEvent, writeStoredSetting } from '../lib/storage';
+import { readSetting, type SettingKey, type SettingValidator } from '../lib/settings';
 
 /**
  * 検証済みの表示設定を localStorage に保存する。
@@ -27,7 +27,7 @@ export function usePreference<T>(key: SettingKey, initial: T, validate: SettingV
   const storageKey = useMemo(() => settingStorageKey(key), [key]);
   const [value, setValue] = useState<T>(() => {
     try {
-      return readSetting(localStorage.getItem(storageKey), initial, validate);
+      return readStoredSetting(localStorage, storageKey, initial, validate);
     } catch {
       return initial;
     }
@@ -63,10 +63,8 @@ export function usePreference<T>(key: SettingKey, initial: T, validate: SettingV
    */
   const previousForUpdate = useCallback((): T => {
     const current = latest.current;
-    if (unsaved.current || isClearingData() || !isValidSetting(JSON.stringify(current), validateRef.current)) return current;
     try {
-      const raw = localStorage.getItem(storageKey);
-      return raw === null ? initialRef.current : readSetting(raw, current, validateRef.current);
+      return storedSettingUpdateBase(localStorage, storageKey, current, initialRef.current, validateRef.current, unsaved.current || isClearingData());
     } catch {
       return current;
     }

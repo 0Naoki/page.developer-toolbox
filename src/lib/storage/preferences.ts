@@ -6,11 +6,22 @@
  * 設定の保存はロックを取らず、その設定のキーだけを操作する（別タブが同時に変えたほかの設定を上書きしないため）。
  */
 
-import { APP_SETTING_KEYS, isValidSetting, type SettingKey, type SettingValidator } from '../settings';
+import { APP_SETTING_KEYS, isValidSetting, readSetting, settingUpdateBase, type SettingKey, type SettingValidator } from '../settings';
 import { APP_PREFIX, CLEAR_KEY, INPUT_PREFIX, keysOf, PREF_PREFIX, safe, TAB_GENERATION_KEY, type StorageLike } from './io';
 
 /** 表示設定の保存キー（`dev-toolbox:pref:<キー>`） */
 export const settingStorageKey = (key: SettingKey): string => PREF_PREFIX + key;
+
+/** 保存領域を参照できなければ既定値を返す。復元は保存を伴わない。 */
+export function readStoredSetting<T>(storage: Pick<Storage, 'getItem'> | null, key: string, initial: T, validate: SettingValidator<T>): T {
+  return safe(() => readSetting(storage?.getItem(key) ?? null, initial, validate), initial);
+}
+
+/** 別タブの保存値を更新の基準にする。読み取れない場合や未保存の変更がある場合は現在値を使う。 */
+export function storedSettingUpdateBase<T>(storage: Pick<Storage, 'getItem'> | null, key: string, current: T, initial: T, validate: SettingValidator<T>, keepCurrent: boolean): T {
+  if (!storage || keepCurrent) return current;
+  return safe(() => settingUpdateBase(current, storage.getItem(key), initial, validate, false), current);
+}
 
 /** 値を保存する。初期値へ戻す場合はキーを消す。検証に通らない途中の値では保存領域に触れない。 */
 export function writeStoredSetting<T>(storage: Pick<Storage, 'setItem' | 'removeItem'>, storageKey: string, raw: string, initialJson: string, validate: SettingValidator<T>): void {

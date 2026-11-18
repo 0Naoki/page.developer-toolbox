@@ -49,3 +49,9 @@ export function isValidSetting<T>(raw: string, validate: SettingValidator<T>): b
     return false;
   }
 }
+
+/** 更新の基準を選ぶ。未保存・消去中・編集中の不正な値は、そのタブの値を優先する。 */
+export function settingUpdateBase<T>(current: T, raw: string | null, initial: T, validate: SettingValidator<T>, keepCurrent: boolean): T {
+  if (keepCurrent || !isValidSetting(JSON.stringify(current), validate)) return current;
+  return raw === null ? initial : readSetting(raw, current, validate);
+}

@@ -1,7 +1,9 @@
-import { APP_PREFIX, CLEAR_KEY, CLEAR_CHANNEL, TAB_GENERATION_KEY, safe, clearAppData, keysOf, type StorageLike } from './io';
+import { CLEAR_KEY, CLEAR_CHANNEL, TAB_GENERATION_KEY, safe, clearAppData, type StorageLike } from './io';
 import { withStorageLock } from './lock';
+import { createClearLifecycle, type ClearListener } from './clearState';
+import { createClearOperations, type ClearState } from './clearOperations';
 
-let clearingData = false;
+const lifecycle = createClearLifecycle();
 const readClearGeneration = () => safe(() => localStorage.getItem(CLEAR_KEY), null);
 const tabGeneration = readClearGeneration();
 
@@ -14,7 +16,7 @@ const tabGeneration = readClearGeneration();
  * - 記録した世代と今の世代が同じ：残す。どちらもない（一度も全消去していない）ときも残す
  * - 記録がなく今の世代がある（以前の版が保存した入力を含む）・世代が違う：捨てる
  *
- * 捨て切れなかったときは世代を記録し直さず、次の起動でも捨て直す。
+ * 捨て切れなかったときは復元・保存を止め、通知の登録後に失敗と再試行を表示する。世代は記録し直さない。
  *
  * @param local - localStorage。参照できない環境では null（世代なしとして扱う）。
  * @param session - sessionStorage。参照できない環境では null（何もしない）。
@@ -23,21 +25,16 @@ export function discardClearedTabData(local: StorageLike | null, session: Storag
   if (!session) return;
   const current = local ? safe(() => local.getItem(CLEAR_KEY), null) : null;
   const saved = safe(() => session.getItem(TAB_GENERATION_KEY), null);
-  if (saved !== current && !safe(() => clearAppData(session), false)) return;
+  if (saved !== current && !safe(() => clearAppData(session), false)) {
+    lifecycle.begin();
+    notifyResult(false, clearTabData);
+    return;
+  }
   if (current !== null) safe(() => session.setItem(TAB_GENERATION_KEY, current), undefined);
 }
 
 /** 通知がまだ届いていなくても、消去前に開いていたタブからの更新を止める。 */
-export const isClearingData = () => clearingData || readClearGeneration() !== tabGeneration;
-/**
- * 全消去の結果。失敗のときは、そのタブで再試行する処理（retry）を持つ。
- * sharedPending は、共有領域に削除を確認できていないデータがあるか。再試行では共有領域の削除を確認するだけにする。
- */
-export type ClearResult = { ok: true } | { ok: false; retry: () => void; sharedPending: boolean };
-/** 全消去の結果を受け取る関数 */
-export type ClearListener = (result: ClearResult) => void;
-const clearListeners = new Set<ClearListener>();
-
+export const isClearingData = () => lifecycle.blocked || readClearGeneration() !== tabGeneration;
 /**
  * localStorage の変更が全消去の通知か。`localStorage.clear()`（key が null）と、消去世代の記録だけを通知とみなす。
  *
@@ -58,8 +55,8 @@ function isClearEvent(event: StorageEvent): boolean {
  * メモリ内の入力・鍵・編集履歴は、成功を受けた画面の再読み込みで破棄する。
  */
 function receiveClear(): void {
-  if (clearingData) return;
-  clearingData = true;
+  if (lifecycle.blocked) return;
+  lifecycle.begin();
   clearTabData();
 }
 
@@ -77,13 +74,13 @@ function receiveClearIfGenerationChanged(): void {
 
 /** このタブの sessionStorage だけを消す。失敗したら、同じ処理を再試行として渡す */
 function clearTabData(): void {
-  const clearTab = () => notifyResult(safe(() => clearAppData(sessionStorage), false), clearTabData);
+  const clearTab = () => notifyResult(operations.clearTab(), clearTabData);
   void withStorageLock(clearTab, clearTab).catch(() => notifyResult(false, clearTabData));
 }
 
 /** 現在のタブや別タブで始めた全消去の結果を受け取る。 */
 export function subscribeClearData(listener: ClearListener): () => void {
-  clearListeners.add(listener);
+  const unsubscribe = lifecycle.subscribe(listener);
   /** 全消去の通知のほか、ほかのキーの変更でも世代を確かめる（世代の記録の通知だけを取りこぼした場合に備える） */
   const onStorage = (event: StorageEvent) => {
     if (!safe(() => event.storageArea === localStorage, false)) return;
@@ -106,7 +103,7 @@ export function subscribeClearData(listener: ClearListener): () => void {
   /** 起動（このモジュールの読み込み）から受け取りを登録するまでの間に、別タブで全消去された場合は、通知が届かない */
   receiveClearIfGenerationChanged();
   return () => {
-    clearListeners.delete(listener);
+    unsubscribe();
     window.removeEventListener('storage', onStorage);
     window.removeEventListener('pageshow', onPageShow);
     channel?.close();
@@ -119,19 +116,11 @@ export function subscribeClearData(listener: ClearListener): () => void {
  * 再読み込みまでの非同期入力更新による書き戻しも、消去中フラグで防ぐ。
  */
 export function clearAllData(): void {
-  clearingData = true;
+  lifecycle.begin();
   void withStorageLock(clearAndNotify, clearAndNotify).catch(() => finishClear({
     local: 'unknown', session: false, recorded: false,
   }));
 }
-
-/**
- * 消去を始めたタブの、まだ終わっていない処理。
- * - local：共有の localStorage で消せなかったキー。キーの一覧も読めなかったときは 'unknown'
- * - session：このタブの sessionStorage を消せたか
- * - recorded：消去世代を記録できたか
- */
-type ClearState = { local: Set<string> | 'unknown'; session: boolean; recorded: boolean };
 
 const recordGeneration = () => safe(() => {
   localStorage.setItem(CLEAR_KEY, crypto.getRandomValues(new Uint32Array(4)).join('-'));
@@ -144,30 +133,13 @@ const broadcastClear = () => safe(() => {
   channel.close();
 }, undefined);
 
-const sharedKeys = () => keysOf(localStorage, APP_PREFIX).filter((key) => key !== CLEAR_KEY);
+const operations = createClearOperations({ local: () => localStorage, session: () => sessionStorage, recordGeneration });
 
-/** このアプリの localStorage のキーを消し、消せなかったキーを返す（消去世代は残す）。 */
-function removeSharedKeys(): ClearState['local'] {
-  const keys = safe(sharedKeys, null);
-  if (keys === null) return 'unknown';
-  const failed = new Set<string>();
-  for (const key of keys) {
-    if (!safe(() => { localStorage.removeItem(key); return true; }, false)) failed.add(key);
-  }
-  return failed;
-}
-
-/**
- * 消去世代を先に記録してから消す。記録した時点で、消去前に開いていたタブは書き込みを止めるため、
- * 削除の後に古いタブの書き込みが残らない。容量不足で記録できなければ、消して空きを作ってから記録し直す。
- */
+/** 消去世代を先に記録してから削除し、別タブへ入力を含まない通知を送る。 */
 function clearAndNotify(): void {
-  let recorded = recordGeneration();
-  const local = removeSharedKeys();
-  const session = safe(() => clearAppData(sessionStorage), false);
-  if (!recorded) recorded = recordGeneration();
+  const state = operations.start();
   broadcastClear();
-  finishClear({ local, session, recorded });
+  finishClear(state);
 }
 
 /**
@@ -183,20 +155,11 @@ function finishClear(state: ClearState): void {
 }
 
 function retryOwnClear(state: ClearState): void {
-  /** 同じ値の再保存もあり得るため、共有領域は確認だけに留める。消去世代も更新せず、新しく開いたタブに消去を通知しない。 */
-  if (state.local === 'unknown') {
-    if (safe(() => sharedKeys().length === 0, false)) state.local = new Set();
-  } else {
-    for (const key of state.local) {
-      if (safe(() => localStorage.getItem(key) === null, false)) state.local.delete(key);
-    }
-  }
-  if (!state.session) state.session = safe(() => clearAppData(sessionStorage), false);
+  operations.retry(state);
   finishClear(state);
 }
 
 /** 成功のときは結果だけを、失敗のときは再試行の処理も渡す */
 function notifyResult(success: boolean, retry: () => void, sharedPending = false): void {
-  const result: ClearResult = success ? { ok: true } : { ok: false, retry, sharedPending };
-  clearListeners.forEach((listener) => listener(result));
+  lifecycle.finish(success ? { ok: true } : { ok: false, retry, sharedPending });
 }

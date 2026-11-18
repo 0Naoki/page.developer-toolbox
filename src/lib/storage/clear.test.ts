@@ -5,6 +5,7 @@
  * - 全消去の順序と遅れた通知：消去世代を記録してから削除すること。再試行で共有領域の削除や消去世代の更新を行わず、キーの列挙失敗や同じ内容の再保存があっても、消去後に別タブで保存された入力・設定を残すこと
  * - 戻る・進むのキャッシュ：キャッシュから戻ったタブも、離れていた間に消去世代が変わっていれば、タブ内データを消すこと
  * - 取りこぼした通知：起動から受け取りの登録までの間の全消去や、世代の記録の通知を取りこぼした場合も、世代のずれに気づいてタブ内データを消すこと
+ * - 起動時の消去失敗：旧世代の入力を削除できない間は復元・保存を止め、通知登録後に失敗を示し、自分のタブだけを再試行すること
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_PREFIX } from './index';
@@ -17,6 +18,38 @@ import { memoryStorage } from './memory.fixtures';
  */
 describe('保存データの全消去', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('起動時に旧世代の入力を削除できなければ復元と保存を止め、通知登録後に再試行できる', async () => {
+    vi.resetModules();
+    const input = `${INPUT_PREFIX}json`;
+    const local = memoryStorage({ [`${APP_PREFIX}event:clear`]: 'after', [`${APP_PREFIX}pref:theme`]: '"dark"' });
+    const session = memoryStorage({ [input]: 'old-input', [`${APP_PREFIX}event:tab-generation`]: 'before' });
+    let fail = true;
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('sessionStorage', { ...session, get length() { return session.length; }, removeItem: (key: string) => {
+      if (fail && key === input) throw new DOMException('denied', 'SecurityError');
+      session.removeItem(key);
+    } });
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('BroadcastChannel', undefined);
+    vi.stubGlobal('navigator', {});
+    const { prepareStorage, readInput, saveInput, isClearingData, subscribeClearData } = await import('./index');
+    prepareStorage(['json']);
+    expect(isClearingData()).toBe(true);
+    expect(readInput('json', '')).toBe('');
+    expect(saveInput('json', 'new-input', '')).toBe(false);
+    expect(session.getItem(input)).toBe('old-input');
+    const listener = vi.fn();
+    const unsubscribe = subscribeClearData(listener);
+    const result = listener.mock.calls[0]?.[0];
+    expect(result).toMatchObject({ ok: false, sharedPending: false, retry: expect.any(Function) });
+    fail = false;
+    result.retry();
+    await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith({ ok: true }));
+    expect(session.getItem(input)).toBeNull();
+    expect(local.dump()).toEqual({ [`${APP_PREFIX}event:clear`]: 'after', [`${APP_PREFIX}pref:theme`]: '"dark"' });
+    unsubscribe();
+  });
 
   it('ストレージが使えなくてもタブ間通知でタブ内データを消し、重複通知を無視する', async () => {
     vi.resetModules();
