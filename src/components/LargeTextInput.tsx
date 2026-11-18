@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CopyButton } from './CopyButton';
-import { TEXT_PREVIEW_LIMIT, TEXT_PREVIEW_LIMIT_LABEL, textPreview } from '../lib/text/textPreview';
+import { TEXT_PREVIEW_LIMIT, textPreview } from '../lib/text/textPreview';
 import { applyTextEdit, replaceTextSelectionWithCaret, TextEditHistory, type TextEditSelection } from '../lib/text/textEdit';
 import { isImeComposing } from '../lib/keyboard';
 import { useLatest } from '../hooks/useLatest';
@@ -11,7 +11,7 @@ import { formatNumber } from '../lib/number';
  * 大きな貼り付けは部品が自分で入力を置き換えてブラウザの編集履歴に残らないため、元に戻す・やり直すは
  * 改行を保持するかどうかに関係なく、部品の履歴（TextEditHistory）で行う。
  */
-export function LargeTextInput({ value, onChange, label, className = 'code', placeholder, preserveLineEndings = false, resetKey = 0, limit }: {
+export function LargeTextInput({ value, onChange, label, className = 'code', placeholder, preserveLineEndings = false, resetKey = 0, limit, previewLimit = TEXT_PREVIEW_LIMIT }: {
   value: string; onChange: (value: string) => void; label: string; className?: string; placeholder?: string;
   preserveLineEndings?: boolean;
   resetKey?: number;
@@ -20,11 +20,13 @@ export function LargeTextInput({ value, onChange, label, className = 'code', pla
    * 上限を超えたときの扱い（エラーの表示）は、各ツールの計算の側で行う
    */
   limit?: number;
+  /** 表示の上限。入力・保存の上限とは別。多種類の文字を含む設定欄は少なめにする。 */
+  previewLimit?: number;
 }) {
   const [showFull, setShowFull] = useState(false);
-  const large = value.length > TEXT_PREVIEW_LIMIT;
+  const large = value.length > previewLimit;
   const preview = large && !showFull;
-  const displayedText = preview ? textPreview(value, TEXT_PREVIEW_LIMIT) : value;
+  const displayedText = preview ? textPreview(value, previewLimit) : value;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sourceRef = useLatest(value);
   const beforeEdit = useRef<(TextEditSelection & { source: string }) | null>(null);
@@ -89,7 +91,7 @@ export function LargeTextInput({ value, onChange, label, className = 'code', pla
   return (
     <>
       {large && <div>
-        <p className="hint">大きな入力のため、通常は先頭{TEXT_PREVIEW_LIMIT_LABEL}文字相当のみ表示します。計算・保存には全文を使います。この欄からのコピーは表示部分だけです。</p>
+        <p className="hint">大きな入力のため、通常は先頭{formatNumber(previewLimit)}文字相当のみ表示します。計算・保存には全文を使います。この欄からのコピーは表示部分だけです。</p>
         <div className="toolbar">
           <CopyButton text={value} label="入力全文をコピー" />
           <button type="button" className="btn btn-ghost" onClick={() => setShowFull((current) => !current)}>

@@ -10,6 +10,27 @@ import { rolldown } from 'rolldown';
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });
 const hash = (source) => createHash('sha256').update(source).digest('hex');
 
+/** 比較方式と基準コミットを、出力ファイルの位置に関係なく指定できるようにする。 */
+export function comparisonArguments(args = process.argv.slice(2)) {
+  let mode = 'entry';
+  let baseline = 'HEAD';
+  let outputPath;
+  const seen = new Set();
+  for (const arg of args) {
+    if (arg.startsWith('--comparison=') || arg.startsWith('--baseline=')) {
+      const key = arg.slice(0, arg.indexOf('='));
+      if (seen.has(key)) throw new Error(`${key} を重複して指定できません`);
+      seen.add(key);
+      if (key === '--comparison') mode = arg.slice(key.length + 1);
+      else baseline = arg.slice(key.length + 1);
+    } else if (arg.startsWith('--')) throw new Error(`未対応の引数です：${arg}`);
+    else if (outputPath !== undefined) throw new Error('出力ファイルは1つだけ指定してください');
+    else outputPath = arg;
+  }
+  if (!['entry', 'tree'].includes(mode) || baseline === '') throw new Error('--comparison は entry または tree、--baseline はコミットを指定してください');
+  return { mode, baseline, outputPath };
+}
+
 /** 予備実行後に指定回数を測る。run 内で結果の正しさも検証する。 */
 export function measure(run, repetitions = 3) {
   run();
@@ -37,9 +58,9 @@ export async function createComparison(entry) {
   snapshot(fileURLToPath(import.meta.url));
   snapshot(resolve(process.argv[1]));
   const provenance = {};
-  const load = async (name, replacement) => {
+  const load = async (name, replacement, inputPath = entryPath) => {
     const files = new Map();
-    const bundle = await rolldown({ input: entryPath, plugins: [{
+    const bundle = await rolldown({ input: inputPath, plugins: [{
       name: 'benchmark-snapshot',
       load(id) {
         if (!isAbsolute(id)) return null;
@@ -59,6 +80,8 @@ export async function createComparison(entry) {
   const versions = { HEAD: await load('HEAD', previous), workingTree: await load('workingTree') };
   return {
     versions,
+    trackFile: (file) => snapshot(resolve(file)),
+    loadWorkingTree: (file) => load(`workingTree:${file}`, undefined, resolve(file)),
     writeReport(data, outputPath) {
       if (git('rev-parse', 'HEAD').trim() !== commit) throw new Error('計測中に HEAD が変わりました。測り直してください。');
       for (const [path, source] of snapshots) {

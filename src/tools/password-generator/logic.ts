@@ -1,5 +1,6 @@
 import { cryptoRng, type Rng as RandomFill } from '../../lib/random';
 import { isBoolean, isRecord, isString, integerBetween } from '../../lib/settings';
+import { findLoneSurrogate } from '../../lib/text/surrogate';
 
 /** 乱数源。テストで差し替えられるように引数で受け取る */
 export type Rng = RandomFill<Uint32Array<ArrayBuffer>>;
@@ -43,6 +44,8 @@ export const DEFAULT_OPTIONS: PasswordOptions = {
 
 export const MIN_LENGTH = 4;
 export const MAX_LENGTH = 128;
+/** 多種類の文字を含む設定欄のプレビュー上限。全文はメモリと表示設定の保存値に保持する。 */
+export const CONFIG_PREVIEW_LIMIT = 2_000;
 
 /** 保存設定は型だけでなく、実際に生成できる組み合わせかも確かめる。 */
 export function isPasswordOptions(value: unknown): value is PasswordOptions {
@@ -67,13 +70,18 @@ export function randomInt(max: number, rng: Rng = cryptoRng): number {
   }
 }
 
-const unique = (s: string) => [...new Set(s)].join('');
+/** 文字集合を加工する前に、UTF-16 の片割れが混じっていないか確かめる。 */
+function alphabetError(o: PasswordOptions): string | null {
+  if (findLoneSurrogate(o.symbolSet) >= 0) return '使用する記号に不正なUnicodeが含まれています';
+  if (findLoneSurrogate(o.exclude) >= 0) return '除外する文字に不正なUnicodeが含まれています';
+  return null;
+}
 
 /** 選んだ文字種ごとの文字集合。除外で空になった集合も、必須条件の検査に使うため残す */
-function selectedPools(o: PasswordOptions): string[] {
+function selectedPools(o: PasswordOptions): string[][] {
   const excluded = new Set(o.exclude + (o.excludeAmbiguous ? AMBIGUOUS : ''));
-  const filter = (s: string) => [...unique(s)].filter((c) => !excluded.has(c)).join('');
-  const pools: string[] = [];
+  const filter = (s: string) => [...new Set(s)].filter((c) => !excluded.has(c));
+  const pools: string[][] = [];
   if (o.upper) pools.push(filter(CHARSETS.upper));
   if (o.lower) pools.push(filter(CHARSETS.lower));
   if (o.digits) pools.push(filter(CHARSETS.digits));
@@ -83,16 +91,18 @@ function selectedPools(o: PasswordOptions): string[] {
 
 /** オプションから使用できる文字種ごとの文字集合を作る（除外文字を反映済み） */
 export function buildPools(o: PasswordOptions): string[] {
-  return selectedPools(o).filter((p) => p.length > 0);
+  const error = alphabetError(o);
+  if (error) throw new Error(error);
+  return selectedPools(o).filter((p) => p.length > 0).map((p) => p.join(''));
 }
 
 /** 設定の問題点を返す。問題なければ null */
 export function validate(o: PasswordOptions): string | null {
-  return validatePools(o, selectedPools(o));
+  return alphabetError(o) ?? validatePools(o, selectedPools(o));
 }
 
 /** 用意した文字集合を使って、長さと必須の文字種の条件を確かめる。 */
-function validatePools(o: PasswordOptions, selected: string[]): string | null {
+function validatePools(o: PasswordOptions, selected: string[][]): string | null {
   if (!Number.isInteger(o.length) || o.length < MIN_LENGTH || o.length > MAX_LENGTH) {
     return `長さは${MIN_LENGTH}〜${MAX_LENGTH}文字で指定してください`;
   }
@@ -107,27 +117,44 @@ function validatePools(o: PasswordOptions, selected: string[]): string | null {
 
 /** パスワードを1つ生成する */
 export function generatePassword(o: PasswordOptions, rng: Rng = cryptoRng): string {
-  return preparePassword(o)(rng);
+  const plan = createPasswordPlan(o);
+  if (!plan.ok) throw new Error(plan.error);
+  return plan.generate(rng);
 }
 
-/** 文字集合の検証とコードポイントへの分割を1回だけ行い、一括生成で共有する。乱数や生成結果は共有しない。 */
-function preparePassword(o: PasswordOptions): (rng: Rng) => string {
+export type PasswordPlan =
+  | { ok: false; error: string; bits: 0 }
+  | { ok: true; error: null; bits: number; generate: (rng?: Rng) => string };
+
+/**
+ * 検証・文字集合・生成方法・強度の前提を1回で確定する。乱数や生成結果は保持しない。
+ * 必須文字は各集合から選び、残りは全体から選ぶ。シャッフルで増える不確かな強度は加算しない。
+ * 各並べ替えの出力確率は 1 /（必須集合のサイズの積 × 全体のサイズの残り文字数乗）以下なので、
+ * 集合が重なっていても、この値は最小エントロピーの保守的な下限になる。
+ */
+export function createPasswordPlan(o: PasswordOptions): PasswordPlan {
+  const malformed = alphabetError(o);
+  if (malformed) return { ok: false, error: malformed, bits: 0 };
   const selected = selectedPools(o);
   const error = validatePools(o, selected);
-  if (error) throw new Error(error);
+  if (error) return { ok: false, error, bits: 0 };
+  const { length, requireEach } = o;
 
   /**
    * 文字列の添字（UTF-16 の単位）で選ぶと、絵文字などの片割れだけを選んで壊れた文字になるため、
    * 1文字（コードポイント）ずつの配列にしてから選ぶ
    */
-  const pools = selected.filter((p) => p.length > 0).map((p) => Array.from(p));
-  const all = Array.from(unique(pools.flat().join('')));
-  return (rng) => {
+  const pools = selected.filter((p) => p.length > 0);
+  const all = [...new Set(pools.flat())];
+  const required = requireEach ? pools.length : 0;
+  const bits = (length - required) * Math.log2(all.length) +
+    (requireEach ? pools.reduce((sum, p) => sum + Math.log2(p.length), 0) : 0);
+  const generate = (rng: Rng = cryptoRng) => {
     /** randomInt は 0 以上 s.length 未満を返す（?? '' は型のためだけ） */
     const pick = (s: string[]) => s[randomInt(s.length, rng)] ?? '';
     const chars: string[] = [];
-    if (o.requireEach) for (const p of pools) chars.push(pick(p));
-    while (chars.length < o.length) chars.push(pick(all));
+    if (requireEach) for (const p of pools) chars.push(pick(p));
+    while (chars.length < length) chars.push(pick(all));
     /** 必須文字が先頭に固まらないようにシャッフル（Fisher–Yates） */
     for (let i = chars.length - 1; i > 0; i--) {
       const j = randomInt(i + 1, rng);
@@ -137,12 +164,14 @@ function preparePassword(o: PasswordOptions): (rng: Rng) => string {
     }
     return chars.join('');
   };
+  return { ok: true, error: null, bits, generate };
 }
 
 export function generateMany(o: PasswordOptions, count: number, rng: Rng = cryptoRng): string[] {
   if (count <= 0) return [];
-  const generate = preparePassword(o);
-  return Array.from({ length: count }, () => generate(rng));
+  const plan = createPasswordPlan(o);
+  if (!plan.ok) throw new Error(plan.error);
+  return Array.from({ length: count }, () => plan.generate(rng));
 }
 
 /** PIN（数字のみ）を生成する */
@@ -151,10 +180,9 @@ export function generatePin(length: number, rng: Rng = cryptoRng): string {
   return Array.from({ length }, () => String(randomInt(10, rng))).join('');
 }
 
-/** エントロピー（ビット）の目安 = 長さ × log2(文字の種類数) */
+/** 生成計画と同じ保守的な強度（ビット）。無効な設定は0。 */
 export function entropyBits(o: PasswordOptions): number {
-  const size = Array.from(unique(buildPools(o).join(''))).length;
-  return size > 0 ? o.length * Math.log2(size) : 0;
+  return createPasswordPlan(o).bits;
 }
 
 /** PIN のエントロピー（ビット）の目安 = 桁数 × log2(10)。パスワードと同じ式で、文字の種類数は数字の10 */
