@@ -1,6 +1,5 @@
 import { countText, type CountOptions, type CountResult } from './count';
 import { eucjpBytesOf, isHalfWidth, sjisBytesOf } from './encoding';
-import { MAX_LISTED } from './characterDetails';
 import { inspectInvisible, type InvisibleInspection } from './invisible';
 import { eachLineRange } from '../../lib/text/lines';
 
@@ -50,10 +49,7 @@ export type TextMeasurement = {
 /** 全文の文字数と不可視文字を集計し、行ごとの計測値と位置を求める。 */
 export function measureText(input: string, options: CountOptions & { measure: Measure }): TextMeasurement {
   const counts = countText(input, options);
-  const issueTotals = { unsupported: counts.unsupported.length, unsupportedEuc: counts.unsupportedEuc.length, vendor: counts.vendor.length };
-  counts.unsupported = counts.unsupported.slice(0, MAX_LISTED);
-  counts.unsupportedEuc = counts.unsupportedEuc.slice(0, MAX_LISTED);
-  counts.vendor = counts.vendor.slice(0, MAX_LISTED);
+  const issueTotals = counts.issueTotals;
   const starts: number[] = [];
   const ends: number[] = [];
   if (input !== '') {

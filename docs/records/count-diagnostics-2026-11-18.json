@@ -1,0 +1,415 @@
+{
+  "input": "同じ絵文字の反復と、すべて異なる補助平面のUnicodeスカラー。改行は含めない。",
+  "scope": "countingは文字数・バイト数と診断の集計。intermediateBytesはcountTextの中間結果のV8サイズで、Worker転送量やピークヒープではない。normalMeasurementは現行の行別測定と不可視検査を含む通常集計。fullReportは操作時のShift_JIS診断の全件TSV生成。入力作成・描画・コピー・保存は除外。区間は重複するので合算しない。",
+  "cases": [
+    {
+      "alphabet": "repeated",
+      "codePoints": 1000,
+      "inputUtf16": 2000,
+      "distinctSymbols": 1,
+      "versions": {
+        "HEAD": {
+          "counting": {
+            "runsMs": [
+              0.6533999999999764,
+              0.612700000000018,
+              1.143199999999979
+            ],
+            "medianMs": 0.6533999999999764
+          },
+          "intermediateBytes": 372,
+          "retainedDetails": {
+            "sjis": 1,
+            "eucjp": 1
+          },
+          "unsupportedTotal": 1
+        },
+        "workingTree": {
+          "counting": {
+            "runsMs": [
+              0.6281999999999925,
+              0.620900000000006,
+              0.6091999999999871
+            ],
+            "medianMs": 0.620900000000006
+          },
+          "intermediateBytes": 431,
+          "retainedDetails": {
+            "sjis": 1,
+            "eucjp": 1
+          },
+          "unsupportedTotal": 1
+        }
+      },
+      "normalMeasurement": {
+        "runsMs": [
+          1.4834000000000174,
+          1.265700000000038,
+          2.4336999999999875
+        ],
+        "medianMs": 1.4834000000000174
+      },
+      "fullReport": {
+        "runsMs": [
+          0.2810000000000059,
+          0.25130000000001473,
+          0.25310000000001764
+        ],
+        "medianMs": 0.25310000000001764
+      },
+      "fullReportUtf16": 58
+    },
+    {
+      "alphabet": "distinct",
+      "codePoints": 1000,
+      "inputUtf16": 2000,
+      "distinctSymbols": 1000,
+      "versions": {
+        "HEAD": {
+          "counting": {
+            "runsMs": [
+              2.532100000000014,
+              4.277800000000013,
+              1.4280999999999722
+            ],
+            "medianMs": 2.532100000000014
+          },
+          "intermediateBytes": 236050,
+          "retainedDetails": {
+            "sjis": 1000,
+            "eucjp": 1000
+          },
+          "unsupportedTotal": 1000
+        },
+        "workingTree": {
+          "counting": {
+            "runsMs": [
+              1.5942000000000007,
+              1.8070000000000164,
+              2.5090000000000146
+            ],
+            "medianMs": 1.8070000000000164
+          },
+          "intermediateBytes": 23876,
+          "retainedDetails": {
+            "sjis": 100,
+            "eucjp": 100
+          },
+          "unsupportedTotal": 1000
+        }
+      },
+      "normalMeasurement": {
+        "runsMs": [
+          2.842899999999986,
+          2.775099999999952,
+          2.486499999999978
+        ],
+        "medianMs": 2.775099999999952
+      },
+      "fullReport": {
+        "runsMs": [
+          3.2233999999999696,
+          2.788599999999974,
+          2.5405999999999267
+        ],
+        "medianMs": 2.788599999999974
+      },
+      "fullReportUtf16": 43883
+    },
+    {
+      "alphabet": "repeated",
+      "codePoints": 10000,
+      "inputUtf16": 20000,
+      "distinctSymbols": 1,
+      "versions": {
+        "HEAD": {
+          "counting": {
+            "runsMs": [
+              4.908400000000029,
+              4.650099999999952,
+              4.583399999999983
+            ],
+            "medianMs": 4.650099999999952
+          },
+          "intermediateBytes": 382,
+          "retainedDetails": {
+            "sjis": 1,
+            "eucjp": 1
+          },
+          "unsupportedTotal": 1
+        },
+        "workingTree": {
+          "counting": {
+            "runsMs": [
+              4.707599999999957,
+              4.334899999999948,
+              5.425500000000056
+            ],
+            "medianMs": 4.707599999999957
+          },
+          "intermediateBytes": 441,
+          "retainedDetails": {
+            "sjis": 1,
+            "eucjp": 1
+          },
+          "unsupportedTotal": 1
+        }
+      },
+      "normalMeasurement": {
+        "runsMs": [
+          8.276699999999892,
+          6.160200000000032,
+          5.550200000000018
+        ],
+        "medianMs": 6.160200000000032
+      },
+      "fullReport": {
+        "runsMs": [
+          2.102899999999977,
+          3.6204999999999927,
+          3.6751999999999043
+        ],
+        "medianMs": 3.6204999999999927
+      },
+      "fullReportUtf16": 59
+    },
+    {
+      "alphabet": "distinct",
+      "codePoints": 10000,
+      "inputUtf16": 20000,
+      "distinctSymbols": 10000,
+      "versions": {
+        "HEAD": {
+          "counting": {
+            "runsMs": [
+              19.0612000000001,
+              16.15039999999999,
+              36.56410000000005
+            ],
+            "medianMs": 19.0612000000001
+          },
+          "intermediateBytes": 2354875,
+          "retainedDetails": {
+            "sjis": 10000,
+            "eucjp": 10000
+          },
+          "unsupportedTotal": 10000
+        },
+        "workingTree": {
+          "counting": {
+            "runsMs": [
+              21.165700000000015,
+              28.75870000000009,
+              17.025999999999954
+            ],
+            "medianMs": 21.165700000000015
+          },
+          "intermediateBytes": 23884,
+          "retainedDetails": {
+            "sjis": 100,
+            "eucjp": 100
+          },
+          "unsupportedTotal": 10000
+        }
+      },
+      "normalMeasurement": {
+        "runsMs": [
+          38.32839999999999,
+          14.155200000000036,
+          23.245599999999968
+        ],
+        "medianMs": 23.245599999999968
+      },
+      "fullReport": {
+        "runsMs": [
+          19.3682,
+          17.652999999999906,
+          32.485000000000014
+        ],
+        "medianMs": 19.3682
+      },
+      "fullReportUtf16": 445780
+    },
+    {
+      "alphabet": "repeated",
+      "codePoints": 100000,
+      "inputUtf16": 200000,
+      "distinctSymbols": 1,
+      "versions": {
+        "HEAD": {
+          "counting": {
+            "runsMs": [
+              46.78269999999998,
+              47.34789999999998,
+              43.6087
+            ],
+            "medianMs": 46.78269999999998
+          },
+          "intermediateBytes": 382,
+          "retainedDetails": {
+            "sjis": 1,
+            "eucjp": 1
+          },
+          "unsupportedTotal": 1
+        },
+        "workingTree": {
+          "counting": {
+            "runsMs": [
+              39.59500000000003,
+              43.38270000000011,
+              58.353799999999865
+            ],
+            "medianMs": 43.38270000000011
+          },
+          "intermediateBytes": 441,
+          "retainedDetails": {
+            "sjis": 1,
+            "eucjp": 1
+          },
+          "unsupportedTotal": 1
+        }
+      },
+      "normalMeasurement": {
+        "runsMs": [
+          119.88650000000007,
+          119.06539999999995,
+          56.27299999999991
+        ],
+        "medianMs": 119.06539999999995
+      },
+      "fullReport": {
+        "runsMs": [
+          14.57159999999999,
+          13.676699999999983,
+          16.37130000000002
+        ],
+        "medianMs": 14.57159999999999
+      },
+      "fullReportUtf16": 60
+    },
+    {
+      "alphabet": "distinct",
+      "codePoints": 100000,
+      "inputUtf16": 200000,
+      "distinctSymbols": 100000,
+      "versions": {
+        "HEAD": {
+          "counting": {
+            "runsMs": [
+              217.56629999999996,
+              187.16020000000026,
+              166.4402
+            ],
+            "medianMs": 187.16020000000026
+          },
+          "intermediateBytes": 23740246,
+          "retainedDetails": {
+            "sjis": 100000,
+            "eucjp": 100000
+          },
+          "unsupportedTotal": 100000
+        },
+        "workingTree": {
+          "counting": {
+            "runsMs": [
+              108.85609999999997,
+              232.3385000000003,
+              199.2896999999998
+            ],
+            "medianMs": 199.2896999999998
+          },
+          "intermediateBytes": 23884,
+          "retainedDetails": {
+            "sjis": 100,
+            "eucjp": 100
+          },
+          "unsupportedTotal": 100000
+        }
+      },
+      "normalMeasurement": {
+        "runsMs": [
+          212.84580000000005,
+          190.62609999999995,
+          191.78210000000036
+        ],
+        "medianMs": 191.78210000000036
+      },
+      "fullReport": {
+        "runsMs": [
+          200.26320000000032,
+          187.3820999999998,
+          225.65620000000035
+        ],
+        "medianMs": 200.26320000000032
+      },
+      "fullReportUtf16": 4532123
+    }
+  ],
+  "startedAt": "2026-11-18T10:10:16.960Z",
+  "measuredAt": "2026-11-18T10:10:21.957Z",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "modifiedFiles": "M README.md\n M SECURITY.md\n M docs/ARCHITECTURE.md\n M docs/LOCAL_CHECK.md\n M docs/PERFORMANCE.md\n M docs/STORAGE.md\n M docs/TESTING.md\n M docs/USAGE.md\n M docs/records/PERFORMANCE.md\n M e2e/base64.spec.ts\n M e2e/browser-security.spec.ts\n M e2e/business-days.spec.ts\n M e2e/calculation.spec.ts\n M e2e/cert.spec.ts\n M e2e/copy.spec.ts\n M e2e/cron.spec.ts\n M e2e/csv-file-edit.spec.ts\n M e2e/csv.spec.ts\n M e2e/edit-storage.spec.ts\n M e2e/hash.spec.ts\n M e2e/jwt.spec.ts\n M e2e/mobile-navigation.spec.ts\n M e2e/navigation.spec.ts\n M e2e/regex.spec.ts\n M e2e/security.spec.ts\n M e2e/smoke.spec.ts\n M e2e/storage.spec.ts\n M e2e/subnet.spec.ts\n M e2e/text-count.spec.ts\n M e2e/tools.spec.ts\n M e2e/unix-time.spec.ts\n M scripts/benchmark.mjs\n M scripts/measure-large-inputs.mjs\n M scripts/measure-password-generation.mjs\n M src/app/PrivacySettings.tsx\n M src/calculation/handlers.test.ts\n M src/calculation/handlers.ts\n M src/calculation/protocol.ts\n M src/components/CopyButton.tsx\n M src/components/LargeTextInput.tsx\n M src/components/ListRest.tsx\n M src/docs.test.ts\n M src/documentLimits.test.ts\n M src/documentMarkdown.testing.ts\n M src/documentSources.testing.ts\n M src/hooks/usePreference.ts\n M src/lib/crypto/asn1.ts\n M src/lib/crypto/curves.test.ts\n M src/lib/settings.ts\n M src/lib/storage/clear.test.ts\n M src/lib/storage/clear.ts\n M src/lib/storage/index.test.ts\n M src/lib/storage/index.ts\n M src/lib/storage/preferences.test.ts\n M src/lib/storage/preferences.ts\n M src/lib/text/lines.test.ts\n M src/sourceScan.test.ts\n M src/tools/business-days/AddTab.tsx\n M src/tools/business-days/MonthTab.tsx\n M src/tools/business-days/index.tsx\n M src/tools/business-days/logic.test.ts\n M src/tools/cert/CertView.tsx\n M src/tools/cert/extensions.ts\n M src/tools/cert/index.tsx\n M src/tools/cert/logic.test.ts\n M src/tools/cert/logic.ts\n M src/tools/cert/verify.test.ts\n M src/tools/cert/verify.ts\n M src/tools/csv-json/index.tsx\n M src/tools/csv-json/writeCsv.test.ts\n M src/tools/csv-json/writeCsv.ts\n M src/tools/password-generator/index.tsx\n M src/tools/password-generator/logic.test.ts\n M src/tools/password-generator/logic.ts\n M src/tools/radix/logic.test.ts\n M src/tools/subnet/Splitter.tsx\n M src/tools/subnet/index.tsx\n M src/tools/subnet/ipv4.ts\n M src/tools/subnet/ipv6.test.ts\n M src/tools/subnet/ipv6.ts\n M src/tools/subnet/listCalculation.ts\n M src/tools/subnet/ranges.ts\n M src/tools/text-count/InvisibleCharacters.tsx\n M src/tools/text-count/count.ts\n M src/tools/text-count/index.tsx\n M src/tools/text-count/invisible.ts\n M src/tools/text-count/logic.test.ts\n M src/tools/text-count/logic.ts\n M src/tools/text-diff/calculation.ts\n M src/tools/text-diff/index.tsx\n M src/tools/text-diff/logic.test.ts\n M src/tools/text-diff/rows.ts\n M src/tools/uuid/logic.test.ts\n?? docs/records/diff-transfer-2026-11-18-adaptive.json\n?? docs/records/diff-transfer-2026-11-18-expanded.json\n?? docs/records/diff-transfer-2026-11-18.json\n?? docs/records/password-generation-2026-11-18-unicode.json\n?? docs/records/performance-2026-11-18-diff.json\n?? docs/records/performance-2026-11-18-password.json\n?? scripts/measure-count-diagnostics.mjs\n?? scripts/measure-diff-transfer.mjs\n?? scripts/password-inputs.mjs\n?? src/documentLimitsCatalog.testing.ts\n?? src/lib/crypto/asn1.test.ts\n?? src/lib/storage/clearOperations.ts\n?? src/lib/storage/clearState.test.ts\n?? src/lib/storage/clearState.ts\n?? src/tools/business-days/numericInput.test.ts\n?? src/tools/business-days/numericInput.ts\n?? src/tools/cert/chain.ts\n?? src/tools/cert/encoding.fixtures.ts\n?? src/tools/cert/extensions.test.ts\n?? src/tools/cert/fingerprints.ts\n?? src/tools/cert/issuerCandidates.ts\n?? src/tools/cert/signatureScheme.ts\n?? src/tools/cert/validity.ts\n?? src/tools/cert/verifySigned.ts\n?? src/tools/csv-json/validateJson.ts\n?? src/tools/subnet/addressRange.ts\n?? src/tools/text-count/DiagnosticOutput.tsx\n?? src/tools/text-count/issues.ts\n?? src/tools/text-count/reports.test.ts\n?? src/tools/text-count/reports.ts\n?? src/tools/text-diff/packed.test.ts\n?? src/tools/text-diff/packed.ts\n?? src/tools/text-diff/preview.ts\n?? src/tools/text-diff/rowReference.testing.ts",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "provenance": {
+    "HEAD": {
+      "entry": "src/tools/text-count/count.ts",
+      "files": {
+        "src/tools/text-count/characterDetails.ts": "e73d16e7c3a8af508e5ed6cb1785a26e06c03344060f813962db08d3c262a414",
+        "src/tools/text-count/count.ts": "c38b04e571a05798738b5f029f2c4b77e81b225c6981a8760a4cd3e1d461b564",
+        "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f"
+      },
+      "bundleSha256": "14f1a32cbce061c3606f7c1b0e3dbba7eb1ef22f2a9fbf8833e0affb85145470"
+    },
+    "workingTree": {
+      "entry": "src/tools/text-count/count.ts",
+      "files": {
+        "src/tools/text-count/characterDetails.ts": "e73d16e7c3a8af508e5ed6cb1785a26e06c03344060f813962db08d3c262a414",
+        "src/tools/text-count/count.ts": "4be5447dfb7724947aa7a8cda74f0817bfd41dc5f99c1316feb02c992df24af2",
+        "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f",
+        "src/tools/text-count/issues.ts": "d3dd3b74316f06295bafbc447ec22d6a5087433513c23e7d029461bc1a5b7e45"
+      },
+      "bundleSha256": "809e4be36fa5e6312b296c6c8cc2aa5a44d6af90b0b7616dad13378e675c8e9e"
+    },
+    "src/tools/text-count/reports.ts": {
+      "entry": "src/tools/text-count/reports.ts",
+      "files": {
+        "src/tools/text-count/characterDetails.ts": "e73d16e7c3a8af508e5ed6cb1785a26e06c03344060f813962db08d3c262a414",
+        "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f",
+        "src/tools/text-count/invisible.ts": "619c4791bc339e19a0c68e9644df95cb307241457203c23df3b6b7e23b599545",
+        "src/tools/text-count/issues.ts": "d3dd3b74316f06295bafbc447ec22d6a5087433513c23e7d029461bc1a5b7e45",
+        "src/tools/text-count/reports.ts": "6711c3c3a7650fc8fdaefa780acc8c0fb76023fd007ee323b39bc914b0cabaf1"
+      },
+      "bundleSha256": "2ede10b04ad559aa1efc9d6b23142787af3a979055fe72a39276fb3294254ae7"
+    },
+    "src/tools/text-count/logic.ts": {
+      "entry": "src/tools/text-count/logic.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-count/characterDetails.ts": "e73d16e7c3a8af508e5ed6cb1785a26e06c03344060f813962db08d3c262a414",
+        "src/tools/text-count/count.ts": "4be5447dfb7724947aa7a8cda74f0817bfd41dc5f99c1316feb02c992df24af2",
+        "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f",
+        "src/tools/text-count/invisible.ts": "619c4791bc339e19a0c68e9644df95cb307241457203c23df3b6b7e23b599545",
+        "src/tools/text-count/issues.ts": "d3dd3b74316f06295bafbc447ec22d6a5087433513c23e7d029461bc1a5b7e45",
+        "src/tools/text-count/logic.ts": "4777bc8e45763d540393fc7e6b57b8fb33cc3a7654f44ce43a5e92c879c77b4c"
+      },
+      "bundleSha256": "656a0eefff675513f29597b79b71fd580a59515db474e18c5ba2f0c3b887a7f6"
+    }
+  },
+  "snapshotFiles": {
+    "package-lock.json": "7746d6021e7f83f7063294014cde814b975d37e4460255097303161e35abd3ba",
+    "scripts/benchmark.mjs": "975cb39662d1eb29f97e023dcba75873737dba6797ec0676336fae98ea9f7d22",
+    "scripts/measure-count-diagnostics.mjs": "05ef138fbd9525c087070b299fca082e45aa561176fff18c03a13e7702a93d62",
+    "src/tools/text-count/characterDetails.ts": "e73d16e7c3a8af508e5ed6cb1785a26e06c03344060f813962db08d3c262a414",
+    "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f",
+    "src/tools/text-count/count.ts": "4be5447dfb7724947aa7a8cda74f0817bfd41dc5f99c1316feb02c992df24af2",
+    "src/tools/text-count/issues.ts": "d3dd3b74316f06295bafbc447ec22d6a5087433513c23e7d029461bc1a5b7e45",
+    "src/tools/text-count/reports.ts": "6711c3c3a7650fc8fdaefa780acc8c0fb76023fd007ee323b39bc914b0cabaf1",
+    "src/tools/text-count/invisible.ts": "619c4791bc339e19a0c68e9644df95cb307241457203c23df3b6b7e23b599545",
+    "src/tools/text-count/logic.ts": "4777bc8e45763d540393fc7e6b57b8fb33cc3a7654f44ce43a5e92c879c77b4c",
+    "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404"
+  },
+  "dependencySource": "両版とも作業ツリーの同じスナップショットを使用。HEAD は入口だけを開始時のコミットから読む。"
+}

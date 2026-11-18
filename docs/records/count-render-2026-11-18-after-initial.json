@@ -1,0 +1,483 @@
+{
+  "measuredAt": "2026-11-18T11:31:53.717Z",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "uncommittedChanges": true,
+  "build": {
+    "distSha256": "537dff9e07b642bb60e577a7a26552a8aa13e3c86a98f99003a452de6bccecc7",
+    "files": 56,
+    "indexModifiedAt": "2026-11-18T11:31:02.587Z"
+  },
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "cpuCount": 8,
+  "memoryGiB": 16,
+  "runtime": "v24.22.1",
+  "browser": "156.0.8078.4",
+  "runsPerCase": 3,
+  "results": [
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 10000,
+        "distinctSymbols": 1,
+        "inputUtf16": 20000,
+        "renderMode": "baseline",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 554,
+        "min": 544,
+        "max": 601
+      },
+      "maxFrameGapMs": {
+        "median": 50,
+        "min": 50,
+        "max": 50
+      },
+      "runs": [
+        {
+          "inputToResultMs": 601,
+          "maxFrameGapMs": 50,
+          "frames": 33,
+          "dispatchMs": 6.699999928474426,
+          "workerPostedMs": 446.8000000715256,
+          "workerReceivedMs": 517.9000000953674,
+          "resultDomMs": 541.1000000238419,
+          "domToEndMs": 60.10000002384186,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 544,
+          "maxFrameGapMs": 50,
+          "frames": 31,
+          "dispatchMs": 2.799999952316284,
+          "workerPostedMs": 431.8000000715256,
+          "workerReceivedMs": 476.3000000715256,
+          "resultDomMs": 499.8000000715256,
+          "domToEndMs": 43.799999952316284,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 554,
+          "maxFrameGapMs": 50,
+          "frames": 32,
+          "dispatchMs": 3.6999999284744263,
+          "workerPostedMs": 435.5,
+          "workerReceivedMs": 477.8000000715256,
+          "resultDomMs": 503.7000000476837,
+          "domToEndMs": 50.5,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 10000,
+        "distinctSymbols": 1,
+        "inputUtf16": 20000,
+        "renderMode": "input-hidden",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 624,
+        "min": 580,
+        "max": 798
+      },
+      "maxFrameGapMs": {
+        "median": 117,
+        "min": 67,
+        "max": 183
+      },
+      "runs": [
+        {
+          "inputToResultMs": 580,
+          "maxFrameGapMs": 67,
+          "frames": 33,
+          "dispatchMs": 2.3000000715255737,
+          "workerPostedMs": 432.10000002384186,
+          "workerReceivedMs": 480,
+          "resultDomMs": 506.39999997615814,
+          "domToEndMs": 73.5,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 624,
+          "maxFrameGapMs": 117,
+          "frames": 31,
+          "dispatchMs": 3,
+          "workerPostedMs": 404.59999990463257,
+          "workerReceivedMs": 474.59999990463257,
+          "resultDomMs": 514.3999999761581,
+          "domToEndMs": 109.29999995231628,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 798,
+          "maxFrameGapMs": 183,
+          "frames": 36,
+          "dispatchMs": 4.399999976158142,
+          "workerPostedMs": 448.6999999284744,
+          "workerReceivedMs": 583.7999999523163,
+          "resultDomMs": 638.8999999761581,
+          "domToEndMs": 158.70000004768372,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 10000,
+        "distinctSymbols": 1,
+        "inputUtf16": 20000,
+        "renderMode": "badges-hidden",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 568,
+        "min": 523,
+        "max": 581
+      },
+      "maxFrameGapMs": {
+        "median": 50,
+        "min": 33,
+        "max": 50
+      },
+      "runs": [
+        {
+          "inputToResultMs": 568,
+          "maxFrameGapMs": 50,
+          "frames": 30,
+          "dispatchMs": 3.899999976158142,
+          "workerPostedMs": 420,
+          "workerReceivedMs": 494.89999997615814,
+          "resultDomMs": 533.3999999761581,
+          "domToEndMs": 34.39999997615814,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 581,
+          "maxFrameGapMs": 50,
+          "frames": 30,
+          "dispatchMs": 3.399999976158142,
+          "workerPostedMs": 432.2000000476837,
+          "workerReceivedMs": 505.89999997615814,
+          "resultDomMs": 538.5,
+          "domToEndMs": 42.5,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 523,
+          "maxFrameGapMs": 33,
+          "frames": 31,
+          "dispatchMs": 2.899999976158142,
+          "workerPostedMs": 424.2000000476837,
+          "workerReceivedMs": 470.2000000476837,
+          "resultDomMs": 493.89999997615814,
+          "domToEndMs": 29,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 10000,
+        "distinctSymbols": 1,
+        "inputUtf16": 20000,
+        "renderMode": "results-hidden",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 544,
+        "min": 432,
+        "max": 547
+      },
+      "maxFrameGapMs": {
+        "median": 50,
+        "min": 33,
+        "max": 50
+      },
+      "runs": [
+        {
+          "inputToResultMs": 544,
+          "maxFrameGapMs": 33,
+          "frames": 32,
+          "dispatchMs": 2.4000000953674316,
+          "workerPostedMs": 438.39999997615814,
+          "workerReceivedMs": 484.5,
+          "resultDomMs": 509.89999997615814,
+          "domToEndMs": 34.200000047683716,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 547,
+          "maxFrameGapMs": 50,
+          "frames": 29,
+          "dispatchMs": 2.899999976158142,
+          "workerPostedMs": 429.8000000715256,
+          "workerReceivedMs": 493.7000000476837,
+          "resultDomMs": 531.2000000476837,
+          "domToEndMs": 16.200000047683716,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 432,
+          "maxFrameGapMs": 50,
+          "frames": 23,
+          "dispatchMs": 3.8000000715255737,
+          "workerPostedMs": 317.6999999284744,
+          "workerReceivedMs": 379.10000002384186,
+          "resultDomMs": 406.89999997615814,
+          "domToEndMs": 24.799999952316284,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 10000,
+        "distinctSymbols": 10000,
+        "inputUtf16": 20000,
+        "renderMode": "baseline",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 735,
+        "min": 709,
+        "max": 894
+      },
+      "maxFrameGapMs": {
+        "median": 200,
+        "min": 200,
+        "max": 217
+      },
+      "runs": [
+        {
+          "inputToResultMs": 894,
+          "maxFrameGapMs": 217,
+          "frames": 29,
+          "dispatchMs": 5,
+          "workerPostedMs": 527.7000000476837,
+          "workerReceivedMs": 648.2000000476837,
+          "resultDomMs": 691.8999999761581,
+          "domToEndMs": 202.20000004768372,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 735,
+          "maxFrameGapMs": 200,
+          "frames": 25,
+          "dispatchMs": 5.5,
+          "workerPostedMs": 465.89999997615814,
+          "workerReceivedMs": 542.6999999284744,
+          "resultDomMs": 579.7999999523163,
+          "domToEndMs": 155.5,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 709,
+          "maxFrameGapMs": 200,
+          "frames": 24,
+          "dispatchMs": 2.899999976158142,
+          "workerPostedMs": 402.5,
+          "workerReceivedMs": 481.60000002384186,
+          "resultDomMs": 517,
+          "domToEndMs": 192,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 10000,
+        "distinctSymbols": 10000,
+        "inputUtf16": 20000,
+        "renderMode": "input-hidden",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 812,
+        "min": 698,
+        "max": 838
+      },
+      "maxFrameGapMs": {
+        "median": 233,
+        "min": 200,
+        "max": 250
+      },
+      "runs": [
+        {
+          "inputToResultMs": 698,
+          "maxFrameGapMs": 200,
+          "frames": 32,
+          "dispatchMs": 2.299999952316284,
+          "workerPostedMs": 408,
+          "workerReceivedMs": 468.09999990463257,
+          "resultDomMs": 501.6999999284744,
+          "domToEndMs": 196.10000002384186,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 838,
+          "maxFrameGapMs": 250,
+          "frames": 35,
+          "dispatchMs": 4,
+          "workerPostedMs": 472.60000002384186,
+          "workerReceivedMs": 562.5,
+          "resultDomMs": 599.5,
+          "domToEndMs": 238.30000007152557,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 812,
+          "maxFrameGapMs": 233,
+          "frames": 36,
+          "dispatchMs": 2.5999999046325684,
+          "workerPostedMs": 493.90000009536743,
+          "workerReceivedMs": 548.6000000238419,
+          "resultDomMs": 583.7000000476837,
+          "domToEndMs": 227.89999997615814,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 10000,
+        "distinctSymbols": 10000,
+        "inputUtf16": 20000,
+        "renderMode": "badges-hidden",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 593,
+        "min": 584,
+        "max": 597
+      },
+      "maxFrameGapMs": {
+        "median": 150,
+        "min": 150,
+        "max": 167
+      },
+      "runs": [
+        {
+          "inputToResultMs": 597,
+          "maxFrameGapMs": 150,
+          "frames": 26,
+          "dispatchMs": 3.100000023841858,
+          "workerPostedMs": 477.2999999523163,
+          "workerReceivedMs": 535,
+          "resultDomMs": 563.1000000238419,
+          "domToEndMs": 33.39999997615814,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 593,
+          "maxFrameGapMs": 167,
+          "frames": 24,
+          "dispatchMs": 5.100000023841858,
+          "workerPostedMs": 435,
+          "workerReceivedMs": 514.6000000238419,
+          "resultDomMs": 547.9000000953674,
+          "domToEndMs": 44.59999990463257,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 584,
+          "maxFrameGapMs": 150,
+          "frames": 25,
+          "dispatchMs": 2.200000047683716,
+          "workerPostedMs": 429.39999997615814,
+          "workerReceivedMs": 513.1999999284744,
+          "resultDomMs": 544.0999999046326,
+          "domToEndMs": 39.5,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 10000,
+        "distinctSymbols": 10000,
+        "inputUtf16": 20000,
+        "renderMode": "results-hidden",
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 614,
+        "min": 604,
+        "max": 619
+      },
+      "maxFrameGapMs": {
+        "median": 167,
+        "min": 117,
+        "max": 200
+      },
+      "runs": [
+        {
+          "inputToResultMs": 614,
+          "maxFrameGapMs": 117,
+          "frames": 30,
+          "dispatchMs": 2.3000000715255737,
+          "workerPostedMs": 498.10000002384186,
+          "workerReceivedMs": 555.2000000476837,
+          "resultDomMs": 584.9000000953674,
+          "domToEndMs": 29.199999928474426,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 604,
+          "maxFrameGapMs": 200,
+          "frames": 23,
+          "dispatchMs": 3.600000023841858,
+          "workerPostedMs": 462.6999999284744,
+          "workerReceivedMs": 551.3999999761581,
+          "resultDomMs": 591.2999999523163,
+          "domToEndMs": 13,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 619,
+          "maxFrameGapMs": 167,
+          "frames": 26,
+          "dispatchMs": 5.100000023841858,
+          "workerPostedMs": 502,
+          "workerReceivedMs": 560.6000000238419,
+          "resultDomMs": 592,
+          "domToEndMs": 27.399999976158142,
+          "outcome": "result"
+        }
+      ]
+    }
+  ]
+}

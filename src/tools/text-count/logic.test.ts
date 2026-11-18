@@ -1,6 +1,7 @@
-/** 検査の対象：logic.ts・count.ts・encoding.ts・invisible.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
+/** 検査の対象：logic.ts・count.ts・encoding.ts・invisible.ts・issues.ts・characterDetails.ts（全件出力との整合はreports.test.tsでも検査する） */
 import { describe, expect, it } from 'vitest';
 import { countText } from './count';
+import { countInputPreviewLimit } from './characterDetails';
 import { eucjpBytesOf, reasonOf, sjisBytesOf, vendorKindOf } from './encoding';
 import { decodeInspectionFile, inspectInvisible } from './invisible';
 import { analysisOf, linesPage, measureText, measureOf, splitByEncodable, type PageOptions, type TextAnalysis } from './logic';
@@ -8,6 +9,13 @@ import { analysisOf, linesPage, measureText, measureOf, splitByEncodable, type P
 /** テストの補助：画面と同じく、全文を計測（Worker の measureText）してから、1ページ分を合わせる（analysisOf） */
 const analyzeText = (input: string, options: Parameters<typeof measureText>[1] & PageOptions): TextAnalysis =>
   analysisOf(input, measureText(input, options), options);
+
+it('多種類の補助平面文字だけ入力表示を短くし、反復・日本語の通常表示は維持する', () => {
+  expect(countInputPreviewLimit('日本語とASCII'.repeat(1000))).toBe(2000);
+  expect(countInputPreviewLimit('😀'.repeat(100_000))).toBe(2000);
+  expect(countInputPreviewLimit(Array.from({ length: 1000 }, (_, i) => String.fromCodePoint(0x10000 + i)).join(''))).toBe(500);
+  expect(countInputPreviewLimit('a'.repeat(2000) + Array.from({ length: 1000 }, (_, i) => String.fromCodePoint(0x10000 + i)).join(''))).toBe(2000);
+});
 
 it('改行を挟む不完全なサロゲートを、UTF-8の集計で結合しない', () => {
   for (const separator of ['\n', '\r', '\r\n']) {

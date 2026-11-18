@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 大容量入力とIME：50,000単位の境界でも確定全文を保持する。
+ * - 大容量入力とIME：2,000単位・500単位の境界と変換中の表示上限縮小でも確定全文を保持する。
  *   Chromium のネイティブIMEイベントで確定・取消・保存・Undo/Redoを確認する。
  *   3ブラウザでは終了前後の最終inputを模擬する。OSの実IMEの候補選択・キー操作を検証するものではない。
  */
@@ -11,8 +11,12 @@ import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { paste } from './paste';
 
-/** 通常の表示上限をまたぐ入力で、確定と取消を検査する。 */
-const boundaries = [{ name: '50,000単位', base: 'a'.repeat(49_999), preedit: 'にほ', committed: '日本' }];
+/** 129種類の補助平面文字で上限が500単位になる入力と、変換で129種類へ増える入力を含める。 */
+const boundaries = [
+  { name: '2,000単位', base: 'a'.repeat(1_999), preedit: 'にほ', committed: '日本' },
+  { name: '500単位', base: Array.from({ length: 129 }, (_, i) => String.fromCodePoint(0x10000 + i)).join('') + 'a'.repeat(241), preedit: 'にほ', committed: '日本' },
+  { name: '変換中に2,000から500単位へ縮小', base: Array.from({ length: 128 }, (_, i) => String.fromCodePoint(0x10000 + i)).join('') + 'a'.repeat(1_000), preedit: '𠀀にほ', committed: '𠀀日本' },
+];
 
 /** 表示を切り詰めた後も、全文編集・保存・履歴には確定文字が残ることを確認する。 */
 async function checkCommitted(input: Locator, base: string, committed = '日本') {
@@ -61,7 +65,7 @@ for (const intermediate of [true, false]) {
   test(`IMEイベント模擬：途中input${intermediate ? 'あり' : 'なし'}で終了後にDOMが確定しても履歴を保持する`, CROSS_BROWSER, async ({ page }) => {
     await page.goto('./#/count');
     const input = page.getByRole('textbox', { name: 'テキスト', exact: true });
-    const base = 'a'.repeat(49_999);
+    const base = 'a'.repeat(1_999);
     await input.fill(base);
     await input.dispatchEvent('compositionstart', { data: '' });
     await input.evaluate((node: HTMLTextAreaElement, intermediate) => {
@@ -86,7 +90,7 @@ for (const order of ['終了前', '終了後'] as const) {
   test(`IMEイベント模擬：${order}の最終inputを確定全文と履歴へ反映する`, CROSS_BROWSER, async ({ page }) => {
     await page.goto('./#/count');
     const input = page.getByRole('textbox', { name: 'テキスト', exact: true });
-    const base = 'x\r\ny' + 'a'.repeat(49_995);
+    const base = 'x\r\ny' + 'a'.repeat(1_995);
     await paste(input, base);
     await input.evaluate((node: HTMLTextAreaElement) => { node.focus(); node.setSelectionRange(node.value.length, node.value.length); });
     await input.dispatchEvent('compositionstart', { data: '' });
@@ -114,7 +118,7 @@ for (const order of ['終了前', '終了後'] as const) {
 test('IMEイベント模擬：変換中のクリアで変換状態と履歴を破棄する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/count');
   const input = page.getByRole('textbox', { name: 'テキスト', exact: true });
-  await input.fill('a'.repeat(49_999));
+  await input.fill('a'.repeat(1_999));
   await input.dispatchEvent('compositionstart', { data: '' });
   await page.getByRole('button', { name: 'クリア', exact: true }).click();
   /** 置換後に古い終了イベントが届いても、変換中の値を復活させない。 */

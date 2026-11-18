@@ -1,23 +1,11 @@
 import { eucjpBytesOf, reasonOf, sjisBytesOf, vendorKindOf } from './encoding';
-import { codePointOf } from './characterDetails';
+import { IssueList, type CharIssue, type IssueTotals } from './issues';
 
 export type Newline = 'lf' | 'crlf' | 'none';
 
 export type CountOptions = {
   /** 改行を何バイト（何文字）として数えるか */
   newline: Newline;
-};
-
-/** 注意が必要な文字（重複なし）。位置は最初に出てきた場所 */
-export type CharIssue = {
-  char: string;
-  codePoint: string;
-  count: number;
-  /** 理由（絵文字・サロゲートペアなど）や、機種依存文字の種類 */
-  reason: string;
-  /** 1から数えた行と、行の中の文字（コードポイント）の位置 */
-  line: number;
-  column: number;
 };
 
 export type CountResult = {
@@ -44,6 +32,8 @@ export type CountResult = {
   unsupportedEuc: CharIssue[];
   /** Shift_JIS（CP932）の機種依存文字 */
   vendor: CharIssue[];
+  /** 詳細を保持していない種類も含む、全文の種類数。 */
+  issueTotals: IssueTotals;
 };
 
 const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter('ja', { granularity: 'grapheme' }) : null;
@@ -56,19 +46,6 @@ function countGraphemes(text: string): number {
 }
 
 const newlineBytes = (o: CountOptions) => (o.newline === 'crlf' ? 2 : o.newline === 'lf' ? 1 : 0);
-
-/** 文字ごとの出現数と最初の位置を集める */
-class IssueList {
-  private map = new Map<string, CharIssue>();
-  add(char: string, reason: string, line: number, column: number) {
-    const found = this.map.get(char);
-    if (found) found.count++;
-    else this.map.set(char, { char, codePoint: codePointOf(char), count: 1, reason, line, column });
-  }
-  list(): CharIssue[] {
-    return [...this.map.values()];
-  }
-}
 
 /** 文字数・バイト数を数える */
 export function countText(input: string, o: CountOptions): CountResult {
@@ -126,5 +103,6 @@ export function countText(input: string, o: CountOptions): CountResult {
     unsupported: unsupported.list(),
     unsupportedEuc: unsupportedEuc.list(),
     vendor: vendor.list(),
+    issueTotals: { unsupported: unsupported.total, unsupportedEuc: unsupportedEuc.total, vendor: vendor.total },
   };
 }

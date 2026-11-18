@@ -69,6 +69,79 @@ node scripts/measure-large-inputs.mjs --password docs/records/performance-YYYY-M
 小さな入力はDOMのvalue更新、大きな入力は貼り付けイベントで渡します。全文の編集表示は開きません。
 準備・生成・設定保存・描画を含む完了時間と最大描画間隔を記録し、Nodeの区間計測とは区別します。
 
+### 文字診断の種類数と全件出力
+
+```powershell
+node scripts/measure-count-diagnostics.mjs docs/records/count-diagnostics-YYYY-MM-DD.json
+npm run build
+node scripts/measure-large-inputs.mjs --count-diagnostics docs/records/performance-YYYY-MM-DD-count-diagnostics.json
+```
+
+同じ絵文字の反復と、補助平面の異なるUnicodeスカラーを1,000・10,000・100,000コードポイント使います。
+入力長と異なる文字数を分け、通常の表示用詳細は先頭分だけに保ちます。
+各ケースを予備実行後に3回測り、Nodeでは次の区間を記録します。
+
+- `counting`：文字数・バイト数と診断の集計を、HEADと作業ツリーで比較します。
+- `intermediateBytes`・`retainedDetails`：集計関数の中間結果のV8サイズと詳細件数です。ピークヒープやWorker転送量ではありません。
+- `normalMeasurement`：現行の行別測定と不可視検査を含む、通常の集計全体です。
+- `fullReport`：操作時に行うShift_JIS診断の全件TSV生成です。通常の集計では実行しません。
+
+区間には重複があるため合算しません。入力作成・DOM描画・クリップボード・保存はNode計測に含めません。
+時刻・ソースのハッシュ・環境・各回の値を記録します。HEADの入口も依存は作業ツリーを使うため、その制約は共通の計測方法と同じです。
+
+ブラウザは入力直前から通常集計の結果描画後までを各3回測り、完了時間と最大描画間隔を記録します。
+全件出力の準備は選びません。大きな入力は貼り付けイベントで渡し、表示は上限内に保ちます。
+全件出力のコピー・保存内容と、入力変更時の旧結果の無効化はE2Eで検査します。
+
+#### 描画待ちの切り分け
+
+```powershell
+node scripts/measure-large-inputs.mjs --count-render-profile docs/records/count-render-YYYY-MM-DD.json
+```
+
+反復・多種類の10,000コードポイントを、通常表示・入力欄非表示・診断バッジ非表示・結果非表示で各3回測ります。
+非表示は計測ページ内のCSSだけで行い、保持する入力と計算は変えません。非表示ケースは原因の切り分け用で、利用者向けの性能値には使いません。
+
+| 計測点 | `runs` の項目 | 意味 |
+|---|---|---|
+| 入力イベントの同期処理 | `dispatchMs` | DOM更新とイベント発行の時間。後続のReact更新やレイアウトは含まない |
+| Workerへ送信 | `workerPostedMs` | 入力直前から送信まで。150msの待機と、その前にメインスレッドが待たされた時間を含む |
+| Worker応答の受信 | `workerReceivedMs` | 計算・起動・転送・イベント処理待ちを含む。Worker内計算だけの時間ではない |
+| 結果DOMの更新 | `resultDomMs` | コードポイント数の表示をMutationObserverで検出した時点 |
+| DOM更新後 | `domToEndMs` | 検出後の完了待ちと2フレームまで。レイアウト・描画だけを厳密に分離した値ではない |
+
+時点の値は入力直前からの経過時間です。各項目の中央値を引き算して区間中央値にしないでください。
+送信・受信の観測には計測ページだけでWorkerを包む処理を入れます。アプリのソースや安全設定は変更しません。
+
+#### 改善を判断する基準
+
+```powershell
+node scripts/measure-large-inputs.mjs --count-budget docs/records/count-budget-YYYY-MM-DD.json
+```
+
+初期目標は、反復・多種類の各1,000・10,000・100,000コードポイントで、完了時間の中央値1,000ms以下、最大描画間隔の中央値250ms以下です。
+3回とも新しいページを使い、同じブラウザ・OS・CPU・入力方法・ビルド条件で比較します。
+画面は1280×720、deviceScaleFactorは1、言語はja-JPです。これらも記録に残します。
+記録の `budget` が基準、各ケースの `budgetPassed` が判定です。期待と違う結果・計測失敗・目標超過は終了コード1にします。
+
+これは今回の基準環境で、通常表示を改善するための目標です。全文編集や診断の文字の形の全表示は、利用者が選ぶ追加操作として別に測ります。
+別の端末で比較する場合は、その環境の変更前後をそろえて記録してください。CIの一律の速度検査には組み込みません。
+目標を変更する場合は、理由・比較環境・旧目標での結果も記録します。数値を超えた記録を消したり、入力条件を小さくして比較したりしません。
+
+#### 全件出力のメモリ観測
+
+```powershell
+node --expose-gc scripts/measure-report-memory.mjs docs/records/report-memory-YYYY-MM-DD.json docs/records/report-memory-replay.json
+```
+
+最初の引数には、比較元の `sources.before` を含む既存の計測JSONを指定します。
+初回の記録では、作業前に `reports.before.ts` と `issues.before.ts` を保存したディレクトリを指定します。元のソースは結果JSONにも含めます。
+
+各試行の前にGCを実行し、集約直後・文字列化中・結合直後・上限拒否のチェックポイントで `heapUsed` を観測します。
+1万・10万種類の成功ケースと、10万種類に200単位の小さい出力上限を与えた拒否ケースを各3回測ります。
+チェックポイントの最大値と開始値との差を記録します。回収可能なごみも含む値で、観測間のピーク・RSS・ブラウザのメモリではありません。
+観測用コードを生成コードへ挿入するため、処理時間の比較には使いません。観測位置・ソース・生成コードのハッシュも記録します。
+変更前後の成功時は出力ハッシュ、拒否時はエラーが同じであることも確認します。
 
 ### 単一エポックの範囲外判定
 

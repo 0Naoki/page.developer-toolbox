@@ -3,6 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - 文字数・不可視文字：元の改行・位置、貼り付け境界での改行とカーソル位置、範囲外の上限と有効値の復元、表示切替とページ保持、遅い読み込みと後の編集の競合
+ * - 省略された文字診断・不可視文字の集計・位置を全件コピー・保存し、入力変更後に旧結果を操作できない。
  * - 不完全なサロゲート × CR・LF・CRLF × 改行の数え方：別の行の文字を結合せず、行別の UTF-8 バイト数と設定した改行分を足した値が全体と一致する（あわせて `src/tools/text-count/logic.test.ts`）
  */
 import type { Page } from '@playwright/test';
@@ -10,11 +11,90 @@ import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { paste, pasteImageOverAll, pasteLargeInput } from './paste';
 import { pickFile } from './files';
+import { captureClipboard, copiedText, copiedLines } from './clipboard';
 
 /** 文字数・不可視文字・桁あふれの表示を切り替える */
 async function selectCountView(page: Page, name: '文字数' | '不可視文字' | '桁あふれ') {
   await page.getByRole('group', { name: '表示する内容', exact: true }).getByRole('button', { name, exact: true }).click();
 }
+
+test('文字数：表示量を抑えても入力全文と診断を保持し、文字の形を追加表示できる', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/count');
+  await captureClipboard(page);
+  const text = Array.from({ length: 10_000 }, (_, i) => String.fromCodePoint(0x10000 + i)).join('');
+  await pasteLargeInput(page, 'テキスト', text);
+  const input = page.getByRole('textbox', { name: 'テキスト', exact: true });
+  await expect(input).toHaveAttribute('readonly', '');
+  expect((await input.inputValue()).length).toBeLessThanOrEqual(2000);
+  await page.getByRole('button', { name: '入力全文をコピー', exact: true }).click();
+  await expect.poll(() => copiedText(page)).toBe(text);
+  const sjis = page.locator('.notice', { hasText: 'Shift_JIS で表現できない文字があります' });
+  await expect(sjis.locator('.char-glyph')).toHaveCount(100);
+  await expect(sjis.locator('.char-glyph').nth(5)).toHaveText('…');
+  await sjis.getByRole('button', { name: 'Shift_JIS診断の文字の形をすべて表示', exact: true }).click();
+  await expect(sjis.locator('.char-glyph').nth(99)).toHaveText(String.fromCodePoint(0x10000 + 99));
+  await sjis.getByRole('button', { name: 'Shift_JIS診断の文字の形を先頭だけ表示', exact: true }).click();
+  await expect(sjis.locator('.char-glyph').nth(5)).toHaveText('…');
+  await page.getByRole('button', { name: '全文を編集', exact: true }).click();
+  await expect(input).not.toHaveAttribute('readonly', '');
+  await expect(input).toHaveValue(text);
+});
+
+test('文字診断：省略した種類も全件コピー・保存し、入力変更後は古い出力を操作できない', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/count');
+  await captureClipboard(page);
+  const chars = Array.from({ length: 201 }, (_, i) => String.fromCodePoint(0x10000 + i)).join('');
+  const input = page.getByRole('textbox', { name: 'テキスト', exact: true });
+  await input.fill(chars);
+  await expect(page.getByText('ほか 101 種類')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Shift_JIS診断の全件をコピー', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Shift_JIS診断の全件を保存', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Shift_JIS診断の全件を準備', exact: true }).click();
+  const copy = page.getByRole('button', { name: 'Shift_JIS診断の全件をコピー', exact: true });
+  await expect(copy).toBeEnabled();
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Shift_JIS診断の全件を保存', exact: true }).click();
+  const stream = await (await downloading).createReadStream();
+  if (!stream) throw new Error('ダウンロード結果を読み取れません');
+  const bytes: number[] = [];
+  for await (const chunk of stream) for (const byte of chunk) bytes.push(byte);
+  const saved = new TextDecoder().decode(new Uint8Array(bytes));
+  expect(saved.split('\n')).toHaveLength(202);
+  expect(saved).toContain('U+100C8');
+  await copy.click();
+  await expect.poll(() => copiedText(page)).toBe(saved);
+  await input.fill('😀');
+  await expect(page.getByRole('button', { name: 'Shift_JIS診断の全件をコピー', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Shift_JIS診断の全件を保存', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Shift_JIS診断の全件を準備', exact: true }).click();
+  await expect(copy).toBeEnabled();
+  await copy.click();
+  await expect.poll(() => copiedLines(page)).toBe(2);
+  await expect.poll(() => copiedText(page)).toContain('U+1F600');
+});
+
+test('不可視文字：2001件目の位置と100種類以降の集計を全件コピーする', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/count');
+  await captureClipboard(page);
+  await selectCountView(page, '不可視文字');
+  const input = page.getByRole('textbox', { name: 'テキスト', exact: true });
+  await input.fill('\t'.repeat(2001));
+  await expect(page.getByRole('table', { name: '不可視文字の出現位置', exact: true }).locator('tbody tr')).toHaveCount(100);
+  await page.getByRole('button', { name: '不可視文字の出現位置の全件を準備', exact: true }).click();
+  const copy = page.getByRole('button', { name: '不可視文字の出現位置の全件をコピー', exact: true });
+  await expect(copy).toBeEnabled();
+  await copy.click();
+  await expect.poll(() => copiedLines(page)).toBe(2002);
+  await expect.poll(() => copiedText(page)).toContain('1\t2001\t2000\tU+0009');
+  await page.getByRole('button', { name: '全文を編集', exact: true }).click();
+  await input.fill(Array.from({ length: 201 }, (_, i) => String.fromCodePoint(0xe0100 + i)).join(''));
+  await expect(page.getByRole('table', { name: '不可視文字の種類別集計', exact: true }).locator('tbody tr')).toHaveCount(100);
+  await page.getByRole('button', { name: '不可視文字の種類別集計の全件を準備', exact: true }).click();
+  const kinds = page.getByRole('button', { name: '不可視文字の種類別集計の全件をコピー', exact: true });
+  await expect(kinds).toBeEnabled();
+  await kinds.click();
+  await expect.poll(() => copiedLines(page)).toBe(202);
+});
 
 test('文字数：別の行の不完全なサロゲートをUTF-8集計で結合しない', CROSS_BROWSER, async ({ page }) => {
   await page.addInitScript(() => sessionStorage.setItem('dev-toolbox:input:count', String.fromCharCode(0xd83d) + '\r\n' + String.fromCharCode(0xde00)));

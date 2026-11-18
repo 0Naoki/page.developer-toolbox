@@ -9,6 +9,7 @@
 import type { JsonIndent, JsonResult } from '../tools/json-formatter/logic';
 import type { Newline } from '../tools/text-count/count';
 import type { TextMeasurement, Measure } from '../tools/text-count/logic';
+import type { DiagnosticKind } from '../tools/text-count/reports';
 import type { CsvConversion, CsvConversionRequest } from '../tools/csv-json/calculation';
 import type { DiffCalculation, DiffRequest } from '../tools/text-diff/calculation';
 import type { convertEpochsInText, BulkMode } from '../tools/unix-time/epoch';
@@ -20,6 +21,7 @@ export type CalculationRequest =
   | { tool: 'json'; input: string; indent: JsonIndent; sortKeys: boolean }
   | ({ tool: 'csv' } & CsvConversionRequest)
   | { tool: 'count'; input: string; newline: Newline; measure: Measure }
+  | { tool: 'countReport'; input: string; kind: DiagnosticKind }
   | ({ tool: 'diff' } & DiffRequest)
   | { tool: 'epoch'; input: string; zone: Zone; mode: BulkMode }
   | ({ tool: 'base64' } & TextConversionRequest)
@@ -32,6 +34,7 @@ export type CalculationRequest =
 export type CalculationResults = {
   json: JsonResult;
   count: TextMeasurement;
+  countReport: string;
   csv: CsvConversion;
   diff: DiffCalculation;
   epoch: ReturnType<typeof convertEpochsInText>;

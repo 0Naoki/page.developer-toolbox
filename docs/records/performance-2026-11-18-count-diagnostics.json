@@ -1,0 +1,271 @@
+{
+  "measuredAt": "2026-11-18T10:10:45.403Z",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "uncommittedChanges": true,
+  "build": {
+    "distSha256": "3851adc195572159d1453f448ea4955251df4e4d4208afd7156afd7179c0291b",
+    "files": 56,
+    "indexModifiedAt": "2026-11-18T10:08:55.601Z"
+  },
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "cpuCount": 8,
+  "memoryGiB": 16,
+  "runtime": "v24.22.1",
+  "browser": "156.0.8078.4",
+  "runsPerCase": 3,
+  "results": [
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 1000,
+        "distinctSymbols": 1,
+        "inputUtf16": 2000,
+        "inputUnits": 2000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 573,
+        "min": 570,
+        "max": 644
+      },
+      "maxFrameGapMs": {
+        "median": 67,
+        "min": 50,
+        "max": 83
+      },
+      "runs": [
+        {
+          "inputToResultMs": 644,
+          "maxFrameGapMs": 83,
+          "frames": 32,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 573,
+          "maxFrameGapMs": 67,
+          "frames": 31,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 570,
+          "maxFrameGapMs": 50,
+          "frames": 31,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 1000,
+        "distinctSymbols": 1000,
+        "inputUtf16": 2000,
+        "inputUnits": 2000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 1493,
+        "min": 1303,
+        "max": 1556
+      },
+      "maxFrameGapMs": {
+        "median": 950,
+        "min": 733,
+        "max": 983
+      },
+      "runs": [
+        {
+          "inputToResultMs": 1493,
+          "maxFrameGapMs": 950,
+          "frames": 24,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 1556,
+          "maxFrameGapMs": 983,
+          "frames": 26,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 1303,
+          "maxFrameGapMs": 733,
+          "frames": 29,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 10000,
+        "distinctSymbols": 1,
+        "inputUtf16": 20000,
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 603,
+        "min": 537,
+        "max": 638
+      },
+      "maxFrameGapMs": {
+        "median": 50,
+        "min": 50,
+        "max": 67
+      },
+      "runs": [
+        {
+          "inputToResultMs": 638,
+          "maxFrameGapMs": 50,
+          "frames": 36,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 603,
+          "maxFrameGapMs": 67,
+          "frames": 32,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 537,
+          "maxFrameGapMs": 50,
+          "frames": 30,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 10000,
+        "distinctSymbols": 10000,
+        "inputUtf16": 20000,
+        "inputUnits": 20000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 2553,
+        "min": 2500,
+        "max": 2791
+      },
+      "maxFrameGapMs": {
+        "median": 1317,
+        "min": 1267,
+        "max": 1350
+      },
+      "runs": [
+        {
+          "inputToResultMs": 2500,
+          "maxFrameGapMs": 1317,
+          "frames": 28,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 2791,
+          "maxFrameGapMs": 1350,
+          "frames": 26,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 2553,
+          "maxFrameGapMs": 1267,
+          "frames": 26,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "repeated",
+        "codePoints": 100000,
+        "distinctSymbols": 1,
+        "inputUtf16": 200000,
+        "inputUnits": 200000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 655,
+        "min": 637,
+        "max": 1269
+      },
+      "maxFrameGapMs": {
+        "median": 67,
+        "min": 67,
+        "max": 200
+      },
+      "runs": [
+        {
+          "inputToResultMs": 655,
+          "maxFrameGapMs": 67,
+          "frames": 34,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 1269,
+          "maxFrameGapMs": 200,
+          "frames": 46,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 637,
+          "maxFrameGapMs": 67,
+          "frames": 30,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "count",
+      "shape": {
+        "alphabet": "distinct",
+        "codePoints": 100000,
+        "distinctSymbols": 100000,
+        "inputUtf16": 200000,
+        "inputUnits": 200000
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 2692,
+        "min": 2551,
+        "max": 4642
+      },
+      "maxFrameGapMs": {
+        "median": 1367,
+        "min": 1283,
+        "max": 2400
+      },
+      "runs": [
+        {
+          "inputToResultMs": 4642,
+          "maxFrameGapMs": 2400,
+          "frames": 54,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 2692,
+          "maxFrameGapMs": 1367,
+          "frames": 37,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 2551,
+          "maxFrameGapMs": 1283,
+          "frames": 34,
+          "outcome": "result"
+        }
+      ]
+    }
+  ]
+}

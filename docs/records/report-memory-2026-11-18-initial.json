@@ -1,0 +1,247 @@
+{
+  "measuredAt": "2026-11-18T11:45:03.815Z",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "repetitions": 3,
+  "scope": "予備実行後、各試行の前にGC。集約直後・文字列化中・結合直後・上限拒否のチェックポイントのheapUsedを観測。GCで回収可能なごみを含み、観測間のピーク・RSS・ブラウザのメモリではない。観測用コードを挿入したため時間比較には使わない。入力作成と出力ハッシュの計算は除外。",
+  "instrumentation": "function instrument(source, file) {\n  if (file === entry && source.includes('collectIssues(input, kind)')) return source\n    .replace('collectIssues(input, kind)', 'globalThis.__reportHeap(collectIssues(input, kind))')\n    .replace('parts.push(text);', 'parts.push(text); if (parts.length % 1024 === 0) globalThis.__reportHeap();')\n    .replace(\"return parts.join('');\", \"const complete = parts.join(''); globalThis.__reportHeap(); return complete;\");\n  if (file === entry) return source.replace('for (const [char, value] of counts)', 'globalThis.__reportHeap(); for (const [char, value] of counts)');\n  if (file.endsWith('/reportText.ts')) return source\n    .replace(\"this.chunks.push(this.pending.join(''));\", \"this.chunks.push(this.pending.join('')); globalThis.__reportHeap();\")\n    .replace(\"return this.chunks.join('');\", \"const complete = this.chunks.join(''); globalThis.__reportHeap(); return complete;\")\n    .replace('if (length > this.limit) throw', 'if (length > this.limit) globalThis.__reportHeap(); if (length > this.limit) throw');\n  return source;\n}",
+  "sources": {
+    "before": {
+      "src/tools/text-count/reports.ts": "import { collectIssues, type IssueKind } from './issues';\nimport { inspectInvisible } from './invisible';\n\nexport type DiagnosticKind = IssueKind | 'invisibleKinds' | 'invisibleOccurrences';\n/** 全件診断の出力上限（UTF-16単位）。表示上限とは別に、Workerからの転送・保存量を制限する。 */\nexport const MAX_REPORT_OUTPUT = 32_000_000;\n\n/**\n * 診断を省略なしのTSVへ変換する。画面からは全件取得を選んだときだけWorkerで呼ぶ。\n * @param limit - 出力上限。通常は既定値。超過時は途中の結果を返さず、分割を案内する。\n * @remarks 文字そのものはJSON文字列として出力し、タブ・改行・不完全なサロゲートも表記を保つ。\n */\nexport function createDiagnosticReport(input: string, kind: DiagnosticKind, limit = MAX_REPORT_OUTPUT): string {\n  const parts: string[] = [];\n  let length = 0;\n  const row = (cells: (string | number)[]) => {\n    const text = (parts.length ? '\\n' : '') + cells.join('\\t');\n    length += text.length;\n    if (length > limit) throw new Error('診断の全件出力が大きすぎます。入力を分割してください。');\n    parts.push(text);\n  };\n  if (kind === 'invisibleOccurrences') {\n    row(['行', '列', 'UTF-16位置', 'コードポイント', '種類']);\n    inspectInvisible(input, { kindsLimit: 0, occurrencesLimit: 0, previewLimit: 0,\n      onOccurrence: (item) => row([item.line, item.column, item.offset, item.codePoint, item.name]) });\n  } else if (kind === 'invisibleKinds') {\n    row(['コードポイント', '種類', '件数', '最初の行', '最初の列', 'UTF-16位置']);\n    const result = inspectInvisible(input, { kindsLimit: Infinity, occurrencesLimit: 0, previewLimit: 0 });\n    for (const item of result.kinds) row([item.codePoint, item.name, item.count, item.line, item.column, item.offset]);\n  } else {\n    row(['文字(JSON)', 'コードポイント', '件数', '理由', '最初の行', '最初の列']);\n    for (const item of collectIssues(input, kind)) row([JSON.stringify(item.char), item.codePoint, item.count, item.reason, item.line, item.column]);\n  }\n  return parts.join('');\n}\n",
+      "src/tools/text-count/issues.ts": "import { codePointOf, MAX_LISTED } from './characterDetails';\nimport { eucjpBytesOf, reasonOf, sjisBytesOf, vendorKindOf } from './encoding';\n\nexport type IssueKind = 'unsupported' | 'unsupportedEuc' | 'vendor';\n/** 注意が必要な文字。位置は最初の出現、件数は全文の出現数。 */\nexport type CharIssue = { char: string; codePoint: string; count: number; reason: string; line: number; column: number };\nexport type IssueTotals = Record<IssueKind, number>;\n\n/**\n * 種類数には全文の集合を使い、位置・理由・件数の詳細は先頭limit種類だけに作る。\n * @param limit - 詳細を保持する種類数。通常は表示上限、全件出力のときだけInfinity。\n */\nexport class IssueList {\n  private seen = new Set<string>();\n  private details = new Map<string, CharIssue>();\n  private limit: number;\n  constructor(limit = MAX_LISTED) { this.limit = limit; }\n  add(char: string, reason: string, line: number, column: number): void {\n    const found = this.details.get(char);\n    if (found) { found.count++; return; }\n    if (this.seen.has(char)) return;\n    this.seen.add(char);\n    if (this.details.size < this.limit) this.details.set(char, { char, codePoint: codePointOf(char), count: 1, reason, line, column });\n  }\n  get total(): number { return this.seen.size; }\n  list(): CharIssue[] { return [...this.details.values()]; }\n}\n\n/** 全件取得を選んだ診断1種類だけを集める。改行は表示の行・列と同じ規則で数える。 */\nexport function collectIssues(input: string, kind: IssueKind): CharIssue[] {\n  const issues = new IssueList(Infinity);\n  let line = 1;\n  let column = 0;\n  for (const ch of input.replace(/\\r\\n?/g, '\\n')) {\n    if (ch === '\\n') { line++; column = 0; continue; }\n    column++;\n    const bytes = kind === 'unsupportedEuc' ? eucjpBytesOf(ch) : sjisBytesOf(ch);\n    const reason = kind === 'vendor' ? (bytes === 2 ? vendorKindOf(ch) : null) : bytes === null ? reasonOf(ch) : null;\n    if (reason !== null) issues.add(ch, reason, line, column);\n  }\n  return issues.list();\n}\n"
+    },
+    "after": {
+      "src/tools/text-count/reports.ts": "import { aggregateIssues, describeIssue, type CharIssue, type IssueKind } from './issues';\nimport { inspectInvisible } from './invisible';\nimport { ReportText } from './reportText';\n\nexport type DiagnosticKind = IssueKind | 'invisibleKinds' | 'invisibleOccurrences';\n/** 全件診断の出力上限（UTF-16単位）。表示上限とは別に、Workerからの転送・保存量を制限する。 */\nexport const MAX_REPORT_OUTPUT = 32_000_000;\n\n/** 文字の表記・列の順を、出力予算の予約と実際の出力でそろえる。 */\nfunction issueCells(item: CharIssue): (string | number)[] {\n  return [JSON.stringify(item.char), item.codePoint, item.count, item.reason, item.line, item.column];\n}\n\n/**\n * 診断を省略なしのTSVへ変換する。画面からは全件取得を選んだときだけWorkerで呼ぶ。\n * @param limit - 出力上限。通常は既定値。超過時は途中の結果を返さず、分割を案内する。\n * @remarks 文字そのものはJSON文字列として出力し、タブ・改行・不完全なサロゲートも表記を保つ。\n */\nexport function createDiagnosticReport(input: string, kind: DiagnosticKind, limit = MAX_REPORT_OUTPUT): string {\n  const output = new ReportText(limit);\n  if (kind === 'invisibleOccurrences') {\n    output.row(['行', '列', 'UTF-16位置', 'コードポイント', '種類']);\n    inspectInvisible(input, { kindsLimit: 0, occurrencesLimit: 0, previewLimit: 0,\n      onOccurrence: (item) => output.row([item.line, item.column, item.offset, item.codePoint, item.name]) });\n  } else if (kind === 'invisibleKinds') {\n    output.row(['コードポイント', '種類', '件数', '最初の行', '最初の列', 'UTF-16位置']);\n    const result = inspectInvisible(input, { kindsLimit: Infinity, occurrencesLimit: 0, previewLimit: 0 });\n    for (const item of result.kinds) output.row([item.codePoint, item.name, item.count, item.line, item.column, item.offset]);\n  } else {\n    output.row(['文字(JSON)', 'コードポイント', '件数', '理由', '最初の行', '最初の列']);\n    let minimumLength = output.length;\n    const counts = aggregateIssues(input, kind, (char, value) => {\n      /** 初回の件数1の行は、最終行長の下限になる。後から件数の桁が増えた場合はrowでも確認する。 */\n      minimumLength += 1 + issueCells(describeIssue(char, value, kind)).join('\\t').length;\n      output.check(minimumLength);\n    });\n    for (const [char, value] of counts) output.row(issueCells(describeIssue(char, value, kind)));\n    counts.clear();\n  }\n  return output.finish();\n}\n",
+      "src/tools/text-count/issues.ts": "import { codePointOf, MAX_LISTED } from './characterDetails';\nimport { eucjpBytesOf, reasonOf, sjisBytesOf, vendorKindOf } from './encoding';\n\nexport type IssueKind = 'unsupported' | 'unsupportedEuc' | 'vendor';\n/** 注意が必要な文字。位置は最初の出現、件数は全文の出現数。 */\nexport type CharIssue = { char: string; codePoint: string; count: number; reason: string; line: number; column: number };\nexport type IssueTotals = Record<IssueKind, number>;\n\n/**\n * 種類数には全文の集合を使い、位置・理由・件数の詳細は先頭limit種類だけに作る。\n * @param limit - 詳細を保持する種類数。通常は表示上限。\n */\nexport class IssueList {\n  private seen = new Set<string>();\n  private details = new Map<string, CharIssue>();\n  private limit: number;\n  constructor(limit = MAX_LISTED) { this.limit = limit; }\n  add(char: string, reason: string, line: number, column: number): void {\n    const found = this.details.get(char);\n    if (found) { found.count++; return; }\n    if (this.seen.has(char)) return;\n    this.seen.add(char);\n    if (this.details.size < this.limit) this.details.set(char, { char, codePoint: codePointOf(char), count: 1, reason, line, column });\n  }\n  get total(): number { return this.seen.size; }\n  list(): CharIssue[] { return [...this.details.values()]; }\n}\n\n/** 全件出力で必要な集約値。文字はMapのキーに置き、表示用の詳細は保持しない。 */\nexport type IssueCount = { count: number; line: number; column: number };\n\n/** 集約済みの文字だけを、出力時に表示用の詳細へ変換する。 */\nexport function describeIssue(char: string, value: IssueCount, kind: IssueKind): CharIssue {\n  return { char, ...value, codePoint: codePointOf(char), reason: kind === 'vendor' ? vendorKindOf(char) ?? '' : reasonOf(char) };\n}\n\n/**\n * 全件取得を選んだ診断1種類だけを集約する。改行は表示の行・列と同じ規則で数える。\n * @param reserve - 新しい種類を追加する直前の出力予算の確認。失敗すれば残りを走査しない。\n */\nexport function aggregateIssues(input: string, kind: IssueKind, reserve?: (char: string, value: IssueCount) => void): Map<string, IssueCount> {\n  const issues = new Map<string, IssueCount>();\n  let line = 1;\n  let column = 0;\n  for (const ch of input.replace(/\\r\\n?/g, '\\n')) {\n    if (ch === '\\n') { line++; column = 0; continue; }\n    column++;\n    const bytes = kind === 'unsupportedEuc' ? eucjpBytesOf(ch) : sjisBytesOf(ch);\n    const reason = kind === 'vendor' ? (bytes === 2 ? vendorKindOf(ch) : null) : bytes === null ? reasonOf(ch) : null;\n    if (reason !== null) {\n      const found = issues.get(ch);\n      if (found) found.count++;\n      else {\n        const value = { count: 1, line, column };\n        reserve?.(ch, value);\n        issues.set(ch, value);\n      }\n    }\n  }\n  return issues;\n}\n"
+    }
+  },
+  "provenance": {
+    "before": {
+      "files": {
+        "src/tools/text-count/reports.ts": "6711c3c3a7650fc8fdaefa780acc8c0fb76023fd007ee323b39bc914b0cabaf1",
+        "src/tools/text-count/invisible.ts": "619c4791bc339e19a0c68e9644df95cb307241457203c23df3b6b7e23b599545",
+        "src/tools/text-count/issues.ts": "d3dd3b74316f06295bafbc447ec22d6a5087433513c23e7d029461bc1a5b7e45",
+        "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f",
+        "src/tools/text-count/characterDetails.ts": "9499822cdcca8784f9225fcbbabdb71e9f196f830acadf2812a34529b8d5a17b"
+      },
+      "instrumentedBundleSha256": "0bc8a97af9d2e8795fa370b9760f03c5cc5003db1abbd43f71d55fc67f109980"
+    },
+    "after": {
+      "files": {
+        "src/tools/text-count/reports.ts": "8271999540203d1da61f175322ba2343778c0ef18cbc2d26825e30289402acf3",
+        "src/tools/text-count/reportText.ts": "66bf81baf50726de96d417ca7094cb5d48144a686ecb85eeccebaf8dec38c879",
+        "src/tools/text-count/issues.ts": "c5c7d29459f3cb5bd6d8b860d183e46452acd213f66f0eee43b93d2a286c551d",
+        "src/tools/text-count/invisible.ts": "619c4791bc339e19a0c68e9644df95cb307241457203c23df3b6b7e23b599545",
+        "src/tools/text-count/characterDetails.ts": "9499822cdcca8784f9225fcbbabdb71e9f196f830acadf2812a34529b8d5a17b",
+        "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f"
+      },
+      "instrumentedBundleSha256": "9f3f4d9cdd2e0c312bb6643943dfc0732985b4d0c02ad2035722ed94839d8837"
+    }
+  },
+  "snapshotFiles": {
+    "scripts/measure-report-memory.mjs": "1c1b1a1ab308f42503c737f4d6dbda17bf0ce2d55d765bf7ee9949cfb1115200",
+    "package-lock.json": "7746d6021e7f83f7063294014cde814b975d37e4460255097303161e35abd3ba",
+    "src/tools/text-count/invisible.ts": "619c4791bc339e19a0c68e9644df95cb307241457203c23df3b6b7e23b599545",
+    "src/tools/text-count/encoding.ts": "983928ed64568aff67a6654642a405a5a53d25dc773c19db1267f21fc77a9a8f",
+    "src/tools/text-count/characterDetails.ts": "9499822cdcca8784f9225fcbbabdb71e9f196f830acadf2812a34529b8d5a17b",
+    "src/tools/text-count/reports.ts": "8271999540203d1da61f175322ba2343778c0ef18cbc2d26825e30289402acf3",
+    "src/tools/text-count/reportText.ts": "66bf81baf50726de96d417ca7094cb5d48144a686ecb85eeccebaf8dec38c879",
+    "src/tools/text-count/issues.ts": "c5c7d29459f3cb5bd6d8b860d183e46452acd213f66f0eee43b93d2a286c551d"
+  },
+  "cases": [
+    {
+      "codePoints": 10000,
+      "limit": 32000000,
+      "results": {
+        "before": [
+          {
+            "startHeap": 9246448,
+            "observedPeakHeap": 18608800,
+            "observedIncrease": 9362352,
+            "samples": 11,
+            "outputLength": 445780,
+            "outputSha256": "d6dc31f4095227ece2e3525021431dd2eb2f5f21ab78c2c0869f4764e43a56ae",
+            "error": null
+          },
+          {
+            "startHeap": 9237392,
+            "observedPeakHeap": 18594064,
+            "observedIncrease": 9356672,
+            "samples": 11,
+            "outputLength": 445780,
+            "outputSha256": "d6dc31f4095227ece2e3525021431dd2eb2f5f21ab78c2c0869f4764e43a56ae",
+            "error": null
+          },
+          {
+            "startHeap": 9237928,
+            "observedPeakHeap": 18588976,
+            "observedIncrease": 9351048,
+            "samples": 11,
+            "outputLength": 445780,
+            "outputSha256": "d6dc31f4095227ece2e3525021431dd2eb2f5f21ab78c2c0869f4764e43a56ae",
+            "error": null
+          }
+        ],
+        "after": [
+          {
+            "startHeap": 10528840,
+            "observedPeakHeap": 27899704,
+            "observedIncrease": 17370864,
+            "samples": 30,
+            "outputLength": 445780,
+            "outputSha256": "d6dc31f4095227ece2e3525021431dd2eb2f5f21ab78c2c0869f4764e43a56ae",
+            "error": null
+          },
+          {
+            "startHeap": 10519360,
+            "observedPeakHeap": 28317568,
+            "observedIncrease": 17798208,
+            "samples": 30,
+            "outputLength": 445780,
+            "outputSha256": "d6dc31f4095227ece2e3525021431dd2eb2f5f21ab78c2c0869f4764e43a56ae",
+            "error": null
+          },
+          {
+            "startHeap": 10520928,
+            "observedPeakHeap": 28288168,
+            "observedIncrease": 17767240,
+            "samples": 30,
+            "outputLength": 445780,
+            "outputSha256": "d6dc31f4095227ece2e3525021431dd2eb2f5f21ab78c2c0869f4764e43a56ae",
+            "error": null
+          }
+        ]
+      }
+    },
+    {
+      "codePoints": 100000,
+      "limit": 32000000,
+      "results": {
+        "before": [
+          {
+            "startHeap": 10881672,
+            "observedPeakHeap": 92456624,
+            "observedIncrease": 81574952,
+            "samples": 99,
+            "outputLength": 4532123,
+            "outputSha256": "9309f0e5039899655b8dc4eec9d181857365313b1471322011892972cc25fc77",
+            "error": null
+          },
+          {
+            "startHeap": 10873616,
+            "observedPeakHeap": 92248080,
+            "observedIncrease": 81374464,
+            "samples": 99,
+            "outputLength": 4532123,
+            "outputSha256": "9309f0e5039899655b8dc4eec9d181857365313b1471322011892972cc25fc77",
+            "error": null
+          },
+          {
+            "startHeap": 10878040,
+            "observedPeakHeap": 92253320,
+            "observedIncrease": 81375280,
+            "samples": 99,
+            "outputLength": 4532123,
+            "outputSha256": "9309f0e5039899655b8dc4eec9d181857365313b1471322011892972cc25fc77",
+            "error": null
+          }
+        ],
+        "after": [
+          {
+            "startHeap": 10883192,
+            "observedPeakHeap": 86256272,
+            "observedIncrease": 75373080,
+            "samples": 279,
+            "outputLength": 4532123,
+            "outputSha256": "9309f0e5039899655b8dc4eec9d181857365313b1471322011892972cc25fc77",
+            "error": null
+          },
+          {
+            "startHeap": 10889928,
+            "observedPeakHeap": 86436632,
+            "observedIncrease": 75546704,
+            "samples": 279,
+            "outputLength": 4532123,
+            "outputSha256": "9309f0e5039899655b8dc4eec9d181857365313b1471322011892972cc25fc77",
+            "error": null
+          },
+          {
+            "startHeap": 10891640,
+            "observedPeakHeap": 86299680,
+            "observedIncrease": 75408040,
+            "samples": 279,
+            "outputLength": 4532123,
+            "outputSha256": "9309f0e5039899655b8dc4eec9d181857365313b1471322011892972cc25fc77",
+            "error": null
+          }
+        ]
+      }
+    },
+    {
+      "codePoints": 100000,
+      "limit": 200,
+      "results": {
+        "before": [
+          {
+            "startHeap": 10895416,
+            "observedPeakHeap": 61212000,
+            "observedIncrease": 50316584,
+            "samples": 1,
+            "outputLength": null,
+            "outputSha256": null,
+            "error": "診断の全件出力が大きすぎます。入力を分割してください。"
+          },
+          {
+            "startHeap": 10892000,
+            "observedPeakHeap": 61203392,
+            "observedIncrease": 50311392,
+            "samples": 1,
+            "outputLength": null,
+            "outputSha256": null,
+            "error": "診断の全件出力が大きすぎます。入力を分割してください。"
+          },
+          {
+            "startHeap": 10891032,
+            "observedPeakHeap": 61207832,
+            "observedIncrease": 50316800,
+            "samples": 1,
+            "outputLength": null,
+            "outputSha256": null,
+            "error": "診断の全件出力が大きすぎます。入力を分割してください。"
+          }
+        ],
+        "after": [
+          {
+            "startHeap": 10889160,
+            "observedPeakHeap": 10897040,
+            "observedIncrease": 7880,
+            "samples": 1,
+            "outputLength": null,
+            "outputSha256": null,
+            "error": "診断の全件出力が大きすぎます。入力を分割してください。"
+          },
+          {
+            "startHeap": 10884312,
+            "observedPeakHeap": 10892040,
+            "observedIncrease": 7728,
+            "samples": 1,
+            "outputLength": null,
+            "outputSha256": null,
+            "error": "診断の全件出力が大きすぎます。入力を分割してください。"
+          },
+          {
+            "startHeap": 10884424,
+            "observedPeakHeap": 10892152,
+            "observedIncrease": 7728,
+            "samples": 1,
+            "outputLength": null,
+            "outputSha256": null,
+            "error": "診断の全件出力が大きすぎます。入力を分割してください。"
+          }
+        ]
+      }
+    }
+  ]
+}
