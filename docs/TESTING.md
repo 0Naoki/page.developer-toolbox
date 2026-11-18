@@ -138,6 +138,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 | 検査対象 | ファイル |
 |---|---|
 | 大容量計算 | `e2e/calculation.spec.ts` |
+| 大容量入力とIME | `e2e/input-composition.spec.ts` |
 | テキスト差分の改行 | `src/tools/text-diff/logic.test.ts`・`e2e/calculation.spec.ts` |
 | 行の分割 | `src/lib/text/lines.test.ts`・各ツールの `logic.test.ts` |
 | 文字数・不可視文字 | `e2e/text-count.spec.ts` |
