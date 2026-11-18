@@ -126,7 +126,8 @@ export function cronWarnings(cron: CronExpression): string[] {
   const warnings: string[] = [];
   const day = fieldOf(cron.fields, 'day')!;
   const weekday = fieldOf(cron.fields, 'weekday')!;
-  if (isDayOrWeekday(cron)) {
+  const dayOrWeekday = isDayOrWeekday(cron);
+  if (dayOrWeekday) {
     warnings.push('日と曜日の両方を指定すると、どちらかに一致した日に実行します（両方に一致した日だけではありません）');
   } else if (cron.dialect === 'unix' && !isEvery(day) && !isEvery(weekday)) {
     warnings.push('*/2 のように * で始まる日と曜日の組み合わせは、実装で動作が異なります。ここでは Linux の cron と同じく、両方に一致した日とします');
@@ -140,6 +141,6 @@ export function cronWarnings(cron: CronExpression): string[] {
     warnings.push(`${f.label}の ${f.source} は、区切りごとに数え直すため間隔が一定になりません（${last}${suffix}の次は${f.values[0]}${suffix}）`);
   }
   const firstDay = day.special?.kind === 'nearestWeekday' ? day.special.day : day.special || day.omitted ? 0 : day.values[0] ?? 0;
-  if (firstDay >= 29) warnings.push(`${firstDay}日がない月には実行されません`);
+  if (firstDay >= 29 && !dayOrWeekday) warnings.push(`${firstDay}日がない月には実行されません`);
   return warnings;
 }

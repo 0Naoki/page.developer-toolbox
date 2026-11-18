@@ -361,6 +361,14 @@ describe('cronWarnings', () => {
     expect(cronWarnings(parseCron('0 0 0 ? * 2', 'quartz'))).toEqual([]);
   });
 
+  it.each(['unix', 'kubernetes'] as const)('日と曜日がORなら、31日がない月にも曜日に一致して実行する：%s', (dialect) => {
+    const cron = parseCron('0 0 31 * MON', dialect);
+    expect(cronWarnings(cron)).toEqual(['日と曜日の両方を指定すると、どちらかに一致した日に実行します（両方に一致した日だけではありません）']);
+    expect(nextRuns(cron, 'UTC', at('2026-04-01T00:00:00Z'), 4).map((ms) => new Date(ms).toISOString())).toEqual([
+      '2026-04-06T00:00:00.000Z', '2026-04-13T00:00:00.000Z', '2026-04-20T00:00:00.000Z', '2026-04-27T00:00:00.000Z',
+    ]);
+  });
+
   it('割り切れない間隔を注意する', () => {
     expect(cronWarnings(parseCron('*/45 * * * *', 'unix'))).toEqual(['分の */45 は、区切りごとに数え直すため間隔が一定になりません（45分の次は0分）']);
     expect(cronWarnings(parseCron('*/15 * * * *', 'unix'))).toEqual([]);

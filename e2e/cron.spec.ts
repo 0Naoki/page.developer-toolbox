@@ -3,6 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - Kubernetesのcron式：単一値からの間隔、?、曜日の範囲、日と曜日のORを検証し、標準形式との差と再読み込み後の形式を保つこと。Date の上限の直前を基準にしても、範囲外の候補を試し続けずに探索を終えること（あわせて `src/tools/cron/logic.test.ts`）
+ *   日と曜日がORの式では、31日がない月にも曜日で実行し、実行されないと誤って警告しないこと。
  * - cron式の組み立て：頻度と時刻から、今の形式の書き方で式を作ること。曜日は名前で書き、形式による日曜の数え方の違いで別の曜日にならないこと。範囲外の値では式を作らないこと（あわせて `src/tools/cron/logic.test.ts`）
  * - cron の実行日時の貼り戻し：日本時間の列（曜日の添え書き付き）も、ほかのタイムゾーンの列（オフセット付き）も、基準日時に貼り戻すと同じ時刻として読むこと。曜日が日付と合わなければ拒否すること（あわせて `src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts`）
  * - Date の範囲より前の現地日付 × cron の曜日判定：最初の実行を飛ばさず、現地日付と日本時間の曜日を表示する（あわせて `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`）
@@ -17,6 +18,19 @@ const runs = (page: Page) => page.getByRole('table', { name: '次回の実行日
 const breakdown = (page: Page) => page.getByRole('table', { name: '項目ごとの内訳' });
 const selectDialect = (page: Page, name: 'Quartz' | 'EventBridge' | 'Kubernetes') =>
   page.getByRole('group', { name: '形式' }).getByRole('button', { name, exact: true }).click();
+
+test('cron式：OR条件では31日がない月にも曜日で実行し、誤った警告を表示しない', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/cron');
+  await page.getByLabel('式を読むタイムゾーン', { exact: true }).selectOption('UTC');
+  await page.getByLabel('基準日時', { exact: true }).fill('2026-04-01T00:00:00Z');
+  await expression(page).fill('0 0 31 * MON');
+  for (const kubernetes of [false, true]) {
+    if (kubernetes) await selectDialect(page, 'Kubernetes');
+    await expect(page.getByText('日と曜日の両方を指定すると、どちらかに一致した日に実行します（両方に一致した日だけではありません）', { exact: true })).toBeVisible();
+    await expect(page.getByText('31日がない月には実行されません', { exact: true })).toHaveCount(0);
+    await expect(runs(page).nth(1)).toContainText('2026-04-06 00:00:00');
+  }
+});
 
 test('cron式：日時の下限付近でも現地日付の最初の実行と曜日を表示する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/cron');
