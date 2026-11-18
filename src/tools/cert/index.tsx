@@ -3,9 +3,15 @@
  * - `pem.ts`：入力（PEM・DER・Base64 の本文）の読み取り。秘密鍵は解析せずに拒否する
  * - `name.ts`：名前（発行者・主体）の読み取りと比較
  * - `extensions.ts`：拡張と別名（SAN など）の読み取り
- * - `logic.ts`：証明書と CSR の全体の解析・有効期限・チェーン
+ * - `logic.ts`：証明書と CSR の全体の解析
+ * - `validity.ts`：現在時刻に対する有効期間の評価
+ * - `chain.ts`：名前と鍵識別子によるチェーンの評価
+ * - `fingerprints.ts`：フィンガープリントの計算
  * - `diagnostics.ts`：読み込んだ各ブロックの解析結果を、表示用にまとめる
- * - `verify.ts`：署名の検証（Web Crypto API を使う非同期処理）
+ * - `verify.ts`：発行者候補の検証と結果の調整
+ * - `signatureScheme.ts`：署名アルゴリズムのパラメーターの解析
+ * - `issuerCandidates.ts`：名前と鍵識別子による発行者候補の選択
+ * - `verifySigned.ts`：指定した公開鍵での署名検証（Web Crypto API）
  * - `CertView.tsx`：内容と検証結果・チェーンの表示
  * - `sample.ts`：「サンプル」のボタンで入れる証明書
  * DER の解析などの共通の部品は src/lib/crypto/ にある。

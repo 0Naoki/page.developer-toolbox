@@ -1,9 +1,12 @@
-/** 検査の対象：logic.ts・name.ts・pem.ts・extensions.ts（IPv6 の表記）（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
+/** 検査の対象：logic.ts・validity.ts・chain.ts・fingerprints.ts・name.ts・pem.ts・extensions.ts（IPv6 の表記）（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
 import { describe, expect, it } from 'vitest';
 import { bytesToBase64 } from '../../lib/bytes';
 import { SMALL_INTEGER_BYTES, parseDer, parseDerExact, readInteger, readOid, readTime } from '../../lib/crypto/asn1';
 import { ED25519, ENCODING_CA_PRINTABLE, ENCODING_LEAF, LEAF, LEAF_CSR, ROOT_CA, ROOT_CA_ROLLOVER } from './certificates.fixtures';
-import { checkChain, fingerprints, parseCertificate, parseItem, validityOf, type Certificate, type Csr } from './logic';
+import { checkChain } from './chain';
+import { fingerprints } from './fingerprints';
+import { parseCertificate, parseItem, type Certificate, type Csr } from './logic';
+import { validityOf } from './validity';
 import { diagnoseItems } from './diagnostics';
 import { SAMPLE_CERTIFICATE } from './sample';
 import { readExtensions } from './extensions';

@@ -4,7 +4,9 @@ import { ED25519, ENCODING_CA_PRINTABLE, ENCODING_LEAF, LEAF, LEAF_CSR, LEAF_PSS
 import { parseItem, type Certificate, type Csr } from './logic';
 import { readPem } from './pem';
 import { sameBytes } from './name';
-import { verifyInList, verifySigned } from './verify';
+/** 検査の対象：verify.ts・verifySigned.ts・signatureScheme.ts・issuerCandidates.ts。 */
+import { verifyInList } from './verify';
+import { verifySigned } from './verifySigned';
 
 const parse = (pem: string) => parseItem(readPem(pem)[0]!);
 const leaf = parse(LEAF) as Certificate;
