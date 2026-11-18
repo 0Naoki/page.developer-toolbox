@@ -3,6 +3,7 @@ import { bytesToBase64 } from '../../lib/bytes';
 import { ED25519, LEAF, ROOT_CA } from '../cert/certificates.fixtures';
 import { LEAF_JWK, P384_JWK, P521_PUBLIC_PEM, RSA_JWK, RSA_PUBLIC_PEM, RSA_PUBLIC_PKCS1_PEM, SECRET, SECRET_BASE64, TOKENS, base64Url, decodeJwt } from './tokens.fixtures';
 import { readPublicKey, secretBytes, shortSecretWarning } from './keys';
+import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../../lib/bytes.fixtures';
 import { verifyJwt, type VerifyKey } from './verify';
 import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
 import { limitMessage, MESSAGE_LIMIT } from '../../lib/text/textPreview';
@@ -63,6 +64,14 @@ describe('verifyJwt：HMAC（HS256 など）', () => {
 
   it('Base64 として読めない秘密鍵は、日本語のエラーにする', () => {
     expect(() => secretBytes('abc$', 'base64')).toThrow('秘密鍵を Base64 として読めません');
+  });
+
+  it.each(VALID_BASE64_PADDING)('Base64のHMAC鍵は有効なパディングと完全省略を読む：%s', (input, expected) => {
+    expect(new TextDecoder().decode(secretBytes(input, 'base64'))).toBe(expected);
+  });
+
+  it.each(INVALID_BASE64_PADDING)('Base64のHMAC鍵の不正なパディングを拒否する：%s', (input) => {
+    expect(() => secretBytes(input, 'base64')).toThrow('秘密鍵を Base64 として読めません');
   });
 
   it('UTF-8 の秘密鍵に対になっていないサロゲートがあれば、U+FFFD に置き換えて検証しない', () => {

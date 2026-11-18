@@ -115,6 +115,25 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 今日の日付 | `src/hooks/useTodayJst.ts` | `src/lib/time/date.test.ts` |
 | 暦の中間計算 | `src/lib/time/civilTime.ts`（`src/lib/time/date.ts` と `src/lib/time/timezone.ts` の `addZonedElapsed` も同じ計算を使う） | `src/lib/time/civilTime.test.ts` |
 
+### Base64を読むときの検証
+
+`src/lib/bytes.ts` は、空白と記号の正規化、パディングの検証、バイト列への復号を分けます。
+明示された `=` は削除せずに検証し、完全に省略された場合だけ補います。
+パディングを書く場合は末尾の1〜2個とし、空白を除く全体長が4の倍数でなければ拒否します。
+省略した場合も、本文の長さを4で割った余りが1なら拒否します。
+
+| 用途 | 許容する文字と空白 | 共通検証に加える条件 |
+|---|---|---|
+| Base64・Base64URL変換 | 標準とURL用の記号、その混在、JavaScriptの空白文字 | data: URIは本文をパーセント復号してから読む |
+| JWTの表示用デコード | 汎用変換と同じ | UTF-8とJSONの形式を確認する。表示できることを署名検証の成功とは扱わない |
+| JWTの署名検証 | パディング・空白のないBase64URLだけ | verify.tsのjwsBytesで再符号化し、未使用ビットを含めて元の文字列との一致を確認する |
+| PEMの本文 | 標準のBase64だけ。空白・改行とパディングの完全省略は許容 | pemBodyToBytesでURL用の記号を拒否する。ブロックの種類・個数・秘密鍵の拒否は呼び出し側が担当する |
+| Base64指定のHMAC鍵 | 汎用変換と同じ | secretBytesで公開鍵・秘密鍵の形式を拒否する。UTF-8指定の鍵はBase64として読まない |
+
+パディングの共通入力例は `src/lib/bytes.fixtures.ts` に置き、Base64・PEM・HMAC鍵の単体テストで同じ条件を検証します。
+JWTの厳密な検証と、画面・Workerで同じ拒否になることも検査します。
+利用者向けの例は [USAGE.md の「Base64の入力」](USAGE.md#base64の入力)にあります。
+
 ## 計算と表示の流れ
 
 ツール固有の計算の流れ（サブネットの予約数、文字数の UTF-8 集計、JWK Set の検査の順番など）は、この文書ではなく、そのツールの計算処理の TSDoc に書きます。
