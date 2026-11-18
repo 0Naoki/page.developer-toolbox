@@ -11,9 +11,17 @@ import { containsPrivateKey } from '../../lib/crypto/privateKey';
 import { MAX_PEM_BLOCKS, readFileBytes, readPem } from './pem';
 import { sameBytes, sameName, attributeKey, MAX_NAME_ATTRS, type ParsedName } from './name';
 import { certificateWithTime } from './time.fixtures';
+import { certificateWithSubject } from './encoding.fixtures';
 import { formatIpv6Bytes } from './extensions';
 
 const cert = (pem: string) => parseItem(readPem(pem)[0]!) as Certificate;
+
+it('主体の不正な文字列を証明書の正常な名前として受け入れない', () => {
+  for (const [tag, bytes] of [[12, [255]], [30, [65]], [28, [0, 0, 65]]] as const) {
+    expect(() => cert(certificateWithSubject(tag, [...bytes]))).toThrow();
+  }
+  expect(cert(certificateWithSubject(12, [...new TextEncoder().encode('日本😀')])).subject.attrs[0]?.value).toBe('日本😀');
+});
 
 it('開始・終了日時に小数部のある証明書は、有効期間の判定へ渡さない', () => {
   for (const field of ['notBefore', 'notAfter'] as const) {

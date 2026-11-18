@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { CopyButton } from '../../components/CopyButton';
+import { toUpperHex } from '../../lib/crypto/asn1';
 import { Badge } from '../../components/Badge';
 import { Notice } from '../../components/Notice';
 import { useAsyncFor } from '../../hooks/useAsyncFor';
@@ -11,6 +13,7 @@ import { LIST_PREVIEW_LIMIT, previewList } from '../../lib/listPreview';
 import { formatJstLabeled } from '../../lib/time/dateTimeFormat';
 import { checkChain, fingerprints, validityOf, type Certificate, type Csr } from './logic';
 import { verifyInList, type ItemVerification } from './verify';
+import type { Extension } from './extensions';
 
 /** 証明書・CSR の内容、署名の検証結果、チェーンの表示 */
 
@@ -207,6 +210,7 @@ function SanRow({ cert }: { cert: Certificate | Csr }) {
 }
 
 function Extensions({ item }: { item: Certificate | Csr }) {
+  const copyAll = useCallback(() => item.extensions.map((e) => `${e.name}（${e.oid}）${e.critical ? ' 重要' : ''}\n${e.values.map((v) => `  ${v}`).join('\n')}\n生バイト：${toUpperHex(e.raw, ' ')}`).join('\n'), [item]);
   if (item.extensions.length === 0) return null;
   /** 拡張の個数にも上限を設ける（1 MiB の入力で数万個の拡張を含む証明書を作れるため） */
   const extensions = previewList(item.extensions, LIST_PREVIEW_LIMIT);
@@ -215,33 +219,37 @@ function Extensions({ item }: { item: Certificate | Csr }) {
       <summary>すべての拡張（{item.extensions.length}）</summary>
       <table className="kv cert-table">
         <tbody>
-          {extensions.shown.map((e, i) => {
-            const values = previewList(e.values, LIST_PREVIEW_LIMIT);
-            return (
-            <tr key={i}>
-              <th>
-                {e.name}
-                {e.critical && <Badge small>重要</Badge>}
-                <div className="muted mono ext-oid"><ClippedText text={e.oid} /></div>
-              </th>
-              <td className="mono">
-                {values.shown.map((v, j) => (
-                  <div key={j}><ClippedText text={v} /></div>
-                ))}
-                <ListRest rest={values.rest} shown={values.shown.length} copyText={values.rest > 0 ? e.values.join('\n') : undefined} copyLabel={`${e.name}の値をすべてコピー`} />
-              </td>
-            </tr>
-            );
-          })}
+          {extensions.shown.map((e, i) => <ExtensionRow key={i} extension={e} />)}
         </tbody>
       </table>
       <ListRest
         rest={extensions.rest}
         shown={extensions.shown.length}
-        copyText={extensions.rest > 0 ? item.extensions.map((e) => `${e.name}（${e.oid}）${e.critical ? ' 重要' : ''}\n${e.values.map((v) => `  ${v}`).join('\n')}`).join('\n') : undefined}
+        copyText={copyAll}
         copyLabel="すべての拡張をコピー"
       />
     </details>
+  );
+}
+
+/** 表示は抜粋だけを作り、全件・生バイトの文字列化はコピー操作まで待つ。 */
+function ExtensionRow({ extension: e }: { extension: Extension }) {
+  const values = previewList(e.values, LIST_PREVIEW_LIMIT);
+  const copyValues = useCallback(() => e.values.join('\n'), [e]);
+  const copyRaw = useCallback(() => toUpperHex(e.raw, ' '), [e]);
+  return (
+    <tr>
+      <th>
+        {e.name}
+        {e.critical && <Badge small>重要</Badge>}
+        <div className="muted mono ext-oid"><ClippedText text={e.oid} /></div>
+      </th>
+      <td className="mono">
+        {values.shown.map((v, j) => <div key={j}><ClippedText text={v} /></div>)}
+        <ListRest rest={values.rest} shown={values.shown.length} copyText={copyValues} copyLabel={`${e.name}の値をすべてコピー`} />
+        <CopyButton text={e.raw.length > 0 ? copyRaw : ''} label={`${e.name}の生バイトを全文コピー`} />
+      </td>
+    </tr>
   );
 }
 

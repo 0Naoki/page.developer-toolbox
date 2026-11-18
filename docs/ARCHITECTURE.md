@@ -2,6 +2,8 @@
 
 実装時の必須ルールは [CONTRIBUTING.md](../CONTRIBUTING.md)、レビュー観点は [AGENTS.md](../AGENTS.md) を参照してください。
 
+解析結果は、生データ・解析値・表示用抜粋を区別します。証明書拡張の生バイトは元の入力を参照し、未知の値も全文を保持します。
+証明書拡張の全文コピー用文字列は、コピー操作時に作ります。描画では先頭の抜粋だけを扱います。
 ## コードの配置
 
 フォルダごとの役割を書きます。フォルダの中の個々のファイルの役割は、ファイルの先頭のコメント（ツールのフォルダは `index.tsx` の先頭）に書き、この表には書きません。ファイルを足したり移したりするたびに、この表を直さなくてよいようにするためです。
@@ -106,7 +108,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | エラー・判定の結果の読み上げ | `src/components/LiveAnnouncer.tsx`（App に1つだけ置く読み上げの領域。`ErrorText`・`ErrorBox` は自動で読む。判定の結果は、同じ要素の文言が変わる `Notice` なら `role="status"` で示し、表示のたびに差し込むバッジなどは `useAnnounce` で読む） | `e2e/smoke.spec.ts` の「読み上げ」 |
 | エラー・警告・バッジ・見出しに入れる入力 | `src/lib/text/textPreview.ts` の `detailPreview`（作る側で抜粋にする。文言の途中の長い入力で、後ろの理由が表示の上限で切れるため） | `src/lib/text/textPreview.test.ts`・使う側の単体テスト |
 | 例外の文言 | `src/lib/errors.ts` の `errorMessage`（描画中の計算は `attempt`） | 静的検査（`(e as Error).message` を書かない）・`src/lib/errors.test.ts` |
-| コピーと完了通知 | `src/components/CopyButton.tsx`（条件は「[非同期の結果を表示できる条件](#非同期の結果を表示できる条件)」） | E2E |
+| コピーと完了通知 | `src/components/CopyButton.tsx`。大きな本文は同期関数を渡して操作時に作る。関数は対象ごとに`useCallback`などで参照を固定する（条件は「[非同期の結果を表示できる条件](#非同期の結果を表示できる条件)」） | E2E |
 | 択一の切り替え | `src/components/Segmented.tsx` | E2E |
 | チェックボックス | `src/components/Check.tsx` | E2E |
 | キー操作 | `src/lib/keyboard.ts` の `isImeComposing` | 静的検査（`keyCode === 229`・`nativeEvent.isComposing` を直接書かない） |

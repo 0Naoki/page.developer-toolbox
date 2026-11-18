@@ -88,7 +88,11 @@ function readGeneralName(n: Node | undefined): GeneralName {
 
 /** 拡張 */
 
-export type Extension = { oid: string; name: string; critical: boolean; values: string[] };
+export type Extension = {
+  oid: string; name: string; critical: boolean; values: string[];
+  /** OCTET STRING の全文。元の入力を参照し、未知・不正・重複の拡張も失わない。 */
+  raw: Uint8Array;
+};
 
 export type ExtensionSummary = {
   extensions: Extension[];
@@ -137,13 +141,13 @@ export function readExtensions(list: Node | undefined): ExtensionSummary {
         values = [`（読めない値：${hexPreview(value)}）`];
       }
     }
-    summary.extensions.push({ oid, name: oidName(EXTENSIONS, oid), critical, values });
+    summary.extensions.push({ oid, name: oidName(EXTENSIONS, oid), critical, values, raw: value });
   }
   return summary;
 }
 
 /** 表示する値の先頭のバイト数 */
-const HEX_PREVIEW_BYTES = 32;
+export const HEX_PREVIEW_BYTES = 32;
 
 /** 値の先頭だけを16進数にする（大きな値の全体を文字列にしない） */
 function hexPreview(value: Uint8Array): string {
