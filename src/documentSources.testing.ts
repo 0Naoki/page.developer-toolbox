@@ -4,8 +4,8 @@ export const markdown = import.meta.glob<string>(['/**/*.md', '/.github/**/*.md'
 export const testSources = import.meta.glob<string>(['/e2e/*.spec.ts', '/src/**/*.test.ts'], { query: '?raw', import: 'default', eager: true });
 /** ツールの画面のソース（ファイルの分担を書いた先頭のコメントを確かめる） */
 export const toolScreens = import.meta.glob<string>('/src/tools/*/index.tsx', { query: '?raw', import: 'default', eager: true });
-/** ツールのフォルダのファイル（テストとテスト用のデータを除く。読み込みはしない） */
-export const toolFiles = Object.keys(import.meta.glob(['/src/tools/*/*.{ts,tsx}', '!/src/tools/**/*.test.ts', '!/src/tools/**/*.fixtures.ts']));
+/** ツールのフォルダのファイル（テスト・テスト用のデータ・検査の補助を除く。実行されるファイルの分担だけを確かめるため。読み込みはしない） */
+export const toolFiles = Object.keys(import.meta.glob(['/src/tools/*/*.{ts,tsx}', '!/src/tools/**/*.test.ts', '!/src/tools/**/*.fixtures.ts', '!/src/tools/**/*.testing.ts']));
 /** リンク先の存在の確認に使う、リポジトリのファイルの一覧（読み込みはしない） */
 const files = new Set(Object.keys(import.meta.glob(['/**/*', '/.github/**/*', '!**/node_modules/**', '!/dist/**', '!/test-results/**', '!/playwright-report/**'])));
 /** glob の読み込み元は一覧に含まれないため、自分自身のパスだけを補う。 */

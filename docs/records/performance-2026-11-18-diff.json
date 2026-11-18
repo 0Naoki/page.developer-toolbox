@@ -1,0 +1,142 @@
+{
+  "measuredAt": "2026-11-18T05:07:18.027Z",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "uncommittedChanges": true,
+  "build": {
+    "distSha256": "a92b45358870660242cb89b1d0e8d4a3160248f90c33b402279d7e33455a2186",
+    "files": 56,
+    "indexModifiedAt": "2026-11-18T04:57:45.120Z"
+  },
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "cpuCount": 8,
+  "memoryGiB": 16,
+  "runtime": "v24.22.1",
+  "browser": "156.0.8078.4",
+  "runsPerCase": 3,
+  "results": [
+    {
+      "tool": "diff",
+      "shape": {
+        "rows": 1000,
+        "lineUnits": 13,
+        "sample": "山田ABC123😀 の行",
+        "inputUnits": 34978
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 373,
+        "min": 268,
+        "max": 390
+      },
+      "maxFrameGapMs": {
+        "median": 117,
+        "min": 67,
+        "max": 150
+      },
+      "runs": [
+        {
+          "inputToResultMs": 390,
+          "maxFrameGapMs": 150,
+          "frames": 15,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 373,
+          "maxFrameGapMs": 117,
+          "frames": 16,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 268,
+          "maxFrameGapMs": 67,
+          "frames": 15,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "diff",
+      "shape": {
+        "rows": 10000,
+        "lineUnits": 13,
+        "sample": "山田ABC123😀 の行",
+        "inputUnits": 369778
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 407,
+        "min": 383,
+        "max": 435
+      },
+      "maxFrameGapMs": {
+        "median": 83,
+        "min": 83,
+        "max": 117
+      },
+      "runs": [
+        {
+          "inputToResultMs": 435,
+          "maxFrameGapMs": 117,
+          "frames": 17,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 407,
+          "maxFrameGapMs": 83,
+          "frames": 17,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 383,
+          "maxFrameGapMs": 83,
+          "frames": 17,
+          "outcome": "result"
+        }
+      ]
+    },
+    {
+      "tool": "diff",
+      "shape": {
+        "rows": 100000,
+        "lineUnits": 13,
+        "sample": "山田ABC123😀 の行",
+        "inputUnits": 3897778
+      },
+      "expected": "result",
+      "outcome": "result",
+      "inputToResultMs": {
+        "median": 937,
+        "min": 892,
+        "max": 1114
+      },
+      "maxFrameGapMs": {
+        "median": 233,
+        "min": 233,
+        "max": 250
+      },
+      "runs": [
+        {
+          "inputToResultMs": 1114,
+          "maxFrameGapMs": 233,
+          "frames": 47,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 937,
+          "maxFrameGapMs": 250,
+          "frames": 38,
+          "outcome": "result"
+        },
+        {
+          "inputToResultMs": 892,
+          "maxFrameGapMs": 233,
+          "frames": 38,
+          "outcome": "result"
+        }
+      ]
+    }
+  ]
+}

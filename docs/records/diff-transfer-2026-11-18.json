@@ -1,0 +1,243 @@
+{
+  "scope": "Node structuredClone の応答複製時間と V8 serialize のサイズ。ブラウザの転送時間・ヒープ使用量・画面描画の測定ではない。",
+  "inputDescription": "番号付きの日本語の行。同一入力と、中央の1行だけを変更した入力。",
+  "cases": [
+    {
+      "lines": 1000,
+      "changed": false,
+      "inputUtf16": 4889,
+      "afterUtf16": 4889,
+      "versions": {
+        "HEAD": {
+          "clone": {
+            "runsMs": [
+              2.144900000000007,
+              1.5810999999999922,
+              1.5919000000000096
+            ],
+            "medianMs": 1.5919000000000096
+          },
+          "serializedBytes": 81509,
+          "rowObjectsOrBlocks": 1000
+        },
+        "workingTree": {
+          "clone": {
+            "runsMs": [
+              0.16620000000000346,
+              0.05709999999999127,
+              0.050499999999999545
+            ],
+            "medianMs": 0.05709999999999127
+          },
+          "serializedBytes": 27761,
+          "rowObjectsOrBlocks": 1
+        }
+      }
+    },
+    {
+      "lines": 1000,
+      "changed": true,
+      "inputUtf16": 4889,
+      "afterUtf16": 4890,
+      "versions": {
+        "HEAD": {
+          "clone": {
+            "runsMs": [
+              1.5634000000000015,
+              1.3554000000000315,
+              1.4739999999999895
+            ],
+            "medianMs": 1.4739999999999895
+          },
+          "serializedBytes": 81694,
+          "rowObjectsOrBlocks": 1000
+        },
+        "workingTree": {
+          "clone": {
+            "runsMs": [
+              0.019000000000005457,
+              0.011099999999999,
+              0.07550000000003365
+            ],
+            "medianMs": 0.019000000000005457
+          },
+          "serializedBytes": 28086,
+          "rowObjectsOrBlocks": 3
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "changed": false,
+      "inputUtf16": 58889,
+      "afterUtf16": 58889,
+      "versions": {
+        "HEAD": {
+          "clone": {
+            "runsMs": [
+              18.09970000000004,
+              17.269900000000007,
+              25.110400000000027
+            ],
+            "medianMs": 18.09970000000004
+          },
+          "serializedBytes": 859127,
+          "rowObjectsOrBlocks": 10000
+        },
+        "workingTree": {
+          "clone": {
+            "runsMs": [
+              0.24490000000002965,
+              0.130299999999977,
+              0.1039000000000101
+            ],
+            "medianMs": 0.130299999999977
+          },
+          "serializedBytes": 315768,
+          "rowObjectsOrBlocks": 1
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "changed": true,
+      "inputUtf16": 58889,
+      "afterUtf16": 58889,
+      "versions": {
+        "HEAD": {
+          "clone": {
+            "runsMs": [
+              20.1884,
+              21.703300000000013,
+              16.397299999999973
+            ],
+            "medianMs": 20.1884
+          },
+          "serializedBytes": 859328,
+          "rowObjectsOrBlocks": 10000
+        },
+        "workingTree": {
+          "clone": {
+            "runsMs": [
+              0.25109999999995125,
+              0.09730000000001837,
+              0.10999999999989996
+            ],
+            "medianMs": 0.10999999999989996
+          },
+          "serializedBytes": 316112,
+          "rowObjectsOrBlocks": 3
+        }
+      }
+    },
+    {
+      "lines": 100000,
+      "changed": false,
+      "inputUtf16": 688889,
+      "afterUtf16": 688889,
+      "versions": {
+        "HEAD": {
+          "clone": {
+            "runsMs": [
+              166.67719999999997,
+              177.33940000000007,
+              203.57040000000006
+            ],
+            "medianMs": 177.33940000000007
+          },
+          "serializedBytes": 9139128,
+          "rowObjectsOrBlocks": 100000
+        },
+        "workingTree": {
+          "clone": {
+            "runsMs": [
+              2.169200000000046,
+              2.123500000000149,
+              2.043899999999894
+            ],
+            "medianMs": 2.123500000000149
+          },
+          "serializedBytes": 3555768,
+          "rowObjectsOrBlocks": 1
+        }
+      }
+    },
+    {
+      "lines": 100000,
+      "changed": true,
+      "inputUtf16": 688889,
+      "afterUtf16": 688888,
+      "versions": {
+        "HEAD": {
+          "clone": {
+            "runsMs": [
+              189.2611999999997,
+              192.10289999999986,
+              194.04870000000028
+            ],
+            "medianMs": 192.10289999999986
+          },
+          "serializedBytes": 9139344,
+          "rowObjectsOrBlocks": 100000
+        },
+        "workingTree": {
+          "clone": {
+            "runsMs": [
+              3.0215000000002874,
+              3.0908000000003995,
+              2.6019000000001142
+            ],
+            "medianMs": 3.0215000000002874
+          },
+          "serializedBytes": 3556136,
+          "rowObjectsOrBlocks": 3
+        }
+      }
+    }
+  ],
+  "startedAt": "2026-11-18T02:51:45.526Z",
+  "measuredAt": "2026-11-18T02:51:48.333Z",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "modifiedFiles": "M SECURITY.md\n M docs/ARCHITECTURE.md\n M docs/PERFORMANCE.md\n M docs/STORAGE.md\n M docs/TESTING.md\n M docs/USAGE.md\n M docs/records/PERFORMANCE.md\n M e2e/base64.spec.ts\n M e2e/browser-security.spec.ts\n M e2e/business-days.spec.ts\n M e2e/calculation.spec.ts\n M e2e/cert.spec.ts\n M e2e/copy.spec.ts\n M e2e/cron.spec.ts\n M e2e/csv-file-edit.spec.ts\n M e2e/csv.spec.ts\n M e2e/edit-storage.spec.ts\n M e2e/hash.spec.ts\n M e2e/jwt.spec.ts\n M e2e/mobile-navigation.spec.ts\n M e2e/navigation.spec.ts\n M e2e/regex.spec.ts\n M e2e/security.spec.ts\n M e2e/smoke.spec.ts\n M e2e/storage.spec.ts\n M e2e/subnet.spec.ts\n M e2e/text-count.spec.ts\n M e2e/tools.spec.ts\n M e2e/unix-time.spec.ts\n M src/app/PrivacySettings.tsx\n M src/calculation/handlers.test.ts\n M src/calculation/handlers.ts\n M src/calculation/protocol.ts\n M src/docs.test.ts\n M src/documentLimits.test.ts\n M src/documentMarkdown.testing.ts\n M src/documentSources.testing.ts\n M src/hooks/usePreference.ts\n M src/lib/crypto/asn1.ts\n M src/lib/crypto/curves.test.ts\n M src/lib/settings.ts\n M src/lib/storage/clear.test.ts\n M src/lib/storage/clear.ts\n M src/lib/storage/index.test.ts\n M src/lib/storage/index.ts\n M src/lib/storage/preferences.test.ts\n M src/lib/storage/preferences.ts\n M src/lib/text/lines.test.ts\n M src/sourceScan.test.ts\n M src/tools/business-days/logic.test.ts\n M src/tools/cert/CertView.tsx\n M src/tools/cert/extensions.ts\n M src/tools/cert/index.tsx\n M src/tools/cert/logic.test.ts\n M src/tools/cert/logic.ts\n M src/tools/password-generator/logic.test.ts\n M src/tools/radix/logic.test.ts\n M src/tools/subnet/Splitter.tsx\n M src/tools/subnet/ipv4.ts\n M src/tools/subnet/ipv6.test.ts\n M src/tools/subnet/ipv6.ts\n M src/tools/subnet/listCalculation.ts\n M src/tools/subnet/ranges.ts\n M src/tools/text-diff/calculation.ts\n M src/tools/text-diff/index.tsx\n M src/tools/text-diff/logic.test.ts\n M src/tools/text-diff/rows.ts\n M src/tools/uuid/logic.test.ts\n?? docs/records/diff-transfer-2026-11-18.json\n?? scripts/measure-diff-transfer.mjs\n?? src/lib/crypto/asn1.test.ts\n?? src/lib/storage/clearOperations.ts\n?? src/lib/storage/clearState.test.ts\n?? src/lib/storage/clearState.ts\n?? src/tools/cert/chain.ts\n?? src/tools/cert/encoding.fixtures.ts\n?? src/tools/cert/extensions.test.ts\n?? src/tools/cert/fingerprints.ts\n?? src/tools/cert/validity.ts\n?? src/tools/text-diff/packed.test.ts\n?? src/tools/text-diff/packed.ts\n?? src/tools/text-diff/preview.ts\n?? src/tools/text-diff/rowReference.testing.ts",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "provenance": {
+    "HEAD": {
+      "entry": "src/tools/text-diff/calculation.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-diff/calculation.ts": "484ce4fe7201fe4ac362df47aee4c3a7c0c627638510e1b888cf08512f43c156",
+        "src/tools/text-diff/logic.ts": "12f32cbbfc2bac4b82e9504182d75d2233db256726b2e2a6a62e16d2f4edc1dc",
+        "src/tools/text-diff/myers.ts": "0e68f36f21e3035c8462ab8c326a0bf487f053922ffb8944723628c182834ad6",
+        "src/tools/text-diff/unified.ts": "657a0b4ef93b5c9bd082caa84c18b4182c906a058b3a60471e7a1bc67a0ebf26"
+      },
+      "bundleSha256": "d273296e2398ba8d14d8580a42740cf80e7b08951568311b9641d7b8b7b28b46"
+    },
+    "workingTree": {
+      "entry": "src/tools/text-diff/calculation.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-diff/calculation.ts": "30a7d41069909e037864c994cfafc2d2146d8586282fa6a4a6c058635b1a3787",
+        "src/tools/text-diff/logic.ts": "12f32cbbfc2bac4b82e9504182d75d2233db256726b2e2a6a62e16d2f4edc1dc",
+        "src/tools/text-diff/myers.ts": "0e68f36f21e3035c8462ab8c326a0bf487f053922ffb8944723628c182834ad6",
+        "src/tools/text-diff/packed.ts": "6735ca1c49d5a7d7fd912414c72dd1c4b5c9a910fb9908a484af61a199ff9340",
+        "src/tools/text-diff/unified.ts": "657a0b4ef93b5c9bd082caa84c18b4182c906a058b3a60471e7a1bc67a0ebf26"
+      },
+      "bundleSha256": "5377be3923171b6555a8451f9cfc2ec786770c40f2a6fd88050ba2fb41661d9b"
+    }
+  },
+  "snapshotFiles": {
+    "package-lock.json": "7746d6021e7f83f7063294014cde814b975d37e4460255097303161e35abd3ba",
+    "scripts/benchmark.mjs": "aebf1a74e58d503d037a245efa7c0b577b3f91471fb050414d9674b02ebd5d43",
+    "scripts/measure-diff-transfer.mjs": "d04546b8bdbf8377ff3d5c79840793636f6f50de397344b409d1b6ccb1c02f60",
+    "src/tools/text-diff/unified.ts": "657a0b4ef93b5c9bd082caa84c18b4182c906a058b3a60471e7a1bc67a0ebf26",
+    "src/tools/text-diff/logic.ts": "12f32cbbfc2bac4b82e9504182d75d2233db256726b2e2a6a62e16d2f4edc1dc",
+    "src/tools/text-diff/myers.ts": "0e68f36f21e3035c8462ab8c326a0bf487f053922ffb8944723628c182834ad6",
+    "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+    "src/tools/text-diff/calculation.ts": "30a7d41069909e037864c994cfafc2d2146d8586282fa6a4a6c058635b1a3787",
+    "src/tools/text-diff/packed.ts": "6735ca1c49d5a7d7fd912414c72dd1c4b5c9a910fb9908a484af61a199ff9340"
+  },
+  "dependencySource": "両版とも作業ツリーの同じスナップショットを使用。HEAD は入口だけを開始時のコミットから読む。"
+}

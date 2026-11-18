@@ -1,8 +1,9 @@
-/** 検査の対象：logic.ts・myers.ts・rows.ts・unified.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
+/** 検査の対象：logic.ts・myers.ts・unified.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DIFF_TIMEOUT_MS, crlfFlags, diffChars, diffText, diffLines } from './logic';
 import { diffSequencesWithStatus, type DiffOp } from './myers';
-import { foldRows, unifiedDisplayRows, visibleRows, type UnifiedDisplayRow } from './rows';
+import { foldRows, unifiedDisplayRows, visibleRows } from './rowReference.testing';
+import type { UnifiedDisplayRow } from './rows';
 import { LINE_BREAK_CASES } from '../../lib/text/lines.fixtures';
 import { toUnified } from './unified';
 
