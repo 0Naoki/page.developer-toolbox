@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - CSVの読込・編集：引用符内の改行を保った編集・Undo/Redo、文字コード不一致時の入力保持と読み直し
+ * - [R019] CSVの読込・編集：引用符内の改行を保った編集・Undo/Redo、文字コード不一致時の入力保持と読み直し
  */
 import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';

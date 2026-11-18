@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - UUID v7・ULID の生成順：画面の生成器の組を使い続け、生成をまたいでも、同じ時刻・時計の戻り・後の乱数が小さい場合に生成順に並ぶこと
+ * - [R035] UUID v7・ULID の生成順：画面の生成器の組を使い続け、生成をまたいでも、同じ時刻・時計の戻り・後の乱数が小さい場合に生成順に並ぶこと
  */
 import { describe, expect, it } from 'vitest';
 import { createSortableIdGenerators, createUlidGenerator, createUuidV7Generator, encodeUlidTime, inspectId, uuidV4, type Rng } from './logic';

@@ -17,7 +17,19 @@
 
 ## 保存・消去・編集履歴
 
-入力は sessionStorage（タブごと）にだけ保持し、localStorage には保存しません。タブを閉じると消え、新しいタブには引き継がれません。表示設定（テーマ・お気に入り・インデント幅など）は localStorage に保存します。機密になり得る値を扱う JWTデコーダー（トークン・検証用の鍵）・ハッシュ生成（入力・HMAC の鍵・照合する値）・パスワード生成（生成したパスワード）・UUID / ULID（解析する値）・証明書デコーダーの入力は、sessionStorage にも保存しません（再読み込みすると消えます）。ブラウザのセッション復元などの制約は [SECURITY.md](../SECURITY.md) を参照してください。
+入力は sessionStorage（タブごと）にだけ保持し、localStorage には保存しません。タブを閉じると通常は消えますが、ブラウザのセッション復元で戻る場合があります。表示設定は localStorage に保存します。
+
+<!-- unsaved-inputs:start -->
+次の入力は sessionStorage にも保存しません。再読み込みすると消えます。
+
+- JWTデコーダー：トークン・検証用の鍵
+- ハッシュ生成：入力・HMAC の鍵・照合する値
+- パスワード生成：生成したパスワード
+- UUID / ULID：解析する値
+- 証明書デコーダー：入力全体
+<!-- unsaved-inputs:end -->
+
+ブラウザのセッション復元などの制約は [SECURITY.md](../SECURITY.md) を参照してください。
 
 JWTデコーダーのヘッダ・ペイロード、Base64 のデコード結果、CSV から変換した JSON は、「JSON整形で開く」で JSON整形の入力として開けます。値はタブ内のメモリだけで渡し、URL には載せません。開いた後は JSON整形の入力として、このタブ（sessionStorage）に保存されます。JWT のペイロードなども、タブを閉じるか全消去するまで残ります。
 
@@ -49,12 +61,12 @@ JSON整形・CSV変換・文字数画面の大きな入力欄は、Undo・Redo�
 
 | ツール・機能 | 入力上限 | 出力・表示の制限 | 打ち切り |
 |---|---|---|---|
-| JSON整形 | 800万単位 | 整形結果2,000万単位、プレビュー先頭50,000単位。重複したキーの警告は先頭5件と残りの件数を表示。ツリー表示は入力100万単位までで、子は100件ずつ表示（それより大きい入力はテキストで表示） | Workerで10秒 |
-| CSV変換 | 800万単位、ファイル24MB（2,400万バイト）、展開後200万セル | 出力3,200万単位、プレビュー先頭50,000単位 | Workerで10秒 |
-| 文字数・バイト数 | 800万単位、UTF-8ファイル24MB（2,400万バイト） | 入力の通常表示は500〜2,000単位。全文を集計し、行別結果は100行ずつ表示。文字診断・不可視文字の集計は先頭100種類、診断の文字の形は通常先頭5種類、出現位置は先頭100件、可視化は2,000単位。診断一覧の全件TSVは3,200万単位まで | 通常集計・診断の全件準備はWorkerで10秒 |
-| テキスト差分 | 2つの入力の合計800万単位 | 結果は最初に1,000行、長い行は先頭2,000単位まで表示。unified形式のコピーは全文。計算中は前回の結果を表示し続ける（コピーは不可。中断・失敗のときは表示しない） | Workerで10秒。差分探索は下記の2秒制限も適用 |
-| UNIX時間の一括変換 | 800万単位 | 全文を変換対象にする | Workerで10秒 |
-| 正規表現 | 式1万単位、テスト文字列・置換文字列各10万単位、キャプチャ50個 | 表示500マッチ、置換結果100万単位、マッチとキャプチャの合計100万単位。置換結果は先頭50,000単位を表示し、コピーは全文 | Workerで2秒。大量マッチ時は下記の制限も適用 |
+| JSON整形 | <!-- limit:json.input:start -->800万単位<!-- limit:json.input:end --> | <!-- limit:json.output:start -->整形結果2,000万単位<!-- limit:json.output:end -->、<!-- limit:json.preview:start -->プレビュー先頭50,000単位<!-- limit:json.preview:end -->。重複したキーの警告は先頭5件と残りの件数を表示。<!-- limit:json.tree-input:start -->ツリー表示は入力100万単位まで<!-- limit:json.tree-input:end -->で、<!-- limit:json.tree-page:start -->子は100件ずつ表示<!-- limit:json.tree-page:end -->（それより大きい入力はテキストで表示） | <!-- limit:json.timeout:start -->Workerで10秒<!-- limit:json.timeout:end --> |
+| CSV変換 | <!-- limit:csv.input:start -->800万単位<!-- limit:csv.input:end -->、<!-- limit:csv.file:start -->ファイル24MB<!-- limit:csv.file:end -->（2,400万バイト）、<!-- limit:csv.cells:start -->展開後200万セル<!-- limit:csv.cells:end --> | <!-- limit:csv.output:start -->出力3,200万単位<!-- limit:csv.output:end -->、プレビュー先頭50,000単位 | Workerで10秒 |
+| 文字数・バイト数 | <!-- limit:count.input:start -->800万単位<!-- limit:count.input:end -->、UTF-8ファイル<!-- limit:count.file:start -->24MB<!-- limit:count.file:end -->（2,400万バイト） | 入力の通常表示は<!-- limit:count.input-preview:start -->500〜2,000単位<!-- limit:count.input-preview:end -->。全文を集計し、行別結果は<!-- limit:count.page:start -->100行ずつ<!-- limit:count.page:end -->表示。文字診断・不可視文字の集計は先頭<!-- limit:count.kinds:start -->100種類<!-- limit:count.kinds:end -->、診断の文字の形は通常先頭<!-- limit:count.glyph-preview:start -->5種類<!-- limit:count.glyph-preview:end -->、出現位置は先頭<!-- limit:count.positions:start -->100件<!-- limit:count.positions:end -->、可視化は<!-- limit:count.invisible-preview:start -->2,000単位<!-- limit:count.invisible-preview:end -->。診断一覧の全件TSVは<!-- limit:count.report:start -->3,200万単位<!-- limit:count.report:end -->まで | 通常集計・診断の全件準備はWorkerで<!-- limit:count.timeout:start -->10秒<!-- limit:count.timeout:end --> |
+| テキスト差分 | 2つの入力の<!-- limit:diff.input:start -->合計800万単位<!-- limit:diff.input:end --> | 結果は最初に1,000行、長い行は先頭2,000単位まで表示。unified形式のコピーは全文。計算中は前回の結果を表示し続ける（コピーは不可。中断・失敗のときは表示しない） | Workerで10秒。差分探索は<!-- limit:diff.search-timeout:start -->下記の2秒制限<!-- limit:diff.search-timeout:end -->も適用 |
+| UNIX時間の一括変換 | <!-- limit:epoch.input:start -->800万単位<!-- limit:epoch.input:end --> | 全文を変換対象にする | <!-- limit:epoch.timeout:start -->Workerで10秒<!-- limit:epoch.timeout:end --> |
+| 正規表現 | <!-- limit:regex.pattern:start -->式1万単位<!-- limit:regex.pattern:end -->、テスト文字列・置換文字列<!-- limit:regex.text:start -->各10万単位<!-- limit:regex.text:end -->、<!-- limit:regex.groups:start -->キャプチャ50個<!-- limit:regex.groups:end --> | <!-- limit:regex.matches:start -->表示500マッチ<!-- limit:regex.matches:end -->、<!-- limit:regex.output:start -->置換結果100万単位<!-- limit:regex.output:end -->、マッチとキャプチャの合計100万単位。置換結果は先頭50,000単位を表示し、コピーは全文 | Workerで2秒。大量マッチ時は下記の制限も適用 |
 | 不可視文字検査 | 文字数・バイト数と共通 | 全文を集計。可視化は先頭2,000単位、種類別集計は100種類、位置一覧は100件 | 文字数・バイト数と共通 |
 
 正規表現を除く上記のWorker計算は、入力が150ms止まってから開始し、手動でも中断・再計算できます。プレビューを直接選択してコピーすると表示部分だけになるため、全文が必要な場合は「コピー」「入力全文をコピー」「全文を保存」を使ってください。大容量入力の「全文を編集」では、入力欄自体の表示に時間がかかる場合があります。
@@ -65,23 +77,59 @@ JSON整形・CSV変換・文字数画面の大きな入力欄は、Undo・Redo�
 
 | ツール | 入力・ファイルの上限 | 表示の上限 | 探索・計算の上限 |
 |---|---|---|---|
-| Base64 / URLエンコード | テキスト800万単位、ファイル5 MiB | 出力は先頭50,000単位（テキストのコピーは全文）。入れ替えは逆方向の入力上限内のテキスト出力に対応。16進ダンプは先頭16 KiB分を表示・コピーし、全体は「ファイルに保存」で取り出す。data: URI の MIME タイプの表示は先頭256単位の抜粋 | 10万単位を超えるテキストは Worker で変換し、10秒で打ち切る |
-| 進数変換・ビット演算 | 4,096桁。浮動小数点の欄は1,000単位。シフト量は0〜4,096 | — | — |
-| cron式の解説 | 1,000単位 | — | 実行日時は200年先まで探す（日時で表せる上限の275760年9月13日を超えたら、そこで探索を終える） |
-| UNIX時間の期間計算 | 期間は1,000単位まで | — | 年・月・日・経過ミリ秒を単位ごとに整数として合算し、安全な整数の範囲外はエラー |
-| 和暦 ⇔ 西暦 | 明治6年（1873年）1月1日以降 | — | — |
-| 営業日計算 | 第n営業日は1〜31の整数。期間30年まで。n営業日後は±3,000営業日まで。祝日は1980〜2099年 | 期間内の平日以外の休みは先頭100件を表示し、残りの件数を示す（全件はコピーで取り出す） | — |
-| IPアドレス・サブネット計算 | 集約・重複チェック・VLSMは800万単位、VLSMは250,000行まで | 分割の一覧は1,024件、均等分割の全件出力は100,000件まで、重複の組み合わせは1,000組。集約結果は3,200万単位まで、表示は先頭50,000単位（コピーは全文）。VLSMのコピーは全文で1,000万単位まで | 集約・重複チェック・VLSM・均等分割の全件出力は Worker で10秒 |
-| パスワード生成 | 長さ4〜128文字、PIN 4〜32桁。1回に1・5・10・20件 | 記号・除外文字は先頭2,000単位を表示（コピーと生成は全文） | — |
+| Base64 / URLエンコード | <!-- limit:base64.input:start -->テキスト800万単位<!-- limit:base64.input:end -->、<!-- limit:base64.file:start -->ファイル5 MiB<!-- limit:base64.file:end --> | <!-- limit:base64.preview:start -->出力は先頭50,000単位<!-- limit:base64.preview:end -->（テキストのコピーは全文）。入れ替えは逆方向の入力上限内のテキスト出力に対応。16進ダンプは先頭<!-- limit:base64.hex:start -->16 KiB<!-- limit:base64.hex:end -->分を表示・コピーし、全体は「ファイルに保存」で取り出す。data: URI の <!-- limit:base64.mime:start -->MIME タイプの表示は先頭256単位の抜粋<!-- limit:base64.mime:end --> | <!-- limit:base64.sync:start -->10万単位を超える<!-- limit:base64.sync:end -->テキストは Worker で変換し、10秒で打ち切る |
+| 進数変換・ビット演算 | <!-- limit:radix.digits:start -->4,096桁<!-- limit:radix.digits:end -->。<!-- limit:radix.float:start -->浮動小数点の欄は1,000単位<!-- limit:radix.float:end -->。<!-- limit:radix.shift:start -->シフト量は0〜4,096<!-- limit:radix.shift:end --> | — | — |
+| cron式の解説 | <!-- limit:cron.input:start -->1,000単位<!-- limit:cron.input:end --> | — | 実行日時は<!-- limit:cron.years:start -->200年先<!-- limit:cron.years:end -->まで探す（日時で表せる上限の275760年9月13日を超えたら、そこで探索を終える） |
+| UNIX時間の期間計算 | <!-- limit:epoch.duration-input:start -->期間は1,000単位<!-- limit:epoch.duration-input:end -->まで | — | 年・月・日・経過ミリ秒を単位ごとに整数として合算し、安全な整数の範囲外はエラー |
+| 和暦 ⇔ 西暦 | 明治6年（<!-- limit:wareki.minimum:start -->1873年）1月1日以降<!-- limit:wareki.minimum:end --> | — | — |
+| 営業日計算 | <!-- limit:business.ordinal:start -->第n営業日は1〜31の整数<!-- limit:business.ordinal:end -->。<!-- limit:business.span:start -->期間30年<!-- limit:business.span:end -->まで。n営業日後は<!-- limit:business.offset:start -->±3,000営業日<!-- limit:business.offset:end -->まで。祝日は<!-- limit:business.holiday-years:start -->1980〜2099年<!-- limit:business.holiday-years:end --> | 期間内の平日以外の休みは<!-- limit:business.preview:start -->先頭100件を表示<!-- limit:business.preview:end -->し、残りの件数を示す（全件はコピーで取り出す） | — |
+| IPアドレス・サブネット計算 | <!-- limit:subnet.input:start -->集約・重複チェック・VLSMは800万単位<!-- limit:subnet.input:end -->、<!-- limit:subnet.vlsm-lines:start -->VLSMは250,000行<!-- limit:subnet.vlsm-lines:end -->まで | <!-- limit:subnet.split-preview:start -->分割の一覧は1,024件<!-- limit:subnet.split-preview:end -->、<!-- limit:subnet.split-output:start -->均等分割の全件出力は100,000件まで<!-- limit:subnet.split-output:end -->、<!-- limit:subnet.overlaps:start -->重複の組み合わせは1,000組<!-- limit:subnet.overlaps:end -->。<!-- limit:subnet.aggregate-output:start -->集約結果は3,200万単位<!-- limit:subnet.aggregate-output:end -->まで、表示は<!-- limit:subnet.preview:start -->先頭50,000単位<!-- limit:subnet.preview:end -->（コピーは全文）。VLSMのコピーは<!-- limit:subnet.vlsm-output:start -->全文で1,000万単位<!-- limit:subnet.vlsm-output:end -->まで | 集約・重複チェック・VLSM・均等分割の全件出力は <!-- limit:subnet.timeout:start -->Worker で10秒<!-- limit:subnet.timeout:end --> |
+| パスワード生成 | <!-- limit:password.length:start -->長さ4〜128文字<!-- limit:password.length:end -->、PIN 4〜32桁。1回に1・5・10・20件 | <!-- limit:password.config-preview:start -->記号・除外文字は先頭2,000単位<!-- limit:password.config-preview:end -->を表示（コピーと生成は全文） | — |
 | UUID / ULID | 1回に1・5・10・50・100件 | — | — |
-| ハッシュ生成 | ファイル256 MiB。テキストは上限なし | — | MD5 は4 MiBずつ処理し、そのたびに画面へ制御を返す |
-| JWTデコーダー | 公開鍵65,536単位（PEM は1ブロックだけ。証明書のチェーンは、トークンに署名した鍵の証明書だけを入力する）。トークンは上限なし | ヘッダ・ペイロードと長いクレーム値は先頭50,000単位まで表示。時刻クレームの元の表記は先頭2,000単位まで表示。alg のバッジ・鍵の欄の見出し・警告やエラーに入る alg・kid・時刻は先頭256単位の抜粋。ヘッダ・ペイロード・各クレーム値・時刻の元の表記のコピーは全文 | — |
-| 証明書デコーダー | 貼り付け1,048,576単位、ファイル1 MiB、PEMは64ブロックまで | ブロックの解析エラーは先頭5件と総数を表示。SAN・拡張・拡張の値・属性は先頭100件、1つの値は2,000単位まで表示し、超えた値には「以降省略」と元の長さを示す（解読できた値の全件・全文はコピーで取り出す）。未知・不正・重複の拡張は先頭32バイトの抜粋（生バイトは全文コピー）。署名の検証に使った発行者の名前は先頭256単位の抜粋 | 名前の属性は256個まで |
+| ハッシュ生成 | <!-- limit:hash.file:start -->ファイル256 MiB<!-- limit:hash.file:end -->。テキストは上限なし | — | MD5 は<!-- limit:hash.chunk:start -->4 MiBずつ<!-- limit:hash.chunk:end -->処理し、そのたびに画面へ制御を返す |
+| JWTデコーダー | <!-- limit:jwt.key:start -->公開鍵65,536単位<!-- limit:jwt.key:end -->（PEM は1ブロックだけ。証明書のチェーンは、トークンに署名した鍵の証明書だけを入力する）。トークンは上限なし | ヘッダ・ペイロードと長いクレーム値は<!-- limit:jwt.preview:start -->先頭50,000単位まで表示<!-- limit:jwt.preview:end -->。時刻クレームの元の表記は<!-- limit:jwt.claim:start -->先頭2,000単位まで表示<!-- limit:jwt.claim:end -->。alg のバッジ・鍵の欄の見出し・警告やエラーに入る alg・kid・時刻は<!-- limit:jwt.detail:start -->先頭256単位の抜粋<!-- limit:jwt.detail:end -->。ヘッダ・ペイロード・各クレーム値・時刻の元の表記のコピーは全文 | — |
+| 証明書デコーダー | <!-- limit:cert.input:start -->貼り付け1,048,576単位<!-- limit:cert.input:end -->、<!-- limit:cert.file:start -->ファイル1 MiB<!-- limit:cert.file:end -->、<!-- limit:cert.blocks:start -->PEMは64ブロック<!-- limit:cert.blocks:end -->まで | ブロックの解析エラーは先頭5件と総数を表示。SAN・拡張・拡張の値・属性は<!-- limit:cert.list:start -->先頭100件<!-- limit:cert.list:end -->、1つの値は<!-- limit:cert.value:start -->2,000単位まで表示<!-- limit:cert.value:end -->し、超えた値には「以降省略」と元の長さを示す（解読できた値の全件・全文はコピーで取り出す）。未知・不正・重複の拡張は先頭<!-- limit:cert.raw-preview:start -->32バイト<!-- limit:cert.raw-preview:end -->の抜粋（生バイトは全文コピー）。署名の検証に使った<!-- limit:cert.issuer:start -->発行者の名前は先頭256単位の抜粋<!-- limit:cert.issuer:end --> | <!-- limit:cert.attributes:start -->名前の属性は256個<!-- limit:cert.attributes:end -->まで |
 
 表の数値は、各ツールの上限の定数と一致することを単体テスト（`src/documentLimits.test.ts`）で確かめています。上限を変えたときは、この表も直してください。性能の計測手順は [PERFORMANCE.md](PERFORMANCE.md) を参照してください。
 
+### 上限と全文の取得
+
+上の表は、入力・計算できる量、画面に表示する量、時間や形式の条件を区別しています。
+
+| 区分 | 上限を超えたとき | 全文の取得 |
+|---|---|---|
+| 入力上限 | 解析や計算を始める前にエラーを示す | 入力を分割する |
+| 計算・出力上限 | 展開したセル数や生成する件数などが超過するとエラーを示す | 入力や条件を小さくする。表示の追加では上限を増やせない |
+| 表示上限 | 件数・長さと省略を示す | コピー・保存、または追加表示を使う |
+| 文字診断の一覧 | 表示用の詳細だけを保持し、全文の件数を示す | 各診断の「全件を準備」で全文を計算し、「全件をコピー」「全件を保存」でTSVを取得する |
+| 解読できない証明書拡張 | 未知・不正・重複の値は先頭32バイトの抜粋を示す | 各拡張の「生バイトを全文コピー」で元の値を16進数として取得する |
+
 証明書拡張の生バイトは、既知の拡張についても取得できます。全拡張のコピーには各拡張の生バイトも含みます。
+
 ## ツール別の説明
+
+次の表で入力形式と結果の意味を確認し、後続の節で個別の制約を確認してください。
+コピー・保存の対象はボタン名に示します。省略表示と全文の取得方法は、上の上限表も参照してください。
+
+| ツール | 受け付ける入力 | 結果の意味と近似・未対応 | 全文を取り出す操作 |
+|---|---|---|---|
+| JSON整形 | JSONテキスト | 表記を保って整形・圧縮する。重複キーは警告する | 整形結果のコピー・保存 |
+| CSV ⇔ JSON | CSV・TSV・JSONの配列やオブジェクト | 列展開・型変換は選択した条件に従う。衝突する列名は拒否する | 変換結果のコピー・保存 |
+| Base64 / URLエンコード | テキスト・ファイル・data URI | 選択した方式で変換する。文字コードとして読めない値はバイト列で扱う | テキストの全文コピー・復号したバイト列の保存 |
+| 進数変換・ビット演算 | 整数表記・ビット演算の条件・浮動小数点の短い式 | 整数はBigIntで計算し、大きな値を丸めない。浮動小数点は選択した精度に丸める | 結果欄のコピー |
+| 正規表現テスター | 式・フラグ・テスト文字列・置換文字列 | 対応するJavaScriptの正規表現。打ち切り時は全マッチ数を断定しない | 置換結果の全文コピー |
+| テキスト差分 | 変更前と変更後のテキスト | 最短探索の打ち切り時も内容を保った差分を出す。最小とは限らない | unified形式の全文コピー |
+| 文字数・バイト数 | テキスト・UTF-8ファイル | 選択した数え方・符号化で集計する | 入力全文のコピーと行別結果のページ送り |
+| UNIX時間変換 | エポック・日時・日時の一覧・期間 | 選択した単位とタイムゾーンで変換する。範囲外はエラーにする | 結果欄・一括変換結果のコピー |
+| cron式の解説 | 選択した形式のcron式 | 解釈と次回日時を示す。実行環境ごとの違いは後述する | 日時欄のコピー |
+| 和暦 ⇔ 西暦 | 対応する元号表記・西暦の日付 | 改元の範囲外は警告する。旧暦の日付は扱わない | 結果欄のコピー |
+| 営業日計算 | 日付・営業日数・暦の設定 | 週末・祝日・独自休日を設定に従って数える | 結果欄と省略した休日一覧のコピー |
+| IPアドレス・サブネット計算 | IPv4・IPv6・CIDR・範囲・必要ホスト数 | 範囲を計算する。ゾーンIDはアドレス数の計算から除く | 一覧・集約結果・上限内の全件出力のコピー |
+| パスワード生成 | 長さ・文字種・除外条件・PIN桁数 | 暗号論的乱数で生成し、生成方法から強度の下限を評価する | 生成値のコピー |
+| UUID / ULID | 生成条件・解析する識別子 | 時刻なしと解析未対応を区別する | 生成値・解析結果のコピー |
+| ハッシュ生成 | テキスト・ファイル・HMACの共通鍵 | 内容のダイジェストを計算する。比較値の信頼性は別に確認する | ダイジェストのコピー |
+| JWTデコーダー | JWT・検証用の鍵 | デコードと署名の一致を区別する。JWEの復号はしない | ヘッダ・ペイロード・各値の全文コピー |
+| 証明書デコーダー | PEM・DER・Base64本文 | 解析と提示された鍵による署名検証。信頼パス・失効は確認しない | 表示値と拡張の生バイトの全文コピー |
 
 ### Base64の入力
 

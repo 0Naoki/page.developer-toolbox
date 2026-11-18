@@ -2,11 +2,11 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - サブネット：集約10万件の表示上限と全文コピー、VLSMの表示上限と入力順の全文コピー、CR・LF・CRLF混在の一覧の重複と行番号、壊れた分割設定からの復旧。IPv6 のグループや VLSM の名前が長くても、
+ * - [R037] サブネット：集約10万件の表示上限と全文コピー、VLSMの表示上限と入力順の全文コピー、CR・LF・CRLF混在の一覧の重複と行番号、壊れた分割設定からの復旧。IPv6 のグループや VLSM の名前が長くても、
  *   エラーの文言を抜粋にして、末尾の理由を表示の上限で切らないこと。IPv6 の範囲の区切りの記号が多く並んだ長い行でも、入力長の2乗の時間をかけないこと（あわせて `src/tools/subnet/ipv4.test.ts`・`src/tools/subnet/ipv6.test.ts`）
  *   均等分割は表示が1,024件でもIPv4・IPv6の全件をコピー・保存でき、入力変更や出力上限超過で古い全文を使わないこと。ゾーンID付きIPv6の不正なプレフィックスも拒否すること。包含判定でも接尾辞を読み飛ばさず、修正すれば正常な判定に戻ること
  *   ゾーンIDに -・~ があるIPv6は、単独アドレス・CIDR・範囲・集約で同じように扱うこと。
- * - クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件：5アドレスの計算とサービスごとの案内を分け、範囲の両端と刻みの対象外を検証する（あわせて `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`）
+ * - [R046] クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件：5アドレスの計算とサービスごとの案内を分け、範囲の両端と刻みの対象外を検証する（あわせて `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`）
  */
 import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';

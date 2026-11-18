@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 曲線OID × 表示と署名検証：P-256・P-384・P-521のビット数と成分長（32・48・66バイト）を保つ。secp256k1は表示できても検証対象にせず、未知のOIDを残す（あわせて `src/tools/cert/verify.test.ts`・`src/tools/jwt-decoder/verify.test.ts`）
+ * - [R043] 曲線OID × 表示と署名検証：P-256・P-384・P-521のビット数と成分長（32・48・66バイト）を保つ。secp256k1は表示できても検証対象にせず、未知のOIDを残す（あわせて `src/tools/cert/verify.test.ts`・`src/tools/jwt-decoder/verify.test.ts`）
  */
 import { describe, expect, it } from 'vitest';
 import { curveInfo } from './curves';

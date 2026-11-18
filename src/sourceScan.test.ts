@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - import × 文字列・式のないテンプレート・実行時の式：静的なパスを抽出し、本文の例や未確定のパスを誤検出しない
+ * - [R053] import × 文字列・式のないテンプレート・実行時の式：静的なパスを抽出し、本文の例や未確定のパスを誤検出しない
  */
 import { describe, expect, it } from 'vitest';
 import { codeOf, localImports, networkReferences } from './sourceScan.testing';

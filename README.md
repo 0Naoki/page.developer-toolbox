@@ -40,7 +40,7 @@
 
 ## 起動する
 
-Node.js 24 が必要です（`.nvmrc`。22.12 以上の 22 と、26 以上でも動きます）。
+Node.js は `.nvmrc` の24を推奨します。対応範囲は `package.json` の `engines.node` です（22.12以上の22、24、26以上）。
 
 ```bash
 npm run setup

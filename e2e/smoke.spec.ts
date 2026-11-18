@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 全ツールの表示：ツールの一覧（src/toolCatalog.ts）の全項目の見出し、外部通信・CSP違反・実行時エラー。不具合の報告に書く版の表示
+ * - [R001] 全ツールの表示：ツールの一覧（src/toolCatalog.ts）の全項目の見出し、外部通信・CSP違反・実行時エラー。不具合の報告に書く版の表示
  */
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';

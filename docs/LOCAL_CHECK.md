@@ -5,10 +5,11 @@ GitHub Pages に公開する前に、手元の PC で次の順に確認します
 
 ## 0. 準備（初回のみ）
 
-Node.js 22.12 以上が必要です（推奨は `.nvmrc` に書いた 24）。
+Node.js は `.nvmrc` の24を推奨します。対応範囲は [package.json](../package.json) の `engines.node` です。
+22.12以上の22、24、26以上に対応し、23・25は対象外です。CIが使用する版は `.nvmrc` に合わせます。
 
 ```bash
-node -v   # v22.12.0 以上（推奨は v24.x）であること
+node -v   # 推奨は v24.x。上記の対応範囲に入ること
 ```
 
 入っていない、または古い場合はバージョン管理ツールで入れます。
@@ -116,7 +117,7 @@ git ls-files            # 意図しないファイル（.env、鍵、個人の�
 
 | 症状 | 対処 |
 |---|---|
-| `npm run setup` で engines のエラー | 対応していない版の Node.js。手順 0 で 24 を入れる（22.12 以上の 22 と、26 以上でも動く。23・25 などの奇数の版は対応しない） |
+| `npm run setup` で engines のエラー | 対応していない版の Node.js。手順 0 で 24 を入れる（22.12 以上の 22 と、26 以上でも動く。23・25 は対応しない） |
 | `npm run e2e` で「ブラウザがない」 | `npm run e2e:install` を実行（Linux は `npx playwright install --with-deps chromium firefox webkit`） |
 | Windows で Firefox だけが `spawn UNKNOWN` で起動しない | PC の環境によって、Playwright の Firefox が Windows に起動を止められることがある。手元では `npx playwright test --project=desktop --project=mobile --project=webkit --project=iphone` で残りを確認し、Firefox は CI（Linux）の結果で確認する |
 | `Port 4173 is already in use` | 前回のプレビューを、そのサーバーを起動したターミナルで `Ctrl + C` により停止する。E2Eは4173番を使うため、別ポートのプレビューでは代用できない |

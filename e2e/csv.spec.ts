@@ -3,10 +3,10 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  * - `report-tsv`・`report-json`・`report.csv.bak` では現在の変換方向と区切り文字を変えないこと（あわせて `src/tools/csv-json/fileOptions.test.ts`）。
  *
- * - CSV変換：展開量の制限と修正後の再変換、最後に選んだファイルの内容・方向・区切り文字を保つこと、古い読み込みエラーを消去後に表示しないこと、逆方向の入力上限を超える出力で入れ替えを無効にすること（あわせて `src/tools/csv-json/logic.test.ts`・`src/tools/csv-json/parseCsv.test.ts`・`src/tools/csv-json/writeCsv.test.ts`・`src/tools/csv-json/roundTrip.test.ts`・`src/tools/csv-json/csvFormat.test.ts`・`e2e/calculation.spec.ts`）
- * - ファイル名の大文字・未知の拡張子・拡張子なし × 現在の変換方向と区切り文字：最後のドットに続く既知の拡張子だけを判定し、`report-tsv`・`report-json`・`report.csv.bak` では方向と区切り文字を保つ（あわせて `src/tools/csv-json/fileOptions.test.ts`）
- * - JSONのエスケープ × CSVの見出し・セル × UTF-8保存：不完全な上位・下位サロゲートを復号後に拒否する。絵文字・文字列としてのエスケープ・入れ子のJSON・出力しない見出しは保ち、ブラウザで保存したバイト列が出力のUTF-8と一致する（あわせて `src/tools/csv-json/writeCsv.test.ts`）
- * - 重複した親キーを展開前に拒否し、有効なJSONへの編集で再開する。
+ * - [R020] CSV変換：展開量の制限と修正後の再変換、最後に選んだファイルの内容・方向・区切り文字を保つこと、古い読み込みエラーを消去後に表示しないこと、逆方向の入力上限を超える出力で入れ替えを無効にすること（あわせて `src/tools/csv-json/logic.test.ts`・`src/tools/csv-json/parseCsv.test.ts`・`src/tools/csv-json/writeCsv.test.ts`・`src/tools/csv-json/roundTrip.test.ts`・`src/tools/csv-json/csvFormat.test.ts`・`e2e/calculation.spec.ts`）
+ * - [R040] ファイル名の大文字・未知の拡張子・拡張子なし × 現在の変換方向と区切り文字：最後のドットに続く既知の拡張子だけを判定し、`report-tsv`・`report-json`・`report.csv.bak` では方向と区切り文字を保つ（あわせて `src/tools/csv-json/fileOptions.test.ts`）
+ * - [R042] JSONのエスケープ × CSVの見出し・セル × UTF-8保存：不完全な上位・下位サロゲートを復号後に拒否する。絵文字・文字列としてのエスケープ・入れ子のJSON・出力しない見出しは保ち、ブラウザで保存したバイト列が出力のUTF-8と一致する（あわせて `src/tools/csv-json/writeCsv.test.ts`）
+ * - [R054] 重複した親キーを展開前に拒否し、有効なJSONへの編集で再開する。
  */
 import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';

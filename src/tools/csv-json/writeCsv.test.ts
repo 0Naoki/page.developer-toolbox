@@ -1,6 +1,6 @@
 /**
  * 回帰テストとして残す検証（docs/TESTING.md）。対象はwriteCsv.ts・validateJson.ts。
- * - CSVの重複した親キー：展開・配列内・エスケープ表記を含めて元の構造を検証し、列名の衝突と区別する。
+ * - [R054] CSVの重複した親キー：展開・配列内・エスケープ表記を含めて元の構造を検証し、列名の衝突と区別する。
  */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_JSON_TO_CSV, jsonToCsv, neutralizeFormula } from './writeCsv';

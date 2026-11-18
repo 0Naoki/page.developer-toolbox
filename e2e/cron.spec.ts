@@ -2,11 +2,11 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - Kubernetesのcron式：単一値からの間隔、?、曜日の範囲、日と曜日のORを検証し、標準形式との差と再読み込み後の形式を保つこと。Date の上限の直前を基準にしても、範囲外の候補を試し続けずに探索を終えること（あわせて `src/tools/cron/logic.test.ts`）
+ * - [R032] Kubernetesのcron式：単一値からの間隔、?、曜日の範囲、日と曜日のORを検証し、標準形式との差と再読み込み後の形式を保つこと。Date の上限の直前を基準にしても、範囲外の候補を試し続けずに探索を終えること（あわせて `src/tools/cron/logic.test.ts`）
  *   日と曜日がORの式では、31日がない月にも曜日で実行し、実行されないと誤って警告しないこと。
- * - cron式の組み立て：頻度と時刻から、今の形式の書き方で式を作ること。曜日は名前で書き、形式による日曜の数え方の違いで別の曜日にならないこと。範囲外の値では式を作らないこと（あわせて `src/tools/cron/logic.test.ts`）
- * - cron の実行日時の貼り戻し：日本時間の列（曜日の添え書き付き）も、ほかのタイムゾーンの列（オフセット付き）も、基準日時に貼り戻すと同じ時刻として読むこと。曜日が日付と合わなければ拒否すること（あわせて `src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts`）
- * - Date の範囲より前の現地日付 × cron の曜日判定：最初の実行を飛ばさず、現地日付と日本時間の曜日を表示する（あわせて `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`）
+ * - [R033] cron式の組み立て：頻度と時刻から、今の形式の書き方で式を作ること。曜日は名前で書き、形式による日曜の数え方の違いで別の曜日にならないこと。範囲外の値では式を作らないこと（あわせて `src/tools/cron/logic.test.ts`）
+ * - [R034] cron の実行日時の貼り戻し：日本時間の列（曜日の添え書き付き）も、ほかのタイムゾーンの列（オフセット付き）も、基準日時に貼り戻すと同じ時刻として読むこと。曜日が日付と合わなければ拒否すること（あわせて `src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts`）
+ * - [R048] Date の範囲より前の現地日付 × cron の曜日判定：最初の実行を飛ばさず、現地日付と日本時間の曜日を表示する（あわせて `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`）
  */
 import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';

@@ -1,6 +1,6 @@
 /**
  * 回帰テストとして残す検証（docs/TESTING.md）。対象はreports.ts・reportText.ts・issues.ts。
- * - 文字診断の全件取得：抜粋と総数を分け、全件の文字・位置・件数と出力上限を検査する。
+ * - [R055] 文字診断の全件取得：抜粋と総数を分け、全件の文字・位置・件数と出力上限を検査する。
  */
 import { expect, it, vi } from 'vitest';
 import { countText } from './count';

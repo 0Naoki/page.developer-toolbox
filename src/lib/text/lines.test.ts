@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 行の分割：`src/lib/text/lines.fixtures.ts` の改行の形式（LF・CRLF・CR・混在・空の行・末尾の改行）を、独自休日・サブネットの一覧（IPv4・IPv6）・テキスト差分・PEM のヘッダー行で同じように扱い、
+ * - [R017] 行の分割：`src/lib/text/lines.fixtures.ts` の改行の形式（LF・CRLF・CR・混在・空の行・末尾の改行）を、独自休日・サブネットの一覧（IPv4・IPv6）・テキスト差分・PEM のヘッダー行で同じように扱い、
  *   行番号を元の行に合わせること。行の文字列を作らない走査（eachLineRange・endsLineAt。文字数・テキスト差分・JSON の行番号が使う）も同じ行にすること（あわせて `logic.test.ts`）
  */
 import { describe, expect, it } from 'vitest';
