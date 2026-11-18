@@ -53,7 +53,9 @@ export function useVerification(data: ParsedJwt): VerificationState {
   const hmac = isHmacAlg(alg);
 
   const key = useMemo((): LoadedKey => {
-    if (!keyText.trim()) return NO_KEY;
+    /** UTF-8のHMAC鍵では空白も鍵のバイト列。公開鍵とBase64入力だけは空白のみを未入力とする。 */
+    const empty = hmac && encoding === 'utf-8' ? keyText === '' : keyText.trim() === '';
+    if (empty) return NO_KEY;
     try {
       if (hmac) {
         const bytes = secretBytes(keyText, encoding);
