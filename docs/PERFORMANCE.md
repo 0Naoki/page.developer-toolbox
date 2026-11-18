@@ -1,10 +1,46 @@
 # 大容量処理の計測
 
-[計測スクリプト](../scripts/measure-large-inputs.mjs) は、既定の9ツールに加え、オプションでサブネットの集約・重複チェックを計測できます。利用者向けの上限と制約は [USAGE.md](USAGE.md)、処理の構成は [ARCHITECTURE.md](ARCHITECTURE.md) を参照してください。
+[計測スクリプト](../scripts/measure-large-inputs.mjs) は、既定の9ツールに加え、オプションでサブネットの集約・重複チェックとパスワードの記号集合を計測できます。利用者向けの上限と制約は [USAGE.md](USAGE.md)、処理の構成は [ARCHITECTURE.md](ARCHITECTURE.md) を参照してください。
 
 ## 現在の計測方法
 
-純粋関数を比較する2本のスクリプトは、`scripts/benchmark.mjs` で読み込み・予備実行・3回の計測・記録を共通化しています。開始時のHEADをコミットSHAに固定し、依存ファイルは両版で同じ作業ツリーのスナップショットを使います。記録の `provenance` は版ごとの入口・読み込んだソースのSHA-256・実行した生成コードのSHA-256、`snapshotFiles` は依存・計測スクリプト・package-lockのSHA-256です。途中でHEADや読み込んだファイルが変わった場合は、記録せずに再計測を求めます。元のソースを復元する機能ではないため、未コミット状態を後から復元するには、その変更も別途残す必要があります。
+純粋関数と応答の複製を比較するスクリプトは、`scripts/benchmark.mjs` で読み込み・予備実行・3回の計測・記録を共通化しています。
+比較元は開始時にコミットSHAへ固定します。比較方式は下の「比較元の選び方」で選びます。
+記録の `provenance` は版ごとの入口・読み込んだソースのSHA-256・実行した生成コードのSHA-256です。
+`snapshotFiles` は作業ツリーの依存・計測スクリプト・package-lockのSHA-256です。
+途中でHEADや読み込んだ作業ツリーのファイルが変わった場合は、記録せずに再計測を求めます。
+未コミット状態を後から復元するには、その変更も別途残す必要があります。
+
+### 比較元の選び方
+
+| 方式 | 比較元の読み込み | 選ぶ場面 |
+|---|---|---|
+| `--comparison=entry`（既定） | 入口だけ固定コミット、依存は両版で同じ作業ツリー | 依存をそろえ、入口の関数の変更だけを局所比較する |
+| `--comparison=tree` | 入口とリポジトリ内の依存を固定コミットから読む | ファイル分割・依存の変更・依存ファイルの移動を含めて前後比較する |
+
+対象は、エポック解析・パスワード生成・差分転送・文字診断のNode比較スクリプトです。
+`--baseline=<コミットまたは参照>` で比較元を選びます。省略時は開始時のHEADです。
+
+```powershell
+node scripts/measure-epoch-parsing.mjs --comparison=tree --baseline=HEAD docs/records/epoch-tree-YYYY-MM-DD.json
+node scripts/measure-epoch-parsing.mjs --comparison=entry --baseline=HEAD docs/records/epoch-entry-YYYY-MM-DD.json
+```
+
+tree方式は、現行で消えた依存ファイルもGitの内容から読みます。比較元にない依存を現行ファイルで代用しません。
+比較する入口は、両版に同じパス・計測スクリプトが呼ぶAPIで存在する必要があります。
+APIが変わった場合は、同じ入力と検証条件を満たす計測用の入口を用意してください。
+作業ツリー・ブランチ・Gitの参照は変更しません。
+
+外部パッケージは現行のインストールを共有するため、tree方式では両版のpackage-lockが一致しなければ停止します。
+この方式は、異なる依存パッケージやNodeの版の比較には使いません。
+計測前の依存の準備は、環境準備の手順に従ってください。
+補助入口で測る通常集計や表示復元などは、引き続き作業ツリーだけの区間です。
+
+記録の `comparison` に方式・固定した比較元SHA・結果内の比較元の名前を残します。
+既定のentry方式の比較元は `HEAD`、tree方式や基準を明示した比較元は `baseline` です。
+`dependencySource` に外部パッケージを共有する条件を残します。異なる方式の数値を同じ前後比較として混ぜないでください。
+
+### ブラウザ計測の開始条件
 
 ```powershell
 npm run build
@@ -12,6 +48,10 @@ node scripts/measure-large-inputs.mjs docs/records/performance-YYYY-MM-DD.json
 ```
 
 Playwright の Chromium が必要です。未導入の場合は `npm run e2e:install` を実行してください。スクリプトは `127.0.0.1:4174` にローカルのプレビューサーバーを起動し、終了時に閉じます。
+
+計測開始前に、E2Eと共通の `scripts/build-freshness.mjs` でビルドの更新を確認します。
+対象と検査の限界は [TESTING.md の実行コマンド](TESTING.md#実行コマンド)を参照してください。
+更新が必要なら、サーバーとブラウザを起動する前に停止し、`npm run build` を案内します。
 
 各ケース（ツールと行数の組。行数は1,000・10,000・100,000）を3回測り、毎回新しいページを開きます。入力の更新直前から結果表示後の2フレームまでを測ります。入力はDOMの標準valueセッターとinputイベントで渡します。OSのクリップボード、キー入力の送信速度、Playwrightのfillに伴う待機の差を含めないためです。貼り付けイベントからの全文保持は別途E2Eで検証しています。
 
@@ -200,6 +240,8 @@ node scripts/measure-large-inputs.mjs --diff docs/records/performance-YYYY-MM-DD
 ```powershell
 node scripts/measure-large-inputs.mjs --dist-hash
 ```
+
+`--dist-hash` は成果物のハッシュだけを表示し、計測しません。過去の成果物も調べられるよう、更新時刻の検査は行いません。
 
 ## 過去の計測環境と結果
 

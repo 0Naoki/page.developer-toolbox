@@ -7,13 +7,22 @@
 初回は `npm run setup` と `npm run e2e:install` で依存パッケージとブラウザを準備します（`npm run setup` は CI と同じ手順です）。
 
 ```bash
-npm run check        # 型チェック・単体テスト・本番ビルド
+npm run check        # 型チェック・単体テスト・計測基盤テスト・本番ビルド
 npm run e2e:run      # 上で作ったビルドを全ブラウザで検査
 ```
 
 E2Eだけ実行するときは `npm run e2e` でビルドから実行できます。`e2e:run` は既存の `dist` を使います。
 
-`e2e:run` は、古いビルドを検査しないよう、ビルドの結果を変えるファイルが `dist` より新しければ、実行の前に止めて `npm run build` を案内します（`e2e/globalSetup.mjs`）。対象は `src`・`public`・`index.html`・`vite.config.ts`・`csp.config.ts`・`tsconfig.json`・`package.json`・`package-lock.json` で、テストからだけ使うファイルは除きます。CIは `check` の後にE2Eを実行し、ビルドを重複させません。
+`e2e:run` は、古いビルドを検査しないよう、ビルドの結果を変えるファイルが `dist` より新しければ、実行の前に止めて `npm run build` を案内します。
+`e2e/globalSetup.mjs` とブラウザ性能計測は、`scripts/build-freshness.mjs` の同じ確認を使います。
+対象は `src`・`public`・`index.html`・`vite.config.ts`・`csp.config.ts`・`tsconfig.json`・`package.json`・`package-lock.json` で、テストからだけ使うファイルは除きます。
+更新時刻による検査のため、ファイル削除や、更新時刻を保存したコピーによる内容変更のすべては検出できません。
+対象の版でビルドし直す手順と、成果物のハッシュの記録も維持してください。
+CIは `check` の後にE2Eを実行し、ビルドを重複させません。
+
+`npm run test:scripts` は、計測基盤のNodeテストだけを実行します。`check` にも含めています。
+一時ディレクトリと一時Gitリポジトリで、古いビルドの拒否・比較方式・依存ファイルの移動・異なるpackage-lockの拒否を確認します。
+作業中のリポジトリのファイル・ブランチ・コミットは変更しません。
 
 型チェック（`tsc --noEmit`）では、`tsconfig.json` の `noUncheckedIndexedAccess` で、配列やオブジェクトの添字で読んだ値を「ないかもしれない値」として検査します（テスト・E2E を含む）。アプリのコードでは、分割代入の既定値・`entries()`・`charAt` などで「ない場合」を扱い、既定値が実際には使われないときはその理由をコメントに書きます。添字が範囲内であることがアルゴリズムで決まる速度重視のループ（テキスト差分の Myers 法など）だけは、`?? 0` などの分岐を足さずに `!` で示し、理由をコメントに書いています。テストでは、値があることを確かめる位置で `!` や `?.` を使ってかまいません。
 
