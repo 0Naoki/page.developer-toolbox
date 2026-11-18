@@ -181,6 +181,21 @@ describe('営業日計算', () => {
     expect(addBusinessDays({ y: 2026, m: 5, d: 2 }, 0, cal)).toEqual({ y: 2026, m: 5, d: 7 });
   });
 
+  it('前後移動は4桁の年の両端を含み、範囲外へ進むと止まる', () => {
+    const everyDay = { ...cal, weekend: [], holidays: false, yearEnd: false, extra: [] };
+    const first = { y: 0, m: 1, d: 1 };
+    const last = { y: 9999, m: 12, d: 31 };
+    expect(addBusinessDays({ ...first, d: 2 }, -1, everyDay)).toEqual(first);
+    expect(addBusinessDays({ ...last, d: 30 }, 1, everyDay)).toEqual(last);
+    for (const date of [first, last]) expect(addBusinessDays(date, 0, everyDay)).toEqual(date);
+    const message = '営業日の前後移動は0000〜9999年の範囲で計算してください';
+    expect(() => addBusinessDays(first, -1, everyDay)).toThrow(message);
+    expect(() => addBusinessDays(last, 1, everyDay)).toThrow(message);
+    expect(() => addBusinessDays(last, 0, { ...everyDay, extra: ['9999-12-31'] })).toThrow(message);
+    expect(() => addBusinessDays({ ...last, d: 30 }, 1, { ...everyDay, extra: ['9999-12-31'] })).toThrow(message);
+    for (const y of [-1, 10000]) expect(() => addBusinessDays({ y, m: 1, d: 1 }, 0, everyDay)).toThrow(message);
+  });
+
   it('すべての曜日が休みなら、0営業日後でも止まってエラーにする', () => {
     const allOff = { ...cal, weekend: [0, 1, 2, 3, 4, 5, 6], holidays: false };
     for (const n of [0, 1, -1]) {
