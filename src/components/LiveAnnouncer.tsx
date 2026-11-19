@@ -1,47 +1,28 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { PendingAnnouncements } from '../lib/announcements';
+import { Announcer } from '../lib/announcements';
 import { detailPreview } from '../lib/text/textPreview';
-import { formatNumber } from '../lib/number';
 
 /**
  * 読み上げソフトへの知らせ（エラーと、バッジなどで示す判定の結果）。アプリに1つだけ置く live region（{@link LiveRegion}）で読み上げる。
  *
  * @remarks
  * 表示を切り替えるたびに role="status" の要素を差し込むと、読み上げソフトによっては読まない（差し込む前からある領域の変化だけを読む）。
- * そこで、常にある1つの領域の文言を書き換える。入力のたびに読むと騒がしいため、最後の変化から {@link DELAY_MS} 待ち、
- * その間に出て、まだ表示している文言をまとめて読む（同じ文言は1回、最大 {@link MAX_ITEMS} 件）。文言は抜粋（detailPreview）にする。
+ * そこで、常にある1つの領域の文言を書き換える。入力のたびに読むと騒がしいため、最後の変化から少し待ち、
+ * その間に出て、まだ表示している文言をまとめて読む（待ち時間と件数は {@link Announcer}）。文言は抜粋（detailPreview）にする。
  * 文言は画面にも表示している内容だけで、保存も送信もしない。
  */
 
-/** 入力が止まってから読み上げるまでの時間（ミリ秒） */
-const DELAY_MS = 800;
-/** 1回に読み上げる文言の数 */
-const MAX_ITEMS = 3;
-
-const pending = new PendingAnnouncements();
-let timer: ReturnType<typeof setTimeout> | undefined;
 let current = '';
 const listeners = new Set<() => void>();
 
-const setCurrent = (text: string) => {
+const announcer = new Announcer((text) => {
   current = text;
   listeners.forEach((listener) => listener());
-};
-
-function flush(): void {
-  const items = pending.take();
-  /** 待つ間に、どの文言も消えた（エラーを直した）ときは読まない */
-  if (items.length === 0) return;
-  const rest = items.length - MAX_ITEMS;
-  const text = items.slice(0, MAX_ITEMS).join('。') + (rest > 0 ? `。ほか ${formatNumber(rest)} 件` : '');
-  /** 前と同じ文言でも読み直すよう、いったん空にしてから入れる */
-  setCurrent('');
-  timer = setTimeout(() => setCurrent(text), 50);
-}
+});
 
 /**
  * 文言が表示された・変わったときに読み上げる（同じ文言のままの再描画では読まない）。
- * 読み上げる前に文言が消えた・変わった・画面を離れたときは、この呼び出しの文言だけを取り消す（{@link PendingAnnouncements}）。
+ * 読み上げる前に文言が消えた・変わった・画面を離れたときは、この呼び出しの文言だけを取り消す。
  *
  * @param message - 読み上げる文言。null・undefined・空文字なら何もしない。
  */
@@ -50,10 +31,8 @@ export function useAnnounce(message: string | null | undefined): void {
   useEffect(() => {
     const text = message ? detailPreview(message.trim()) : '';
     if (text === '') return;
-    pending.set(source, text);
-    clearTimeout(timer);
-    timer = setTimeout(flush, DELAY_MS);
-    return () => pending.cancel(source);
+    announcer.announce(source, text);
+    return () => announcer.cancel(source);
   }, [source, message]);
 }
 
