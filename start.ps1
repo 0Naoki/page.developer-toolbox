@@ -39,7 +39,8 @@ try {
     # 検証していない依存が残り、次の起動で検証せずに使ってしまうため。git pull などで package-lock.json が変わったときも、準備し直す
     $verifiedMarker = 'node_modules/.dev-toolbox-verified'
     $lockHash = (Get-FileHash -LiteralPath 'package-lock.json' -Algorithm SHA256).Hash
-    $verified = (Test-Path -LiteralPath $verifiedMarker) -and ((Get-Content -LiteralPath $verifiedMarker -Raw).Trim() -eq $lockHash)
+    # 空の印（書き込みの途中で止めたときなど）は、Get-Content が値を返さないため、文字列に埋め込んで空文字として比べる（準備し直す）
+    $verified = (Test-Path -LiteralPath $verifiedMarker) -and ("$(Get-Content -LiteralPath $verifiedMarker -Raw)".Trim() -eq $lockHash)
     if (-not $verified) {
         if (Test-Path -LiteralPath 'node_modules') {
             Write-Host '依存パッケージが package-lock.json と合わないか、署名の検証を終えていないため、準備し直します。'
