@@ -86,7 +86,7 @@ function ValidityBadge({ cert }: { cert: Certificate }) {
   const v = validityOf(cert, now);
   switch (v.status) {
     case 'expired':
-      return <Badge tone="bad">期限切れ（{v.daysLeft === 0 ? '本日' : `${-v.daysLeft} 日前`}）</Badge>;
+      return <Badge tone="bad">期限切れ（{v.daysLeft === 0 ? '24時間以内' : `${-v.daysLeft} 日前`}）</Badge>;
     case 'notYet':
       return <Badge tone="bad">まだ有効ではありません</Badge>;
     case 'soon':

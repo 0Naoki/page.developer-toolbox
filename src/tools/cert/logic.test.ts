@@ -291,6 +291,12 @@ describe('validityOf', () => {
     expect(validityOf(c, notAfter + 86_400_000 + 120_000)).toEqual({ status: 'expired', daysLeft: -1 });
     expect(validityOf(c, notAfter - 60_000)).toEqual({ status: 'soon', daysLeft: 0 });
   });
+
+  it('期限の警告は、切り捨てる前の残り時間が30日以内のときだけ（30日と23時間は警告しない）', () => {
+    const notAfter = c.notAfter.getTime();
+    expect(validityOf(c, notAfter - (30 * 24 + 23) * 3_600_000)).toEqual({ status: 'valid', daysLeft: 30 });
+    expect(validityOf(c, notAfter - 30 * 86_400_000)).toEqual({ status: 'soon', daysLeft: 30 });
+  });
 });
 
 describe('checkChain', () => {

@@ -228,7 +228,8 @@ test('証明書：表示したまま期限を過ぎると、期限切れの表�
   await page.getByLabel('証明書または CSR（PEM）').fill(LEAF);
   await expect(page.getByText('あと 0 日で期限切れ', { exact: true })).toBeVisible();
   await page.clock.fastForward('02:00');
-  await expect(page.getByText('期限切れ（本日）', { exact: true })).toBeVisible();
+  /** 過ぎてから24時間未満は、暦の日付によらず「24時間以内」（日付が変わる直前に切れたものを翌日に開いても「本日」としない） */
+  await expect(page.getByText('期限切れ（24時間以内）', { exact: true })).toBeVisible();
 });
 
 test('証明書：自己発行の鍵の更新は、旧い CA の鍵で検証し、自己署名とは表示しない', async ({ page }) => {
