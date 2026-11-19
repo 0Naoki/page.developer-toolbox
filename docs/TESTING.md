@@ -74,7 +74,7 @@ npm run e2e:run -- e2e/storage.spec.ts --project=webkit --workers=2
 
 - 書き方の規則（`SOURCE_RULES`）：禁止している API（HTML の挿入・`eval`・`Math.random`・`?worker`・現地時刻の日時のメソッド）と、共通の処理（エラー・警告・バッジ・欄の表示、例外の文言、Worker、非同期の結果、行の分割、長い出力、ファイルの読み込み、IME、日本時間、数の書式、大きな入力欄）を通しているか、再 export をしていないか
 - import の向きの規則（`IMPORT_RULES`）：ツール同士、`src/lib/` からツールと `src/calculation/`、計算の振り分け（`src/calculation/handlers.ts`）、保存領域の内部、テストからだけ読むファイル
-- 外部と通信する API の参照（`fetch`・`XMLHttpRequest`・`WebSocket`・`EventSource`・`sendBeacon`・`WebTransport`・WebRTC の `RTCPeerConnection` など。一覧は `NETWORK_NAMES`）：正規表現の規則ではなく、構文木から探す別の検査（`src/sourceScan.testing.ts` の `networkReferences`）で見つけます。変数に入れる・`window['fetch']`・``window[`fetch`]``・分割代入・`Reflect.get(window, 'fetch')` なども見つけられ、正規表現より検出の範囲が広いためです。名前を組み立てる書き方（`window['fe' + 'tch']`）は名前を追えないため、`window`・`globalThis`・`navigator` などへの動的なキーでの参照と、`Reflect.get` などへの受け渡しそのものを検出します。WebRTC は本番の CSP でも E2E の通信の監視でも止まらないため、この検査が唯一の歯止めです。同じ関心事の正規表現の規則は持ちません。直し方は `src/architecture.test.ts` にあります
+- 外部と通信する API の参照（`fetch`・WebRTC など。一覧は `NETWORK_NAMES`）：正規表現の規則ではなく、構文木から探す別の検査（`src/sourceScan.testing.ts` の `networkReferences`）で見つけます。変数に入れる・文字列のキーで参照するなどの書き方も見つけられ、正規表現より検出の範囲が広いためです。検出する書き方はその TSDoc、直し方は `src/architecture.test.ts` にあります
 
 規則の例外（許可したファイル・箇所・import の組）には理由を書き、使わなくなった例外は検査の失敗にします。規則を足すときは、直し方と、例を両方とも書いてください。
 
@@ -107,7 +107,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 - コピーした内容は `captureClipboard` で記録し、`copiedText`・`copiedLength`・`copiedLines` で確かめます（OS のクリップボードは変えません。長いテキストは長さや行数をページの中で数え、全文をテストへ渡しません）。
 - 読み込みを遅らせる・失敗させるなど、特別なファイルを使うテストだけはページの中で直接作ります。
 - ページを渡す前に外部通信・CSP違反・実行時エラーの監視を始め、終了時にまとめて検査するため、ケースごとの `watch` 呼び出しは不要です。
-- CSPの拒否そのものを試すケースは標準の `test` を `probeTest` として明示し、期待する拒否をケース内で検証します。既存のopener・読込失敗を含む `security.spec.ts`・`navigation.spec.ts` は引き続き個別に検証します。
+- CSPの拒否そのものを試すケースは標準の `test` を `probeTest` として明示し、期待する拒否をケース内で検証します。opener・読込失敗を扱う `security.spec.ts`・`navigation.spec.ts` も、標準の `test` を使い、ケースごとに検証します。
 
 ### 短縮するときのルール
 

@@ -111,13 +111,11 @@ git ls-files            # 意図しないファイル（.env、鍵、個人の�
 
 - [ ] サンプルデータやスクリーンショットに、実在の顧客名・社内情報が入っていないか
 
-初回公開では、これまでの履歴は送らず、管理対象のファイルだけを1つ目のコミットにして送ります。送る前の確認は [公開するファイルの確認](PUBLISHING.md#公開するファイルの確認) を参照してください。
-
 ## うまくいかないとき
 
 | 症状 | 対処 |
 |---|---|
-| `npm run setup` で engines のエラー | 対応していない版の Node.js。手順 0 で 24 を入れる（22.12 以上の 22 と、26 以上でも動く。23・25 は対応しない） |
+| `npm run setup` で engines のエラー | 対応していない版の Node.js。手順 0 の対応範囲の版（推奨は 24）を入れる |
 | `npm run e2e` で「ブラウザがない」 | `npm run e2e:install` を実行（Linux は `npx playwright install --with-deps chromium firefox webkit`） |
 | Windows で Firefox だけが `spawn UNKNOWN` で起動しない | PC の環境によって、Playwright の Firefox が Windows に起動を止められることがある。手元では `npx playwright test --project=desktop --project=mobile --project=webkit --project=iphone` で残りを確認し、Firefox は CI（Linux）の結果で確認する |
 | `Port 4173 is already in use` | 前回のプレビューを、そのサーバーを起動したターミナルで `Ctrl + C` により停止する。E2Eは4173番を使うため、別ポートのプレビューでは代用できない |
