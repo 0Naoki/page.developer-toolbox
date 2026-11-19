@@ -130,6 +130,7 @@ git -c push.followTags=false push -u origin develop
 
 **Settings → Rules → Rulesets**（対象：`main`。作成済みの ruleset があれば、それを編集する）
 
+- [ ] **Enforcement status** を **Active** にする（新しく作った ruleset は Disabled で、規則が適用されない）。保存した後も、一覧で Active になっていることを確かめる
 - [ ] **Restrict deletions**（ブランチの削除を禁止）
 - [ ] **Block force pushes**（履歴の書き換えを禁止）
 - [ ] **Require a pull request before merging**（`main` への直接の push を禁止）。一人で開発する間は **Required approvals** を 0 にする（自分のプルリクエストは自分で承認できないため）
