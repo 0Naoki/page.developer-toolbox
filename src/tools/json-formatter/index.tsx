@@ -120,7 +120,7 @@ export default function JsonFormatter() {
                 </Notice>
               )}
               {view === 'tree' && tree?.ok ? (
-                <TreeView root={tree.root} />
+                <TreeView root={tree.root} sortKeys={sortKeys} />
               ) : (
                 <FormattedOutput text={result.output} filename="formatted.json" mime="application/json" />
               )}

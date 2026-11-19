@@ -1,4 +1,4 @@
-import type { JsonNode } from '../../lib/jsonTree';
+import { sortedEntries, type JsonNode } from '../../lib/jsonTree';
 
 /**
  * ツリー表示の計算（画面に依存しない部分）。
@@ -34,17 +34,31 @@ export function childPath(parent: string, step: { name: string } | { index: numb
 /** ツリーの1つの子（表示の名前・場所・値） */
 export type TreeChild = { label: string; path: string; node: JsonNode };
 
+/** ソートしたキーの並び。「さらに表示」のたびにソートし直さないよう、オブジェクトごとに覚える */
+const sortedCache = new WeakMap<JsonNode, ReturnType<typeof sortedEntries>>();
+
+function entriesOf(node: Extract<JsonNode, { kind: 'object' }>, sortKeys: boolean): ReturnType<typeof sortedEntries> {
+  if (!sortKeys) return node.entries;
+  let sorted = sortedCache.get(node);
+  if (!sorted) {
+    sorted = sortedEntries(node);
+    sortedCache.set(node, sorted);
+  }
+  return sorted;
+}
+
 /**
- * 子を、先頭から limit 件だけ返す（全件の配列を作らない）。total は子の総数。
+ * 子を、先頭から limit 件だけ返す（ソートしないときは、全件の配列を作らない）。total は子の総数。
  *
  * @param node - 親の値。値（数値・文字列など）は子を持たない。
  * @param path - 親の場所。
  * @param limit - 返す子の数。
+ * @param sortKeys - 「キーをソート」。整形の出力と同じ並びにする。
  */
-export function childrenOf(node: JsonNode, path: string, limit: number): { children: TreeChild[]; total: number } {
+export function childrenOf(node: JsonNode, path: string, limit: number, sortKeys = false): { children: TreeChild[]; total: number } {
   if (node.kind === 'object') {
     return {
-      children: node.entries.slice(0, limit).map((e) => ({ label: e.name, path: childPath(path, { name: e.name }), node: e.value })),
+      children: entriesOf(node, sortKeys).slice(0, limit).map((e) => ({ label: e.name, path: childPath(path, { name: e.name }), node: e.value })),
       total: node.entries.length,
     };
   }

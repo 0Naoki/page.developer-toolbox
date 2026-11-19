@@ -156,6 +156,18 @@ describe('ツリー表示', () => {
     expect(childrenOf({ kind: 'scalar', raw: '1' }, '$', 10)).toEqual({ children: [], total: 0 });
   });
 
+  it('「キーをソート」では、整形の出力と同じ並びで子を返す（オフなら入力の順）', () => {
+    const input = '{"b":1,"a":{"d":2,"c":3},"b":4}';
+    const { root } = parseJsonTree(input);
+    const labels = (node: typeof root, sortKeys: boolean) => childrenOf(node, '$', TREE_CHILD_PAGE, sortKeys).children.map((c) => c.label);
+    expect(labels(root, false)).toEqual(['b', 'a', 'b']);
+    /** 重複したキーは元の順のまま並ぶ */
+    expect(labels(root, true)).toEqual(['a', 'b', 'b']);
+    const a = childrenOf(root, '$', TREE_CHILD_PAGE, true).children[0]!.node;
+    expect(labels(a, true)).toEqual(['c', 'd']);
+    expect(formatJson(input, 'minify', true)).toMatchObject({ output: '{"a":{"c":3,"d":2},"b":1,"b":4}' });
+  });
+
   it('大きな配列でも、表示する分だけを切り出す', () => {
     const { root } = parseJsonTree(`[${Array.from({ length: 100_000 }, (_, i) => i).join(',')}]`);
     const page = childrenOf(root, '$', TREE_CHILD_PAGE);
