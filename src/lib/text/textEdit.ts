@@ -33,10 +33,7 @@ function replaceNativeSelection(text: string, start: number, end: number, insert
   const suffix = text.slice(sourceOffset(text, end));
   /** CR の改行の後ろで Enter を押したときは、新しい改行も同じ CR にそろえる */
   if (inserted === '\n' && before.endsWith('\r')) inserted = suffix.startsWith('\n') ? '\r\n' : '\r';
-  /**
-   * 改行で始まる文字列の貼り付けや、CR の改行と LF の改行の間の文字の削除でも、つなぎ目で CRLF に結合させない
-   * （以前は Enter の1文字だけを扱っていたため、これらの操作で行が1つ消えていた）
-   */
+  /** 改行で始まる文字列の貼り付けや、CR の改行と LF の改行の間の文字の削除でも、つなぎ目で CRLF に結合させない（行が1つ消えるため） */
   const { prefix, after } = joinKeepingLineBreaks(before, inserted, suffix);
   return prefix + after;
 }

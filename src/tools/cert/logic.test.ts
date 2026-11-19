@@ -9,13 +9,13 @@ import { parseCertificate, parseItem, type Certificate, type Csr } from './logic
 import { validityOf } from './validity';
 import { diagnoseItems } from './diagnostics';
 import { SAMPLE_CERTIFICATE } from './sample';
-import { readExtensions } from './extensions';
 import { containsPrivateKey } from '../../lib/crypto/privateKey';
 import { MAX_PEM_BLOCKS, readFileBytes, readPem } from './pem';
 import { sameBytes, sameName, attributeKey, MAX_NAME_ATTRS, type ParsedName } from './name';
 import { certificateWithTime } from './time.fixtures';
 import { certificateWithSubject } from './encoding.fixtures';
-import { formatIpv6Bytes } from './extensions';
+import { formatIpv6Bytes, readExtensions } from './extensions';
+import { derLength, tlvNumbers as tlv } from '../../lib/crypto/der.testing';
 
 const cert = (pem: string) => parseItem(readPem(pem)[0]!) as Certificate;
 
@@ -108,9 +108,8 @@ describe('asn1', () => {
     expect(() => parseDerExact(Uint8Array.from([0x05, 0x00, 0x05, 0x00]))).toThrow('余分なデータ');
     expect(() => parseDer(Uint8Array.from([0x30, 0x85, 1, 1, 1, 1, 1]))).toThrow('大きすぎます');
     /** SEQUENCE を100段入れ子にする（長さが128以上の段は 0x81・0x82 で始まる長い形式で書く） */
-    const len = (n: number) => (n < 128 ? [n] : n < 256 ? [0x81, n] : [0x82, n >> 8, n & 0xff]);
     let deep = [0x05, 0x00];
-    for (let i = 0; i < 100; i++) deep = [0x30, ...len(deep.length), ...deep];
+    for (let i = 0; i < 100; i++) deep = [0x30, ...derLength(deep.length), ...deep];
     expect(() => parseDer(Uint8Array.from(deep))).toThrow('深すぎます');
   });
 });
@@ -356,8 +355,6 @@ describe('checkChain', () => {
 });
 
 describe('拡張の読み取り', () => {
-  const len = (n: number) => (n < 0x80 ? [n] : n < 0x100 ? [0x81, n] : n < 0x10000 ? [0x82, n >> 8, n & 0xff] : [0x83, n >> 16, (n >> 8) & 0xff, n & 0xff]);
-  const tlv = (tag: number, body: number[]) => [tag, ...len(body.length), ...body];
   const extension = (oid: number[], value: number[]) => tlv(0x30, [...tlv(0x06, oid), ...tlv(0x04, value)]);
   const SAN = [0x55, 0x1d, 0x11];
   const dnsName = (name: string) => tlv(0x82, [...new TextEncoder().encode(name)]);
@@ -408,9 +405,6 @@ describe('拡張の読み取り', () => {
 });
 
 describe('巨大な整数', () => {
-  const len = (n: number) => (n < 0x80 ? [n] : n < 0x100 ? [0x81, n] : n < 0x10000 ? [0x82, n >> 8, n & 0xff] : [0x83, n >> 16, (n >> 8) & 0xff, n & 0xff]);
-  const tlv = (tag: number, body: number[]) => [tag, ...len(body.length), ...body];
-
   it('長すぎる整数は、変換せずにすぐエラーにする', () => {
     const value = new Array(256 * 1024).fill(0x7f);
     const node = parseDer(new Uint8Array(tlv(0x02, value)));
@@ -473,8 +467,6 @@ describe('sameName（RFC 5280 7.1）', () => {
 });
 
 describe('名前の属性の数', () => {
-  const len = (n: number) => (n < 0x80 ? [n] : n < 0x100 ? [0x81, n] : n < 0x10000 ? [0x82, n >> 8, n & 0xff] : [0x83, n >> 16, (n >> 8) & 0xff, n & 0xff]);
-  const tlv = (tag: number, body: number[]) => [tag, ...len(body.length), ...body];
   const CN_OID = tlv(0x06, [0x55, 0x04, 0x03]);
 
   it('上限を超える属性を持つ名前は、解析せずにエラーにする', () => {

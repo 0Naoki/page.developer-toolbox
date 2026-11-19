@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalZone, isValidZone, offsetMinutes } from './timezone';
+import { canonicalZone, isValidZone, offsetMs, type Zone } from './timezone';
 
 /** タイムゾーンの変換と範囲の検査（timezone.ts）のテスト。解析は dateTimeInput.test.ts、表示は dateTimeFormat.test.ts */
+
+/** UTC からのずれ（分に丸める）。日本なら 540 */
+const offsetMinutes = (ms: number, zone: Zone) => Math.round(offsetMs(ms, zone) / 60_000);
 
 describe('タイムゾーン', () => {
   it('UTC からのずれ（夏時間を含む）', () => {

@@ -17,7 +17,7 @@ import { detailPreview } from '../text/textPreview';
 export type SignatureVerification = { status: 'valid' | 'invalid' | 'unsupported'; message: string };
 
 /** 署名が一致したときの説明 */
-export const SIGNATURE_VALID = '署名は正しく、この公開鍵と対になる秘密鍵で署名されています';
+const SIGNATURE_VALID = '署名は正しく、この公開鍵と対になる秘密鍵で署名されています';
 /** 署名が一致しないときの説明 */
 export const SIGNATURE_MISMATCH = '署名が一致しません（内容が書き換えられているか、別の鍵で署名されています）';
 

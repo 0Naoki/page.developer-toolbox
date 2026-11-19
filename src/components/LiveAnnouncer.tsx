@@ -38,7 +38,7 @@ function flush(): void {
 }
 
 /** 文言を読み上げの待ち行列に入れる。空の文言は無視する */
-export function announce(message: string): void {
+function announce(message: string): void {
   const text = detailPreview(message.trim());
   if (text === '') return;
   if (!pending.includes(text)) pending.push(text);
