@@ -1,5 +1,5 @@
 /** 署名アルゴリズムのパラメーターと対応範囲を解釈する。暗号APIや発行者の選択には依存しない。 */
-import { TAG, isContext, isUniversal, readInteger, readOid, SMALL_INTEGER_BYTES, type Node } from '../../lib/crypto/asn1';
+import { TAG, isContext, isUniversal, readInteger, readOid, SMALL_INTEGER_BYTES, valueOf, type Node } from '../../lib/crypto/asn1';
 import type { WebCryptoHash } from '../../lib/crypto/signature';
 
 const HASHES: Record<string, WebCryptoHash> = {
@@ -35,6 +35,19 @@ export class InvalidParams extends Error {}
 
 const MGF1 = '1.2.840.113549.1.1.8';
 
+/**
+ * 署名方式・ハッシュ・MGF1 の OID を読む。DER の規則（primitive で、各成分を最短のバイト列で書く）に合わない書き方は InvalidParams。
+ * 署名アルゴリズムは署名の対象の外（CSR の外側など）にあるため、書き方の違う OID を同じ方式とみなすと、書き換えた証明書も「正しい」と表示する
+ */
+function canonicalOid(n: Node, what: string): string {
+  /** 各成分の先頭のバイトが 0x80（値のない続き）なら、余分なゼロを付けた書き方 */
+  const v = valueOf(n);
+  if (n.constructed || v.some((b, i) => b === 0x80 && (i === 0 || (v[i - 1]! & 0x80) === 0))) {
+    throw new InvalidParams(`${what}の OID の書き方が DER の規則に合いません`);
+  }
+  return readOid(n);
+}
+
 /** 省略されているか、中身のない NULL か */
 const isNullOrAbsent = (n: Node | undefined): boolean => n === undefined || (isUniversal(n, TAG.NULL) && !n.constructed && n.end === n.valueStart);
 
@@ -65,7 +78,7 @@ function pssParams(params: Node | undefined): { hash: WebCryptoHash; saltLength:
     if (index === 1) {
       const oid = item.children[0];
       if (!isUniversal(item, TAG.SEQUENCE) || item.children.length !== 2 || !isUniversal(oid, TAG.OID)) invalid('マスク生成関数の形式が違います');
-      if (readOid(oid) !== MGF1) invalid('マスク生成関数が MGF1 ではありません');
+      if (canonicalOid(oid, 'マスク生成関数') !== MGF1) invalid('マスク生成関数が MGF1 ではありません');
       mgfHash = HASHES[hashOid(item.children[1])] ?? fail();
     }
     if (index === 2) saltLength = Number(integer(item, 'saltLength'));
@@ -87,10 +100,16 @@ function pssParams(params: Node | undefined): { hash: WebCryptoHash; saltLength:
     if (!isUniversal(n, TAG.SEQUENCE) || n.children.length > 2 || !isUniversal(n.children[0], TAG.OID) || !isNullOrAbsent(n.children[1])) {
       invalid('ハッシュアルゴリズムの形式が違います');
     }
-    return readOid(n.children[0]);
+    return canonicalOid(n.children[0], 'ハッシュアルゴリズム');
   }
+  /** 空の値や余分な符号のバイト（00 7F・FF 80 など）は、値が同じでも DER の規則に合わないため断る */
   function integer(n: Node, name: string): bigint {
     if (!isUniversal(n, TAG.INTEGER) || n.constructed) invalid(`${name} が INTEGER ではありません`);
+    const [first, second] = valueOf(n);
+    if (first === undefined) invalid(`${name} が空です`);
+    if (second !== undefined && ((first === 0x00 && (second & 0x80) === 0) || (first === 0xff && (second & 0x80) !== 0))) {
+      invalid(`${name} の書き方が DER の規則に合いません`);
+    }
     return readInteger(n, SMALL_INTEGER_BYTES);
   }
 }
@@ -104,7 +123,7 @@ export function schemeOf(algorithm: Node): Scheme {
   if (!isUniversal(algorithm, TAG.SEQUENCE) || !isUniversal(oidNode, TAG.OID) || rest.length > 0) {
     throw new InvalidParams('署名アルゴリズムの形式が正しくありません');
   }
-  const oid = readOid(oidNode);
+  const oid = canonicalOid(oidNode, '署名アルゴリズム');
   const noParams = (name: string) => {
     if (params !== undefined) throw new InvalidParams(`${name} の署名アルゴリズムにはパラメーターを書けません`);
   };
