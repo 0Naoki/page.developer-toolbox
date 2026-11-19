@@ -43,7 +43,7 @@ export function markedSection(text: string, name: string): string {
 
 /** 上限の説明から数値・範囲・単位だけを読む。前後の日本語の言い回しは検査しない。 */
 export function limitTokens(text: string): string[] {
-  return text.match(/[±+-]?\d[\d,]*(?:\.\d+)?(?:万)?(?:〜[±+-]?\d[\d,]*(?:\.\d+)?(?:万)?)?\s*(?:MiB|KiB|MB|バイト|単位|セル|件|秒|年|月|営業日|日|個|文字|桁|行|組|ブロック|マッチ)?/g)?.map((s) => s.trim()) ?? [];
+  return text.match(/[±+-]?\d[\d,]*(?:\.\d+)?(?:万)?(?:〜[±+-]?\d[\d,]*(?:\.\d+)?(?:万)?)?\s*(?:MiB|KiB|MB|バイト|単位|セル|件|秒|年|月|営業日|日|個|種類|文字|桁|行|組|ブロック|マッチ)?/g)?.map((s) => s.trim()) ?? [];
 }
 
 /** 上限の意味を表す固定IDと、実装の定数から作った数値・単位の表記。 */

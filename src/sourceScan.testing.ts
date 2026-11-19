@@ -68,10 +68,10 @@ export const NETWORK_NAMES = new Set([
 const GLOBAL_OBJECTS = new Set(['window', 'self', 'globalThis', 'navigator', 'top', 'parent', 'frames']);
 
 /** 第1引数のオブジェクトのプロパティを、キーの名前で取り出せる関数（Reflect.get(window, 'fetch') など） */
-const PROPERTY_READERS: Record<string, Set<string>> = {
-  Reflect: new Set(['get', 'getOwnPropertyDescriptor', 'ownKeys']),
-  Object: new Set(['getOwnPropertyDescriptor', 'getOwnPropertyDescriptors', 'entries', 'values']),
-};
+const PROPERTY_READERS = new Map<string, Set<string>>([
+  ['Reflect', new Set(['get', 'getOwnPropertyDescriptor', 'ownKeys'])],
+  ['Object', new Set(['getOwnPropertyDescriptor', 'getOwnPropertyDescriptors', 'entries', 'values'])],
+]);
 
 /** オブジェクトや型のキーとしての名前（{ fetch: 1 } など）。API の参照ではない */
 const KEY_PARENTS = new Set(['Property', 'PropertyDefinition', 'MethodDefinition', 'TSPropertySignature', 'TSMethodSignature']);
@@ -103,7 +103,7 @@ function isGlobalPropertyRead(node: AstNode): boolean {
   if (node.type !== 'CallExpression' || callee?.type !== 'MemberExpression' || callee.computed) return false;
   const owner = callee.object?.type === 'Identifier' ? callee.object.name : undefined;
   const method = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
-  return typeof owner === 'string' && typeof method === 'string' && PROPERTY_READERS[owner]?.has(method) === true
+  return typeof owner === 'string' && typeof method === 'string' && PROPERTY_READERS.get(owner)?.has(method) === true
     && isGlobalObject(call.arguments?.[0]);
 }
 

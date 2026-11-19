@@ -106,6 +106,9 @@ describe('コメントの除去と通信の API の参照', () => {
       'const value = record[key];',
       'Reflect.get(record, key);',
       "Object.entries(settings);",
+      /** Object.prototype にある名前（toString・constructor）を、取り出す処理の一覧から引いて例外にしない */
+      'toString.call(window);',
+      'constructor.name(window);',
     ]) expect(networkReferences(code), code).toEqual([]);
   });
 

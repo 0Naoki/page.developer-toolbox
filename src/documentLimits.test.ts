@@ -9,6 +9,8 @@ import { containsLimit, limitTokens, markedSection, documentLimitIssues } from '
 describe('ドキュメントの制約と定数', () => {
   it('段落・箇条書き・言い回しを変えても数値と対象を照合できる', () => {
     expect(limitTokens('子は1,000件ずつ表示')).toEqual(limitTokens('ページサイズ：1,000件'));
+    /** 単位を消した説明（「先頭100」）を、「先頭100種類」と同じとみなさない */
+    expect(limitTokens('先頭100種類')).not.toEqual(limitTokens('先頭100'));
     expect(markedSection('<!-- tools:start -->\n- JWT\n- Hash\n<!-- tools:end -->', 'tools')).toContain('- Hash');
     expect(() => markedSection('<!-- tools:start -->', 'tools')).toThrow();
   });
