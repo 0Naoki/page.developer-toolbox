@@ -2,8 +2,11 @@
 import { dayOfWeek, daysInMonth, WEEKDAYS_JA } from './date';
 import { checked, isValidZone, utcOf, zonedToUtc, type Wall, type Zone } from './timezone';
 
-/** 表示に添えた曜日（「（月）」「(月)」）。cron の次回の実行日時などの表示を、そのまま貼り戻せるようにする */
-const WEEKDAY_NOTE = /\s*[（(]([日月火水木金土])[)）]\s*/;
+/**
+ * 表示に添えた曜日（「（月）」「(月)」）。cron の次回の実行日時などの表示を、そのまま貼り戻せるようにする。
+ * 前後の空白は正規表現に含めない（先頭の \s* があると、長い空白の入力で検索が入力長の2乗の時間になるブラウザがある）
+ */
+const WEEKDAY_NOTE = /[（(]([日月火水木金土])[)）]/;
 
 /**
  * 日時文字列を解釈する。秒付きのオフセット（+09:18:59）も読める。指定がなければ zone の時刻として解釈する。
@@ -12,7 +15,7 @@ const WEEKDAY_NOTE = /\s*[（(]([日月火水木金土])[)）]\s*/;
 export function parseDateTime(input: string, zone: Zone): Date {
   const weekdayNote = WEEKDAY_NOTE.exec(input);
   const weekday = weekdayNote?.[1];
-  const s = (weekdayNote ? `${input.slice(0, weekdayNote.index)} ${input.slice(weekdayNote.index + weekdayNote[0].length)}` : input)
+  const s = (weekdayNote ? `${input.slice(0, weekdayNote.index).trimEnd()} ${input.slice(weekdayNote.index + weekdayNote[0].length).trimStart()}` : input)
     .trim()
     .replace(/\//g, '-');
   const m = /^(\d{4}|[+-]\d{6})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(\.\d+)?)?)?\s*(Z|UTC|GMT|JST|[+-]\d{2}(?::\d{2}(?::\d{2})?|\d{2})?)?$/i.exec(s);
