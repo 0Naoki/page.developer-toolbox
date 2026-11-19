@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DateRangeError, NonexistentTimeError } from './timezone';
 import { parseDateTime } from './dateTimeInput';
-import { formatWithOffset, showsMillis } from './dateTimeFormat';
+import { formatJstLabeled, formatWithOffset, showsMillis } from './dateTimeFormat';
 
 /**
  * 日時の入力解析（parseDateTime）のテスト。UNIX時間・cron の画面はこれを使う。
@@ -10,6 +10,30 @@ import { formatWithOffset, showsMillis } from './dateTimeFormat';
  * 表示（dateTimeFormat.ts）の出力を解析で読み戻せること（往復）も、このファイルで確かめる
  * （表示した日時を日時入力に貼り戻しても同じ時刻になることは、解析の側の契約のため）。
  */
+
+it('ミリ秒を付けた日本時間の表示（formatJstLabeled）を、同じ時刻に読み戻す', () => {
+  for (const iso of ['2026-01-01T00:00:00.123Z', '1969-12-31T23:59:59.999Z']) {
+    const date = new Date(iso);
+    expect(parseDateTime(formatJstLabeled(date, showsMillis(date)), 'UTC'), iso).toEqual(date);
+  }
+});
+
+describe('曜日の添え書き', () => {
+  it('「（月）」「(月)」を読み飛ばし、オフセットやタイムゾーンの前後どちらにあっても読む', () => {
+    const expected = new Date('2026-10-05T00:00:00Z');
+    for (const text of ['2026-10-05 09:00:00（月）', '2026-10-05 09:00:00 (月)', '2026-10-05 09:00:00（月） JST', '2026-10-05 00:00:00 +00:00（月）']) {
+      expect(parseDateTime(text, 'Asia/Tokyo'), text).toEqual(expected);
+    }
+  });
+
+  it('曜日が日付と合わなければ、黙って読まずにエラーにする', () => {
+    expect(() => parseDateTime('2026-10-05 09:00:00（火）', 'Asia/Tokyo')).toThrow('曜日（火）が日付と合いません');
+  });
+
+  it('曜日でない括弧書きは読まない', () => {
+    expect(() => parseDateTime('2026-10-05 09:00:00（JST）', 'Asia/Tokyo')).toThrow();
+  });
+});
 
 it('秒を含む歴史的なオフセットを保持して読み戻す', () => {
   const date = new Date('1880-01-01T00:00:00Z');

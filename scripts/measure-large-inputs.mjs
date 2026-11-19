@@ -2,6 +2,10 @@
  * 本番ビルドをローカルで開き、合成データの入力から結果表示までと描画間隔を測る。
  * 実行前に npm run build。引数に測定結果の保存先を指定できる。
  * --subnet を指定すると、サブネットの集約・重複チェックだけを10万件で測る。
+ * --password を指定すると、記号集合の長さと異なる文字数を変え、入力から新しい生成結果の描画までを測る。
+ * --count-diagnostics を指定すると、文字診断の入力を反復・多種類のUnicodeに分けて測る。
+ * --count-render-profile は入力欄・診断一覧の非表示比較とWorker・DOM更新の区間を測る。
+ * --count-budget は文字診断の通常表示を同じケースで測り、文書に定めた初期目標も判定する。
  *
  * 各ケースを RUNS_PER_CASE 回測り、毎回の値と、中央値・最小・最大を記録する。
  * 入力の形（行数・1行の長さ・全体の長さ）も記録し、条件の違う結果と比べないようにする。
@@ -18,14 +22,24 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { cpus, platform, release, totalmem } from 'node:os';
 import { execFileSync } from 'node:child_process';
+import { passwordInputs } from './password-inputs.mjs';
+import { assertFreshBuild } from './build-freshness.mjs';
 
 /** 各ケースを測る回数（ばらつきを見るため、毎回新しいページで測る） */
 const RUNS_PER_CASE = 3;
+const MEASURE_VIEWPORT = { width: 1280, height: 720 };
 const ROWS = [1000, 10000, 100000];
 const args = process.argv.slice(2);
 const subnetOnly = args.includes('--subnet');
+const diffOnly = args.includes('--diff');
+const passwordOnly = args.includes('--password');
+const countRenderProfile = args.includes('--count-render-profile');
+const countBudget = args.includes('--count-budget');
+if (countRenderProfile && countBudget) throw new Error('--count-render-profile と --count-budget は同時に指定できません');
+const countDiagnosticsOnly = args.includes('--count-diagnostics') || countRenderProfile || countBudget;
+if ([subnetOnly, diffOnly, passwordOnly, countDiagnosticsOnly].filter(Boolean).length > 1) throw new Error('--subnet・--diff・--password・--count-diagnostics は同時に指定できません');
 const distHashOnly = args.includes('--dist-hash');
-const [outputPath] = args.filter((arg) => arg !== '--subnet' && arg !== '--dist-hash');
+const [outputPath] = args.filter((arg) => !['--subnet', '--diff', '--password', '--count-diagnostics', '--count-render-profile', '--count-budget', '--dist-hash'].includes(arg));
 
 /** git の出力。git がない環境でも計測は続ける */
 const git = (...args) => {
@@ -62,6 +76,9 @@ if (distHashOnly) {
   console.log((await distBuild()).distSha256);
   process.exit(0);
 }
+
+/** 入力データの準備やサーバー・ブラウザの起動より先に、ビルドし忘れを知らせる。 */
+assertFreshBuild();
 
 /**
  * 計測するツール。inputs は入力欄の名前（aria-label）と値の組で、最後の入力を設定してからの時間を測る。
@@ -143,6 +160,30 @@ const CASES = [
   },
 ];
 
+/** 設定欄への入力から、プレビューと新しい生成結果が描画されるまで。全文の編集は開かない。 */
+const PASSWORD_CASES = passwordOnly ? passwordInputs().map(({ symbols, ...shape }) => ({
+  tool: 'password', line: symbols.slice(0, 2), shape: { ...shape, symbolSetUtf16: symbols.length }, paste: true,
+  prepare: async (page) => page.addInitScript(() => {
+    localStorage.setItem('dev-toolbox:pref:password:options', JSON.stringify({ length: 16, upper: false, lower: false, digits: false,
+      symbols: true, symbolSet: '!', exclude: '', excludeAmbiguous: false, requireEach: false }));
+  }),
+  inputs: () => [['使用する記号', symbols]],
+  done: () => {
+    const input = document.querySelector('textarea[aria-label="使用する記号"]');
+    const values = [...document.querySelectorAll('.pw-list .value-text')];
+    return (input?.value.startsWith('x') || input?.value.startsWith(String.fromCodePoint(0x10000))) && input.value.length <= 2000 &&
+      values.length === 5 && values.every((node) => !node.textContent.includes('!') && Array.from(node.textContent).length === 16);
+  },
+})) : [];
+
+/** 同じ入力長で、重複除去後の文字数が1種類・全種類の2通りを使う。 */
+const COUNT_DIAGNOSTIC_CASES = ['repeated', 'distinct'].flatMap((alphabet) => (countRenderProfile ? ['baseline', 'input-hidden', 'badges-hidden', 'results-hidden'] : [null]).map((renderMode) => ({
+  tool: 'count', alphabet, renderMode: renderMode ?? (countDiagnosticsOnly ? 'baseline' : null), line: alphabet === 'repeated' ? '😀' : String.fromCodePoint(0x10000), paste: true, pasteLimit: 50_000,
+  inputs: (rows) => [['テキスト', alphabet === 'repeated' ? '😀'.repeat(rows) : Array.from({ length: rows }, (_, i) => String.fromCodePoint(0x10000 + i)).join('')]],
+  done: (rows) => !document.querySelector('[data-calculation-state="pending"]') && [...document.querySelectorAll('.stat')].some((stat) =>
+    stat.querySelector('.stat-label')?.textContent === 'コードポイント' && stat.querySelector('.stat-value')?.textContent === rows.toLocaleString('ja-JP')),
+})));
+
 /** 測定記録と同じ、重複も隣接もしないIPv4アドレスを作る。 */
 function subnetInput(rows, suffix = '') {
   return Array.from({ length: rows }, (_, i) =>
@@ -182,23 +223,59 @@ const median = (values) => {
 const summarize = (values) => ({ median: median(values), min: Math.min(...values), max: Math.max(...values) });
 
 /** 1回分の計測。新しいページで入力を設定し、結果の表示までの時間と最大の描画間隔を返す */
-async function measureOnce(browser, { tool, tab, inputs, done }, rows, line) {
-  const page = await browser.newPage({ locale: 'ja-JP' });
+async function measureOnce(browser, { tool, tab, inputs, done, prepare, paste, pasteLimit = 2000, renderMode }, rows, line) {
+  const page = await browser.newPage({ locale: 'ja-JP', viewport: MEASURE_VIEWPORT, deviceScaleFactor: 1 });
   try {
+    if (prepare) await prepare(page);
+    if (renderMode) await page.addInitScript(() => {
+      const NativeWorker = window.Worker;
+      window.Worker = class extends NativeWorker {
+        constructor(...args) {
+          super(...args);
+          this.addEventListener('message', () => { if (this.isCount && window.measurement) window.measurement.workerReceivedAt = performance.now(); });
+        }
+        postMessage(request, ...rest) {
+          this.isCount = request?.tool === 'count';
+          if (this.isCount && window.measurement) window.measurement.workerPostedAt = performance.now();
+          return super.postMessage(request, ...rest);
+        }
+      };
+    });
     await page.goto(`http://127.0.0.1:4174/#/${tool}`);
     if (tab) await page.getByRole('button', { name: tab, exact: true }).click();
+    if (renderMode) await page.evaluate((mode) => {
+      const css = mode === 'input-hidden' ? 'textarea[aria-label="テキスト"]' : mode === 'badges-hidden' ? '.tag-list' : mode === 'results-hidden' ? '.stats, .notice' : null;
+      if (css) {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(`${css} { display: none !important; }`);
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+      }
+    }, renderMode);
     const values = inputs(rows, line);
     const fill = async ([label, value]) => {
-      const input = label === null ? page.locator('textarea:not([readonly])').first() : page.getByRole('textbox', { name: label, exact: true }).first();
-      await input.waitFor();
-      await input.evaluate((element, text) => {
+      const input = renderMode === 'input-hidden' ? page.locator('textarea[aria-label="テキスト"]')
+        : label === null ? page.locator('textarea:not([readonly])').first() : page.getByRole('textbox', { name: label, exact: true }).first();
+      await input.waitFor({ state: renderMode === 'input-hidden' ? 'attached' : 'visible' });
+      await input.evaluate((element, { text, paste, pasteLimit }) => {
+        const start = performance.now();
+        if (paste && text.length > pasteLimit) {
+          const data = new DataTransfer();
+          data.setData('text/plain', text);
+          element.setSelectionRange(0, element.value.length);
+          const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+          Object.defineProperty(event, 'clipboardData', { value: data });
+          element.dispatchEvent(event);
+          if (window.measurement) window.measurement.dispatchMs = performance.now() - start;
+          return;
+        }
         /** DOM の標準の value セッターと input イベントで渡す（キー入力や fill の待ちを含めないため） */
         Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value').set.call(element, text);
         element.dispatchEvent(new Event('input', { bubbles: true }));
-      }, value, { timeout: 60000 });
+        if (window.measurement) window.measurement.dispatchMs = performance.now() - start;
+      }, { text: value, paste, pasteLimit }, { timeout: 60000 });
     };
     for (const value of values.slice(0, -1)) await fill(value);
-    await page.evaluate(() => {
+    await page.evaluate((expected) => {
       const sample = { start: performance.now(), last: performance.now(), maxGap: 0, frames: 0, running: true };
       window.measurement = sample;
       const frame = (now) => {
@@ -208,14 +285,25 @@ async function measureOnce(browser, { tool, tab, inputs, done }, rows, line) {
         if (sample.running) requestAnimationFrame(frame);
       };
       requestAnimationFrame(frame);
-    });
+      const observer = new MutationObserver(() => {
+        if (!sample.resultDomAt && [...document.querySelectorAll('.stat')].some((stat) => stat.querySelector('.stat-label')?.textContent === 'コードポイント' && stat.querySelector('.stat-value')?.textContent === expected.toLocaleString('ja-JP'))) sample.resultDomAt = performance.now();
+      });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      sample.stopObserving = () => observer.disconnect();
+    }, rows);
     await fill(values.at(-1));
     const finished = await (await page.waitForFunction(done, rows, { timeout: 60000 })).jsonValue();
     const sample = await page.evaluate(async () => {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const sample = window.measurement;
       sample.running = false;
-      return { inputToResultMs: Math.round(performance.now() - sample.start), maxFrameGapMs: Math.round(sample.maxGap), frames: sample.frames };
+      sample.stopObserving();
+      const elapsed = Math.round(performance.now() - sample.start);
+      return { inputToResultMs: elapsed, maxFrameGapMs: Math.round(sample.maxGap), frames: sample.frames,
+        dispatchMs: sample.dispatchMs, workerPostedMs: sample.workerPostedAt ? sample.workerPostedAt - sample.start : null,
+        workerReceivedMs: sample.workerReceivedAt ? sample.workerReceivedAt - sample.start : null,
+        resultDomMs: sample.resultDomAt ? sample.resultDomAt - sample.start : null,
+        domToEndMs: sample.resultDomAt ? performance.now() - sample.resultDomAt : null };
     });
     sample.outcome = typeof finished === 'string' ? finished : 'result';
     return { sample, inputUnits: values.reduce((n, [, value]) => n + value.length, 0) };
@@ -244,8 +332,12 @@ try {
     memoryGiB: Math.round(totalmem() / 1024 ** 3),
     runtime: process.version,
     browser: browser.version(),
+    viewport: MEASURE_VIEWPORT,
+    deviceScaleFactor: 1,
+    locale: 'ja-JP',
     runsPerCase: RUNS_PER_CASE,
     results,
+    ...(countBudget ? { budget: { inputToResultMedianMs: 1000, maxFrameGapMedianMs: 250, scope: 'この記録の基準環境・通常表示・各ケース3回の中央値。全文編集と文字の形の全表示を除外。' } } : {}),
   };
   const save = async () => {
     if (outputPath) await writeFile(outputPath, JSON.stringify(report, null, 2) + '\n');
@@ -262,10 +354,11 @@ try {
     return false;
   };
   let changed = false;
-  measuring: for (const rows of subnetOnly ? [100_000] : ROWS) {
-    for (const c of subnetOnly ? SUBNET_CASES : CASES) {
+  measuring: for (const rows of countRenderProfile ? [10_000] : passwordOnly ? [0] : subnetOnly ? [100_000] : ROWS) {
+    for (const c of countDiagnosticsOnly ? COUNT_DIAGNOSTIC_CASES : passwordOnly ? PASSWORD_CASES : subnetOnly ? SUBNET_CASES : diffOnly ? CASES.filter((c) => c.tool === 'diff') : CASES) {
       const target = c.mode ? { tool: c.tool, mode: c.mode } : { tool: c.tool };
-      const shape = { rows, lineUnits: c.line.length, sample: c.line };
+      const shape = countDiagnosticsOnly ? { alphabet: c.alphabet, codePoints: rows, distinctSymbols: c.alphabet === 'repeated' ? 1 : rows, inputUtf16: rows * 2, ...(c.renderMode ? { renderMode: c.renderMode } : {}) }
+        : passwordOnly ? c.shape : { rows, lineUnits: c.line.length, sample: c.line };
       const expected = c.expected?.(rows) ?? 'result';
       const runs = [];
       let inputUnits = 0;
@@ -289,6 +382,11 @@ try {
           maxFrameGapMs: summarize(runs.map((r) => r.maxFrameGapMs)),
           runs,
         });
+        if (countBudget) {
+          const result = results.at(-1);
+          result.budgetPassed = result.inputToResultMs.median <= report.budget.inputToResultMedianMs && result.maxFrameGapMs.median <= report.budget.maxFrameGapMedianMs;
+          if (!result.budgetPassed) process.exitCode = 1;
+        }
       } catch (error) {
         const name = changed ? 'BuildChanged' : error.name;
         const message = changed ? '計測中に dist が変わりました' : String(error.message).split('\n')[0];

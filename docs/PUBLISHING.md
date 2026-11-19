@@ -26,7 +26,7 @@ localStorage・sessionStorage や画面の中身を互いに読めます。そ�
 - [ ] 組織で公開する場合は、組織の **Settings → Authentication security** で **Require two-factor authentication** をオンにする
 - [ ] `<組織名>.github.io` という名前のリポジトリ（アカウント直下のサイト）を作らない。アカウント直下のサイトは、Service Worker で `/page.developer-toolbox/` を含む全体の通信を横取りできるため
 - [ ] 同じオリジンのほかの Pages サイトに、外部のスクリプト（広告・アクセス解析・CDN のライブラリなど）を読み込むサイトや、第三者が内容を変えられるサイトを置かない
-- [ ] 同じオリジンにサイトを追加するときは、上の2つ（アカウント直下のサイトを作らない・外部のスクリプトや第三者が変えられる内容を置かない）を満たすか確かめる
+- [ ] 同じオリジンにサイトを追加するときは、上の2つ（アカウント直下のサイトを作らない・外部のスクリプトや第三者が変えられる内容を置かない）を満たすか確かめる。同じアカウント（または組織）のほかのリポジトリで Pages を有効にすることも、サイトの追加にあたる。Pages を有効にする前に確かめる
 
 ## 2. リポジトリの作成と初回 push
 
@@ -71,7 +71,7 @@ git branch --show-current # main であること（違う場合は git symbolic-
 git add -A
 git status --short # 追加（A）だけで、.claude/ や dist/ を含まないこと
 diff <(git -C <今のフォルダ> ls-files) <(git ls-files) # 何も出ないこと（同じファイルがそろっていること）
-npm ci
+npm run setup
 npm run check
 git commit -m "chore: 初回公開"
 git log -1 --format=fuller # 著者のメールアドレスが、公開してよいもの（…@users.noreply.github.com など）であること
@@ -126,20 +126,49 @@ git -c push.followTags=false push -u origin develop
 
 ## 7. main ブランチの保護
 
-**Settings → Rules → Rulesets → New branch ruleset**（対象：`main`）
+`main` は、プルリクエストからだけ更新します（[CONTRIBUTING.md](../CONTRIBUTING.md) の「コミットとプルリクエスト」）。`main` に入ると公開されるため、CI・CodeQL・Dependency review が通った変更だけを入れます。
 
+**Settings → Rules → Rulesets**（対象：`main`。作成済みの ruleset があれば、それを編集する）
+
+- [ ] **Enforcement status** を **Active** にする（新しく作った ruleset は Disabled で、規則が適用されない）。保存した後も、一覧で Active になっていることを確かめる
 - [ ] **Restrict deletions**（ブランチの削除を禁止）
 - [ ] **Block force pushes**（履歴の書き換えを禁止）
-- [ ] プルリクエスト経由で更新する運用にする場合は、**Require status checks to pass** に次のチェックを追加する
+- [ ] **Require a pull request before merging**（`main` への直接の push を禁止）。一人で開発する間は **Required approvals** を 0 にする（自分のプルリクエストは自分で承認できないため）
+- [ ] **Require status checks to pass** に次のチェックを追加する
   - `check / check`：CI。検査は共通の `checks.yml` を呼ぶため、この名前で表示される
   - `analyze (javascript-typescript)` と `analyze (actions)`：CodeQL。言語ごとの matrix のジョブなので、`analyze` だけの名前のチェックはない
   - `dependency-review`：Dependency review
 
   チェックの名前は、そのワークフローが一度動いた後でないと候補に出ません。公開リポジトリでプルリクエストを1回作ってから追加してください。
+- [ ] 同じ画面の **Require branches to be up to date before merging** を有効にする（古い `main` の上で通った検査のまま、マージしないため）
+- [ ] **Bypass list** は空のままにする（管理者の変更も、同じ検査を通してから入れるため）
 
-> 一人で開発していて main に直接 push する運用なら、上2つだけでも十分です。main に直接 push しても、公開（`deploy.yml`）は CI と同じ検査（`checks.yml`。E2E を含む）を公開するコミットで実行し、通ったときだけ公開します。検査に失敗すると公開されないので、**Actions** タブで結果を確認してください。Dependabot のプルリクエストは CI が通ったことを確認してからマージしてください。
+> Dependabot のプルリクエストも、同じ検査が通ってからマージします。公開（`deploy.yml`）は、`main` に入ったコミットでも同じ検査（`checks.yml`。E2E を含む）をもう一度実行し、通ったときだけ公開します。
 
-## 8. 公開後の確認
+## 8. リポジトリの表示と一般設定
+
+安全には関わらない項目ですが、公開先の説明と、プルリクエストの運用をそろえるために設定します。
+
+**トップページの About（右の歯車）**
+
+- [ ] **Description** に、例として「ブラウザ内で完結する開発者向けツール集（17ツール）。入力は外部送信しません。」を書く
+- [ ] **Packages** の表示を外し、**Deployments** は表示したままにする（公開先の URL を確かめやすくするため）
+
+**Settings → General**
+
+- [ ] **Features** の **Wikis** と **Projects** を外す（使わない入口を残さないため。文書は `docs/` に置く）
+- [ ] **Pull Requests** で **Allow squash merging** だけを残す（`main` の履歴を、プルリクエスト1つにつき1つのコミットにするため）
+- [ ] **Automatically delete head branches** を有効にする（マージした作業ブランチを残さないため）
+
+**Releases（公開の節目ごと）**
+
+画面のサイドバーの一番下に「版：v0.1.0（abc1234）」を表示します（`src/buildInfo.ts`）。版は `package.json` の `version`、括弧の中は公開したコミットの先頭7文字です。不具合の報告（Issue のテンプレート）では、この表示を書いてもらいます。
+
+- [ ] 節目にする変更は、先に `package.json` の `version` を上げるプルリクエストを `main` にマージする（最初の節目は、今の `0.1.0` のままでよい）
+- [ ] **Releases → Draft a new release** で、`main` に `v<version>` のタグ（最初は `v0.1.0`）を作り、**Generate release notes** で本文を作る。分類は `.github/release.yml` で決めている
+- [ ] 公開した画面の版の表示が、作ったタグと同じであることを確かめる
+
+## 9. 公開後の確認
 
 - [ ] 公開URLで開発者ツールの Console にエラー（`Refused to ...` を含む）が出ていないこと
 - [ ] Network タブで github.io 以外への通信がないこと

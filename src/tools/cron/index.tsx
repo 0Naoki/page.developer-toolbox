@@ -3,6 +3,7 @@
  * - `parse.ts`：構文解析
  * - `nextRuns.ts`：次回の実行日時の探索
  * - `describe.ts`：説明文の生成
+ * - `build.ts`・`Builder.tsx`：頻度と時刻から式を組み立てる
  */
 import { useMemo } from 'react';
 import { Notice } from '../../components/Notice';
@@ -21,6 +22,7 @@ import { SEARCH_YEARS, formatRun, nextRuns } from './nextRuns';
 import { parseCron, type Dialect } from './parse';
 import { ErrorBox } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
+import { Builder } from './Builder';
 
 const RUN_COUNT = 10;
 const REFRESH_MS = 30_000;
@@ -107,6 +109,7 @@ export default function CronTool() {
         <button type="button" className="btn btn-ghost" onClick={() => setInput('')}>クリア</button>
       </div>
       <p className="hint">{format.hint}</p>
+      <Builder dialect={dialect} onUse={setInput} />
 
       {result && !result.ok && <ErrorBox alert message={result.error} />}
       {result?.ok && (
@@ -149,7 +152,8 @@ export default function CronTool() {
                   {result.runs.map((run) => (
                     <tr key={run}>
                       <td className="mono">{formatRun(run, JST)}</td>
-                      {showZone && <td className="mono">{formatRun(run, zone)}</td>}
+                      {/** 基準日時（日本時間）に貼り戻しても同じ時刻になるよう、UTC からのずれを付ける */}
+                      {showZone && <td className="mono">{formatRun(run, zone, true)}</td>}
                       <td>{relativeFrom(new Date(run), result.from)}</td>
                     </tr>
                   ))}
@@ -161,7 +165,7 @@ export default function CronTool() {
       )}
 
       <label className="field">
-        <span className="field-label">基準日時（JST。空欄なら現在）</span>
+        <span className="field-label">基準日時（JST。空欄なら現在。次回の実行日時を貼り付けてもよい）</span>
         <input className="input mono" aria-label="基準日時" spellCheck={false} value={base} onChange={(e) => setBase(e.target.value)} placeholder="2026-10-02 09:00:00" />
       </label>
     </ToolShell>

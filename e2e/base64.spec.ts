@@ -2,8 +2,9 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - Base64：ファイルの読み込み順序と読み込み中の旧結果の非表示、16進ダンプの出力で入れ替えを無効にすること、文字コードの切り替え、data: URI の長い MIME タイプをバッジで抜粋にすること。
+ * - [R021] Base64：ファイルの読み込み順序と読み込み中の旧結果の非表示、16進ダンプの出力で入れ替えを無効にすること、文字コードの切り替え、data: URI の長い MIME タイプをバッジで抜粋にすること。
  *   入力元と形式に応じた設定の適用、文字コード・BOM・ダンプの上限・入れ替え可否（あわせて `src/tools/base64/conversion.test.ts`・`src/tools/base64/presentation.test.ts`）
+ *   不正なパディングを補正せず拒否し、正常なパディングと完全省略は復号すること。通常入力・data: URI・Workerの経路を確認する。
  */
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
@@ -12,6 +13,30 @@ import { captureClipboard, copiedLines } from './clipboard';
 import { pasteLargeInput } from './paste';
 
 /** Base64・URLエンコードの画面（ファイルの読み込み順序、Worker での変換、16進ダンプ）の E2E */
+
+test('Base64：不正なパディングは通常入力・data: URI・Workerでも復号せず、修正後に復旧する', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/base64');
+  await page.getByRole('group', { name: '方向', exact: true }).getByRole('button', { name: 'デコード', exact: true }).click();
+  const input = page.getByRole('textbox', { name: '入力', exact: true });
+  const output = page.getByRole('textbox', { name: '出力', exact: true });
+  const error = page.getByText('Base64のパディング（=）の個数または全体の長さが不正です', { exact: true });
+  await input.fill('YQ==');
+  await expect(output).toHaveValue('a');
+  for (const invalid of ['YWJj=', 'YQ=', '===', 'data:text/plain;base64,YWI==']) {
+    await input.fill(invalid);
+    await expect(error).toBeVisible();
+    await expect(output).toHaveCount(0);
+  }
+  /** 空白を除く前の入力長でWorkerへ切り替わる。大容量でも同じ検証を使う。 */
+  await input.fill('');
+  await pasteLargeInput(page, '入力', 'YWJj=' + ' '.repeat(100_001));
+  await expect(error).toBeVisible();
+  await expect(output).toHaveCount(0);
+  await page.getByRole('button', { name: '全文を編集', exact: true }).click();
+  await input.fill('YQ');
+  await expect(output).toHaveValue('a');
+  await expect(error).toHaveCount(0);
+});
 
 test('Base64：空白だけの入力も各形式でエンコードし、空文字に戻すと出力を消す', async ({ page }) => {
   await page.goto('./#/base64');

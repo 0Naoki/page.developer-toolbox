@@ -1,8 +1,9 @@
 /** 合成したエポック入力を拒否・解析する時間を、HEAD と作業ツリーで比較する。 */
-import { createComparison, measure } from './benchmark.mjs';
+import { comparisonArguments, createComparison, measure } from './benchmark.mjs';
 
 const entry = 'src/tools/unix-time/epoch.ts';
-const comparison = await createComparison(entry);
+const { outputPath, ...options } = comparisonArguments();
+const comparison = await createComparison(entry, options);
 const { versions } = comparison;
 const cases = [
   ...[1000, 1000000, 8000000].map((length) => ({ name: '範囲外の9の繰り返し', input: '9'.repeat(length), expected: null })),
@@ -26,4 +27,4 @@ for (const item of cases) {
 comparison.writeReport({
   scope: 'Node の単一エポック解析のみ。入力文字列の準備・画面・保存は対象外。HEAD の入口も依存は作業ツリーから読む。',
   cases: measurements,
-}, process.argv[2]);
+}, outputPath);

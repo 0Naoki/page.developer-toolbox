@@ -23,7 +23,7 @@ export function PrivacySettings() {
   return (
     <div className="privacy">
       <p className="privacy-note">
-        入力内容はこのタブの中だけに保持し、タブを閉じると消えます。ブラウザを閉じた後まで残す保存はしません。外部には送信されません。
+        入力内容はこのタブの中だけに保持し、外部には送信されません。タブを閉じると通常は消えますが、ブラウザのセッション復元で戻る場合があります。明示的に破棄するときは全消去を使ってください。
       </p>
       <button type="button" className={confirming ? 'link-btn danger' : 'link-btn'} onClick={clear}>
         {confirming ? 'もう一度押すと消去します' : '保存データをすべて消去'}

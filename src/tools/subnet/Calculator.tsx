@@ -3,6 +3,7 @@ import { Badge } from '../../components/Badge';
 import { Notice } from '../../components/Notice';
 import { KvRow } from '../../components/KvRow';
 import { useInput } from '../../hooks/useInput';
+import { useAnnounce } from '../../components/LiveAnnouncer';
 import { binaryOf, contains, formatIpv4, kindOf, parseIpv4, parseNetwork, subnetInfo, type ParsedNetwork } from './ipv4';
 import { binaryOf6, contains6, expandIpv6, formatCount, formatIpv6, kindOf6, parseIpv6, parseNetwork6, subnetInfo6 } from './ipv6';
 import { cidr } from './format';
@@ -39,18 +40,29 @@ export function Calculator({ cloud }: { cloud: boolean }) {
     if (!check.trim() || !target) return null;
     return attempt(() => ({ inside: target.inside(check) }));
   }, [target, check]);
+  /** 判定の結果（バッジ）を読み上げる */
+  useAnnounce(checked?.ok ? `${target?.label ?? ''} に${checked.inside ? '含まれます' : '含まれません'}` : null);
 
   return (
     <>
-      <input
-        aria-label="アドレスとプレフィックス長、またはマスク"
-        className="input mono"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        spellCheck={false}
-        autoComplete="off"
-        placeholder="192.168.10.0/24 / 10.0.0.5 255.255.255.0 / 2001:db8::/32"
-      />
+      <div className="input-row">
+        <input
+          aria-label="アドレスとプレフィックス長、またはマスク"
+          className="input mono"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          spellCheck={false}
+          autoComplete="off"
+          placeholder="192.168.10.0/24 / 10.0.0.5 255.255.255.0 / 2001:db8::/32"
+        />
+        {/** ネットワークと、含まれるかを判定するアドレスの両方を入れる（プライベートアドレスの架空の値） */}
+        <button type="button" className="btn btn-ghost" onClick={() => {
+          setInput('192.168.10.0/24');
+          setCheck('192.168.10.200');
+        }}>
+          サンプル
+        </button>
+      </div>
       {result && !result.ok && <ErrorText message={result.error} />}
       {!network.v6 && network.result?.ok && <SubnetTable parsed={network.result.parsed} info={network.result.info} />}
       {network.v6 && network.result?.ok && <SubnetTable6 parsed={network.result.parsed} info={network.result.info} />}

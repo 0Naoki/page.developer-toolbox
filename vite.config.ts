@@ -3,6 +3,15 @@ import { build, type Plugin, type Rolldown } from 'vite';
 import react from '@vitejs/plugin-react';
 /** Viteの設定読み込みに対応するため、ローカルのTypeScriptには拡張子を付ける。 */
 import { CSP } from './csp.config.ts';
+import packageJson from './package.json' with { type: 'json' };
+
+/**
+ * 画面に表示する版（src/buildInfo.ts）。package.json の version と、ビルドしたコミット（GitHub Actions の GITHUB_SHA の先頭7文字）。
+ * 手元のビルドは「local」にする。ビルドの日時は入れない（同じコミットからは同じ成果物を作り、成果物のハッシュで比べられるようにするため）。
+ * Node の型定義を依存に足さないため、process は globalThis から読む
+ */
+const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+const BUILD_COMMIT = /^[0-9a-f]{40}$/.test(env.GITHUB_SHA ?? '') ? (env.GITHUB_SHA ?? '').slice(0, 7) : 'local';
 
 /**
  * 本番ビルドの index.html の先頭に CSP を埋め込む。
@@ -63,6 +72,10 @@ function workerSource(): Plugin {
  */
 export default defineConfig({
   base: './',
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __APP_COMMIT__: JSON.stringify(BUILD_COMMIT),
+  },
   plugins: [workerSource(), react(), cspMeta()],
   build: {
     /** ソースマップは公開しない（ソースは GitHub で公開済みだが、ビルド成果物を小さく保つ） */

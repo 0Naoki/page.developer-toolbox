@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Notice } from '../../components/Notice';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { CalculationStatus } from '../../components/CalculationStatus';
 import { LargeTextInput } from '../../components/LargeTextInput';
 import { useInput } from '../../hooks/useInput';
@@ -21,7 +22,7 @@ export function OverlapCheck() {
   return (
     <>
       {/** 数万行の一覧を普通の textarea で描画すると画面が止まるため、表示を先頭までにする */}
-      <LargeTextInput
+      <LargeTextInput limit={MAX_CALCULATION_INPUT}
         label="CIDR の一覧（1行に1つ。後ろに名前を書けます）"
         className="code code-mid"
         value={text}

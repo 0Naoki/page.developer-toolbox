@@ -56,4 +56,9 @@ describe('日本時間の表示', () => {
     expect(formatJst(date)).toBe('2026-01-01 09:00:00');
     expect(formatJstLabeled(date)).toBe('2026-01-01 09:00:00 JST');
   });
+
+  it('withMillis のときはミリ秒も付ける（UUID v7 の生成日時など）', () => {
+    expect(formatJstLabeled(new Date('2026-01-01T00:00:00.120Z'), true)).toBe('2026-01-01 09:00:00.120 JST');
+    expect(formatJstLabeled(new Date('1969-12-31T23:59:59.999Z'), true)).toBe('1970-01-01 08:59:59.999 JST');
+  });
 });

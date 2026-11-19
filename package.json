@@ -4,18 +4,20 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=22.12.0"
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
+    "setup": "npm ci --ignore-scripts && npm run audit:signatures",
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "test:watch": "vitest",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "preview:pages": "vite build && npm run serve:pages",
     "serve:pages": "vite preview --config pages-preview.config.ts",
-    "check": "npm run typecheck && npm test && vite build",
+    "check": "npm run typecheck && npm test && npm run test:scripts && vite build",
     "e2e:install": "playwright install chromium firefox webkit",
     "e2e": "vite build && playwright test",
     "e2e:run": "playwright test",

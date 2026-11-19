@@ -2,6 +2,7 @@
  * CSV ⇔ JSON のファイルの分担。
  * - `parseCsv.ts`：CSV の構文解析
  * - `writeCsv.ts`：JSON からの CSV の出力
+ * - `validateJson.ts`：列へ展開する前に、JSONの各オブジェクトの重複キーを拒否
  * - `logic.ts`：CSV から JSON への変換
  * - `csvFormat.ts`：両方向で共通の形式（区切り文字・セル数と出力の上限）
  * - `fileOptions.ts`：ファイル名から変換の方向と区切り文字を選ぶ
@@ -10,6 +11,7 @@
  * 画面・Worker・テストは、それぞれの定義元を直接読み込む。両方向を組み合わせる検査は `roundTrip.test.ts` にある。
  */
 import { useRef } from 'react';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Pane } from '../../components/Pane';
 import { Check } from '../../components/Check';
 import { Notice } from '../../components/Notice';
@@ -23,6 +25,7 @@ import { TextOutputPreview } from '../../components/FormattedOutput';
 import { ErrorBox } from '../../components/ErrorMessage';
 import { type Delimiter } from './csvFormat';
 import type { Direction } from './fileOptions';
+import { OpenInToolButton } from '../../components/OpenInToolButton';
 import { useCsvJson } from './useCsvJson';
 
 const DELIMITERS: { value: Delimiter; label: string }[] = [
@@ -167,7 +170,7 @@ export default function CsvJson() {
           title={direction === 'csv2json' ? 'CSV' : 'JSON'}
           actions={<button type="button" className="link-btn" onClick={() => resetInput('')}>クリア</button>}
         >
-          <LargeTextInput
+          <LargeTextInput limit={MAX_CALCULATION_INPUT}
             label={`入力（${direction === 'csv2json' ? 'CSV' : 'JSON'}）`}
             value={input}
             onChange={replaceInput}
@@ -189,6 +192,7 @@ export default function CsvJson() {
             <button type="button" className="btn btn-ghost" onClick={download}>
               保存
             </button>
+            {direction === 'csv2json' && <OpenInToolButton to="json" text={result.output} limit={MAX_CALCULATION_INPUT} />}
             <CopyButton text={result.output} />
           </>}
         >

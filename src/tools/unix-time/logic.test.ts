@@ -41,6 +41,20 @@ describe('期間計算の日時範囲の境界', () => {
   }
 });
 
+it('回帰：桁数だけでは単位を決めきれない値は、もう1つの読み方を返す（12桁のミリ秒を黙って秒として読まない）', () => {
+  /** 1990-01-01 のミリ秒（12桁）を秒として読み、西暦2万年台の日時だけを表示していた */
+  expect(parseEpoch('631152000000')).toMatchObject({ unit: 's', alternative: 'ms' });
+  expect(parseEpoch('631152000000', 'ms').date.toISOString()).toBe('1990-01-01T00:00:00.000Z');
+  expect(parseEpoch('63115200000')).toMatchObject({ unit: 's', alternative: 'ms' });
+  expect(parseEpoch('631152000000000')).toMatchObject({ unit: 'ms', alternative: 'us' });
+  expect(parseEpoch('631152000000000000')).toMatchObject({ unit: 'us', alternative: 'ns' });
+  /** 今の時刻に近い桁数（10・13・16・19桁）や、単位を選んだときは、もう1つの読み方を返さない */
+  for (const value of ['1790899200', '1790899200000', '1790899200000000', '1790899200000000000', '1500']) {
+    expect(parseEpoch(value), value).not.toHaveProperty('alternative');
+  }
+  expect(parseEpoch('631152000000', 's')).not.toHaveProperty('alternative');
+});
+
 it('短いミリ秒値を、指定した単位で読み戻す', () => {
   const date = new Date('1970-01-01T00:00:01.500Z');
   expect(parseEpoch(String(toView(date).epochMillis), 'ms')).toEqual({ date, unit: 'ms' });

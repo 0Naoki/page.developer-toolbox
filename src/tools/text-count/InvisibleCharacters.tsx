@@ -5,8 +5,9 @@ import { Stat } from '../../components/Stat';
 import { MAX_LISTED } from './characterDetails';
 import { INVISIBLE_PREVIEW_LENGTH, type InvisibleInspection } from './invisible';
 import { formatNumber } from '../../lib/number';
+import { DiagnosticOutput } from './DiagnosticOutput';
 
-export function InvisibleCharacters({ result }: { result: InvisibleInspection }) {
+export function InvisibleCharacters({ result, input }: { result: InvisibleInspection; input: string }) {
   return (
     <section className="stack" aria-label="不可視文字検査">
       <h2 className="section-title">不可視文字・改行コードの検査</h2>
@@ -37,6 +38,7 @@ export function InvisibleCharacters({ result }: { result: InvisibleInspection })
           </table>
         </div>
         {result.kindCount > result.kinds.length && <p className="hint">種類別集計は先頭{MAX_LISTED}種類を表示しています（全 {formatNumber(result.kindCount)} 種類）。</p>}
+        <DiagnosticOutput input={input} kind="invisibleKinds" label="不可視文字の種類別集計" />
       </>}
       {result.occurrenceCount > 0 && <>
         <h3>タブ・特殊な空白・制御文字などの出現位置</h3>
@@ -51,6 +53,7 @@ export function InvisibleCharacters({ result }: { result: InvisibleInspection })
           </table>
         </div>
         <p className="hint">検出位置は先頭 {formatNumber(result.occurrences.length)} 件を表示しています（全 {formatNumber(result.occurrenceCount)} 件）。</p>
+        <DiagnosticOutput input={input} kind="invisibleOccurrences" label="不可視文字の出現位置" />
       </>}
     </section>
   );

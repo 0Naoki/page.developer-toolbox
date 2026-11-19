@@ -36,15 +36,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      # package-lock.json どおりに入れる（lock が無い・食い違う場合は失敗する）。
-      # 依存のインストールスクリプトは実行しない。次の署名の検証より前に、改ざんされたパッケージのコードを動かさないため。
-      # いまの依存でスクリプトを持つのは fsevents（macOS 専用の任意の依存で、Linux には入らない）だけで、ビルド・テストに要らない。
-      # スクリプトが必要な依存を足したときは、署名の検証の後に npm rebuild <パッケージ名> を足す
-      - run: npm ci --ignore-scripts
-
-      # npm レジストリの署名を検証し、改ざんされたパッケージを入れていないか確認する
-      # （手元では npm run audit で同じ2つを実行する。オプションは package.json の scripts だけに書く）
-      - run: npm run audit:signatures
+      # 依存の準備（package.json の setup。手元の手順・start.ps1 と同じコマンドを使う）
+      # - npm ci --ignore-scripts：package-lock.json どおりに入れる（lock が無い・食い違う場合は失敗する）。
+      #   依存のインストールスクリプトは実行しない。次の署名の検証より前に、改ざんされたパッケージのコードを動かさないため。
+      #   いまの依存でスクリプトを持つのは fsevents（macOS 専用の任意の依存で、Linux には入らない）だけで、ビルド・テストに要らない。
+      #   スクリプトが必要な依存を足したときは、署名の検証の後に npm rebuild <パッケージ名> を足す
+      # - npm run audit:signatures：npm レジストリの署名を検証し、改ざんされたパッケージを入れていないか確認する
+      # オプションは package.json の scripts だけに書く
+      - run: npm run setup
 
       # 公開物に含まれる依存（react など）に重大な既知の脆弱性がないか
       - run: npm run audit:deps

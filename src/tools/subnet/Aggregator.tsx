@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge } from '../../components/Badge';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { CalculationStatus } from '../../components/CalculationStatus';
 import { CopyButton } from '../../components/CopyButton';
 import { LargeTextInput } from '../../components/LargeTextInput';
@@ -10,16 +11,30 @@ import { formatNumber } from '../../lib/number';
 import { Errors } from './Errors';
 import { TextOutputPreview } from '../../components/FormattedOutput';
 
+/** サンプルの一覧（隣り合う CIDR・範囲・単独のアドレス・IPv6 を含む、ドキュメント用・プライベートのアドレス） */
+const SAMPLE = ['10.0.0.0/24', '10.0.1.0/24', '192.168.0.10 - 192.168.0.40', '172.16.5.1', '2001:db8::/33', '2001:db8:8000::/33'].join('\n');
+
 export function Aggregator() {
   const [text, setText] = useInput('subnet:aggregate');
+  /** サンプルで入力を差し替えたとき、編集履歴を作り直す（LargeTextInput の resetKey） */
+  const [inputRevision, setInputRevision] = useState(0);
   const request = useMemo(() => ({ tool: 'subnetAggregate' as const, input: text }), [text]);
   const calculation = useCalculation(request);
   const result = text ? calculation.result : null;
 
   return (
     <>
+      <div className="toolbar">
+        <button type="button" className="btn btn-ghost" onClick={() => {
+          setText(SAMPLE);
+          setInputRevision((revision) => revision + 1);
+        }}>
+          サンプル
+        </button>
+      </div>
       {/** 数万行の一覧を普通の textarea で描画すると画面が止まるため、表示を先頭までにする */}
-      <LargeTextInput
+      <LargeTextInput limit={MAX_CALCULATION_INPUT}
+        resetKey={inputRevision}
         label="CIDR・アドレスの範囲・アドレスの一覧（1行に1つ）"
         className="code code-mid"
         value={text}

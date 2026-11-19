@@ -22,6 +22,9 @@
  * 通信元・スクリプト元の許可は増やさない。
  * Trusted Types に対応していないブラウザでは、この2つの指定だけが無視され、ほかの指定はそのまま有効。
  *
+ * 指定の一覧は src/csp.test.ts で完全一致を確かめる。緩める変更（許可の追加）は、そのテストの期待値も変えることになるため、
+ * レビューで必ず目に入る。Web アプリマニフェストは置いていないため、manifest-src も default-src 'none' のまま閉じる。
+ *
  * 注意：meta タグでは frame-ancestors（クリックジャッキング対策）と report-uri は効かない。
  * クリックジャッキングは、埋め込まれたときにアプリを表示しないことで防いでいる（src/main.tsx）。
  */
@@ -41,7 +44,6 @@ export const CSP_DIRECTIVES: Record<string, string> = {
   'font-src': "'self'",
   'connect-src': "'none'",
   'worker-src': 'blob:',
-  'manifest-src': "'self'",
   'base-uri': "'none'",
   'form-action': "'none'",
   'object-src': "'none'",

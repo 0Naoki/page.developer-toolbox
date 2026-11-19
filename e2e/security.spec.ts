@@ -2,11 +2,46 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 設定・opener：不正設定からの復旧、有効設定の保持、opener解除と独立したタブへの案内
- * - 表示設定の保存：生成できない途中のパスワード設定を保存せず、再読み込みで直前の有効な設定に戻すこと。別タブで変えた設定を、無関係な操作や再描画で古い値に書き戻さないこと
+ * - [R003] 設定・opener：不正設定からの復旧、有効設定の保持、opener解除と独立したタブへの案内
+ *   必須文字種と大きな記号集合を使っても強度を過大表示せず、生成した値を保存しないこと。
+ * - [R012] 表示設定の保存：生成できない途中のパスワード設定を保存せず、再読み込みで直前の有効な設定に戻すこと。別タブで変えた設定を、無関係な操作や再描画で古い値に書き戻さないこと。最近使ったツールの更新で、別タブで開いたツールを消さないこと
  */
 import { expect, test } from '@playwright/test';
 import { CROSS_BROWSER } from './tags';
+import { DEFAULT_OPTIONS } from '../src/tools/password-generator/logic';
+
+test('パスワード：不正なUnicodeの保存設定を除去し、有効な既定値へ戻す', CROSS_BROWSER, async ({ page }) => {
+  await page.addInitScript((options) => {
+    localStorage.setItem('dev-toolbox:pref:password:options', JSON.stringify(options));
+  }, { ...DEFAULT_OPTIONS, symbolSet: '\ud83d-\ude00😀' });
+  await page.goto('./#/password');
+  await expect(page.getByLabel('使用する記号', { exact: true })).toHaveValue(DEFAULT_OPTIONS.symbolSet);
+  await expect(page.locator('.pw-list .value-text')).toHaveCount(5);
+  for (const value of await page.locator('.pw-list .value-text').allTextContents()) expect(Array.from(value)).toHaveLength(16);
+  expect(await page.evaluate(() => localStorage.getItem('dev-toolbox:pref:password:options'))).toBeNull();
+});
+
+test('パスワード：必須文字種の偏りを反映し、生成結果を保存しない', CROSS_BROWSER, async ({ page }) => {
+  const symbolSet = Array.from({ length: 100_000 }, (_, i) => String.fromCodePoint(0x10000 + i)).join('');
+  await page.addInitScript((options) => {
+    localStorage.setItem('dev-toolbox:pref:password:options', JSON.stringify(options));
+  }, { ...DEFAULT_OPTIONS, length: 4, excludeAmbiguous: false, requireEach: true, symbolSet });
+  await page.goto('./#/password');
+  await expect(page.locator('.strength-head strong')).toHaveText('弱い');
+  await expect(page.locator('.strength-head .mono')).toHaveText('約 29 ビット');
+  await expect(page.getByLabel('使用する記号', { exact: true })).toHaveAttribute('readonly', '');
+  expect((await page.getByLabel('使用する記号', { exact: true }).inputValue()).length).toBeLessThanOrEqual(2000);
+  await expect(page.locator('.pw-list .value-text')).toHaveCount(5);
+  const generated = await page.locator('.pw-list .value-text').allTextContents();
+  for (const value of generated) {
+    expect(Array.from(value)).toHaveLength(4);
+    expect(value).toMatch(/[A-Z]/);
+    expect(value).toMatch(/[a-z]/);
+    expect(value).toMatch(/[0-9]/);
+  }
+  const saved = await page.evaluate(() => [...Object.values(localStorage), ...Object.values(sessionStorage)]);
+  for (const value of generated) expect(saved.some((entry) => entry.includes(value))).toBe(false);
+});
 
 test('不正な表示設定を既定値に戻してパスワードを生成する', CROSS_BROWSER, async ({ page }) => {
   await page.addInitScript(() => {
@@ -106,6 +141,20 @@ test('別タブで変えた表示設定を、無関係な操作や再描画で�
   /** A で曜日を変えたときは、A の画面の値で保存する */
   await a.locator('label.day-toggle', { hasText: '金' }).click();
   await expect.poll(() => weekend(a)).toBe('[0,5,6]');
+});
+
+test('回帰：最近使ったツールを、別タブで開いたツールを消さずに更新する', CROSS_BROWSER, async ({ context }) => {
+  /** 別タブの変更を受け取らない設定の更新関数が、このタブの古い一覧に適用され、別タブで開いたツールを上書きしていた */
+  const a = await context.newPage();
+  const b = await context.newPage();
+  const recent = () => a.evaluate(() => JSON.parse(localStorage.getItem('dev-toolbox:pref:recent') ?? '[]') as string[]);
+  await a.goto('./');
+  await b.goto('./');
+  await a.goto('./#/json');
+  await expect.poll(recent).toEqual(['json']);
+  /** B は A の変更を受け取っていない（一覧は空のまま）が、保存値を読み直してから先頭に足す */
+  await b.goto('./#/base64');
+  await expect.poll(recent).toEqual(['base64', 'json']);
 });
 
 test('openerがあるタブでは入力せず、参照のない新しいタブで開き直せる', CROSS_BROWSER, async ({ page, context, baseURL }) => {

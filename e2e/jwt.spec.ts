@@ -2,9 +2,11 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - JWT：秘密鍵・公開鍵（証明書）での署名照合、トークンと鍵の非保存、上限を超える公開鍵を全文描画しないこと、期限の更新、長いクレームの表示の省略と全文のコピー。長い alg・小数の桁が長い時刻を、バッジ・表・警告・鍵の欄の見出しで抜粋にすること。
- *   JWK の alg・use・crv が長くても、検証できない理由を表示上限内に残すこと（あわせて `e2e/cert.spec.ts`）
- * - 秘密鍵・共通鍵の混在 × kid 不一致・alg 不一致 × 配列の順序：選択されない鍵でも入力全体を拒否する。公開鍵だけに直した後は再検証できる（あわせて `src/tools/jwt-decoder/verify.test.ts`）
+ * - [R024] JWT：秘密鍵・公開鍵（証明書）での署名照合、トークンと鍵の非保存、上限を超える公開鍵を全文描画しないこと、期限の更新、長いクレームの表示の省略と全文のコピー。長い alg・小数の桁が長い時刻を、バッジ・表・警告・鍵の欄の見出しで抜粋にすること。
+ *   JWK の alg・use・crv が長くても、検証できない理由を表示上限内に残すこと。公開鍵を読み込めないときは「署名が一致しない」でなく「検証できない」とすること
+ *   空白だけのUTF-8鍵もHMACの署名検証に使い、同じバイト列をBase64で入力しても一致すること。空文字・Base64と公開鍵の空白だけの入力は未入力とすること。
+ *   （あわせて `e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts`）
+ * - [R049] 秘密鍵・共通鍵の混在 × kid 不一致・alg 不一致 × 配列の順序：選択されない鍵でも入力全体を拒否する。公開鍵だけに直した後は再検証できる（あわせて `src/tools/jwt-decoder/verify.test.ts`）
  */
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
@@ -113,6 +115,45 @@ test('JWT：HS256 の秘密鍵の欄に公開鍵を入れると、検証せず�
   await expect(page.getByText('公開鍵を HMAC の鍵にすると', { exact: false })).toBeVisible();
   await expect(page.getByText('署名は未検証')).toBeVisible();
   await expect(page.getByText('署名は正しく', { exact: false })).toHaveCount(0);
+});
+
+test('JWT：空白だけのUTF-8鍵と同じBase64鍵で検証でき、未入力の判定も保つ', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/jwt');
+  const secret = ' '.repeat(32);
+  /** 架空の空白32バイトで実際に署名し、画面と独立したWeb Cryptoの結果を検証対象にする。 */
+  const { token, base64Key } = await page.evaluate(async (secret) => {
+    const base64url = (text: string) => btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const signingInput = `${base64url('{"alg":"HS256"}')}.${base64url('{"sub":"space-key-regression"}')}`;
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signingInput)));
+    const signature = base64url(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
+    return { token: `${signingInput}.${signature}`, base64Key: btoa(secret) };
+  }, secret);
+  const input = page.getByLabel('秘密鍵', { exact: true });
+  const format = page.getByRole('group', { name: '秘密鍵の形式', exact: true });
+  const valid = page.getByRole('status').filter({ hasText: '✓ 署名は正しく、この秘密鍵で作られています' });
+  const unverified = page.getByText('署名は未検証', { exact: true });
+  await page.getByLabel('トークン', { exact: true }).fill(token);
+  await expect(unverified).toBeVisible();
+  await input.fill(secret);
+  await expect(valid).toBeVisible();
+  await format.getByRole('button', { name: 'Base64', exact: true }).click();
+  await expect(unverified).toBeVisible();
+  await expect(valid).toHaveCount(0);
+  await input.fill(base64Key);
+  await expect(valid).toBeVisible();
+  await input.fill(secret);
+  await expect(unverified).toBeVisible();
+  await format.getByRole('button', { name: 'テキスト（UTF-8）', exact: true }).click();
+  await expect(valid).toBeVisible();
+  await input.fill('');
+  await expect(unverified).toBeVisible();
+  await expect(valid).toHaveCount(0);
+  /** 公開鍵の空白だけの入力は、形式エラーへ変えずに未入力として扱う。 */
+  await page.getByLabel('トークン', { exact: true }).fill(TOKENS.RS256);
+  await page.getByLabel('公開鍵', { exact: true }).fill(secret);
+  await expect(unverified).toBeVisible();
+  await expect(page.getByText('公開鍵を読み込めません', { exact: false })).toHaveCount(0);
 });
 
 test('JWT：秘密鍵で署名を検証し、トークンと鍵は保存しない', async ({ page }) => {

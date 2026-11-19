@@ -96,7 +96,19 @@ const isBusinessDay = (date: Ymd, cal: Calendar) => dayInfo(date, cal).business;
 export const MAX_SPAN_YEARS = 30;
 /** n営業日後・前の上限 */
 export const MAX_BUSINESS_DAYS = 3000;
+/** 前後移動で扱う年の下限。日付入力と同じ4桁の範囲に収める。 */
+export const MIN_BUSINESS_YEAR = 0;
+/** 前後移動で扱う年の上限。 */
+export const MAX_BUSINESS_YEAR = 9999;
 const MAX_SPAN = 366 * MAX_SPAN_YEARS;
+
+/** 日付入力へ戻せない年に探索が進んだ場合は、結果を返さずに止める。 */
+function checkedBusinessDate(date: Ymd): Ymd {
+  if (!Number.isInteger(date.y) || date.y < MIN_BUSINESS_YEAR || date.y > MAX_BUSINESS_YEAR) {
+    throw new Error(`営業日の前後移動は${String(MIN_BUSINESS_YEAR).padStart(4, '0')}〜${MAX_BUSINESS_YEAR}年の範囲で計算してください`);
+  }
+  return date;
+}
 
 /** 期間を日付順に1回だけ調べる。内訳が必要な場合だけ、日ごとの判定を呼び出し側に渡す。 */
 function scanBusinessRange(from: Ymd, to: Ymd, cal: Calendar, visit?: (date: Ymd, info: DayInfo) => void): { business: number; calendar: number } {
@@ -137,11 +149,11 @@ export function addBusinessDays(date: Ymd, n: number, cal: Calendar): Ymd {
   if (new Set(cal.weekend).size === 7) throw notFound();
   /** 週に1日でも営業日があれば n × 7 日で足りる。独自休日や祝日が重なる分の余裕を足して、探索回数に上限を設ける */
   const limit = MAX_SPAN + Math.abs(n) * 7;
-  let current = date;
+  let current = checkedBusinessDate(date);
   let guard = 0;
   if (n === 0) {
     while (!isBusinessDay(current, cal)) {
-      current = addDays(current, 1);
+      current = checkedBusinessDate(addDays(current, 1));
       if (++guard > limit) throw notFound();
     }
     return current;
@@ -149,7 +161,7 @@ export function addBusinessDays(date: Ymd, n: number, cal: Calendar): Ymd {
   const step = n > 0 ? 1 : -1;
   let remaining = Math.abs(n);
   while (remaining > 0) {
-    current = addDays(current, step);
+    current = checkedBusinessDate(addDays(current, step));
     if (isBusinessDay(current, cal)) remaining--;
     if (++guard > limit) throw notFound();
   }

@@ -134,11 +134,6 @@ export class NonexistentTimeError extends Error {
   }
 }
 
-/** 時刻 ms での、UTC からのずれ（分。表示用に丸める）。日本なら 540 */
-export function offsetMinutes(ms: number, zone: Zone): number {
-  return Math.round(offsetMs(ms, zone) / 60000);
-}
-
 const sameWall = (a: Wall, b: Wall) => a.y === b.y && a.mo === b.mo && a.d === b.d && a.h === b.h && a.mi === b.mi && a.s === b.s;
 
 /**

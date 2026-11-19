@@ -37,6 +37,24 @@ describe('元の改行を保つtextarea編集', () => {
     expect(replaceTextSelectionWithCaret('a\nb', 1, 1, '\r')).toEqual({ value: 'a\r\n\nb', caret: 2 });
     expect(replaceTextSelectionWithCaret('a\rX\nb', 2, 3, '')).toEqual({ value: 'a\r\n\nb', caret: 2 });
   });
+  it('回帰：CRの改行とLFの改行の間の文字を消しても、2つの改行が1つのCRLFに結合しない', () => {
+    /** 「a⏎X⏎b」の X を消すと「a\r\nb」になり、表示上の3行が2行になっていた */
+    const original = 'a\rX\nb';
+    const edited = 'a\n\nb';
+    for (const selection of [{ start: 2, end: 3, inputType: 'deleteContentBackward' }, { start: 3, end: 3, inputType: 'deleteContentBackward' }, undefined]) {
+      const value = applyTextEdit(original, edited, selection);
+      expect(value.replace(/\r\n?/g, '\n'), JSON.stringify(selection)).toBe(edited);
+      expect(value).toBe('a\r\n\nb');
+    }
+  });
+
+  it('回帰：CRの改行の直後に、改行で始まる文字列を貼り付けても、改行が1つ消えない', () => {
+    const value = applyTextEdit('a\rb', 'a\n\nfoob', { start: 2, end: 2, inputType: 'insertFromPaste' });
+    expect(value.replace(/\r\n?/g, '\n')).toBe('a\n\nfoob');
+    /** 貼り付けの処理（replaceTextSelectionWithCaret）と同じ表記にそろう */
+    expect(value).toBe(replaceTextSelection('a\rb', 2, 2, '\nfoo'));
+  });
+
   it('通常の編集で変更していないCRLF・CRを保つ', () => {
     expect(applyTextEdit('a\r\nb\rc', 'a\nb\nc')).toBe('a\r\nb\rc');
     expect(applyTextEdit('a\r\nb\rc', 'a\nXb\nc')).toBe('a\r\nXb\rc');

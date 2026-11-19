@@ -5,7 +5,7 @@
  * フォルダの中の分担：
  * - `io.ts`：保存キーの名前と低水準の読み書き（ロックも消去世代の確認もしない）
  * - `inputCatalog.ts`：入力を保存するツールの ID と入力キー
- * - `clear.ts`：全消去と消去世代。`lock.ts`：タブ間のロック
+ * - `clear.ts`：全消去と消去世代。`clearState.ts`：状態と通知。`clearOperations.ts`：消去のI/O。`lock.ts`：タブ間のロック
  * - `preferences.ts`：表示設定（usePreference）の保存キーと読み書き、起動時の古いキーの整理
  * - `inputSaveFailures.ts`：保存に失敗した入力の一覧（画面の通知用）
  *
@@ -30,7 +30,7 @@ export { INPUT_TOOLS, type InputToolId, type InputKey } from './inputCatalog';
 export { isClearingData, subscribeClearData, clearAllData } from './clear';
 export { getInputSaveFailures, hasInputSaveFailure, setInputSaveFailure, subscribeInputSaveFailures, type InputSaveFailure } from './inputSaveFailures';
 /** 表示設定は入力と違い、ロックを取らない（利用者が値を変えたときだけ、その設定のキーへ書く） */
-export { pruneInvalidSetting, settingStorageKey, settingValueFromEvent, writeStoredSetting } from './preferences';
+export { pruneInvalidSetting, readStoredSetting, storedSettingUpdateBase, settingStorageKey, settingValueFromEvent, writeStoredSetting } from './preferences';
 
 /**
  * 起動時に、描画の前に呼ぶ。
@@ -49,8 +49,9 @@ export function prepareStorage(toolIds: readonly string[]): void {
   pruneStaleKeys(local, session, toolIds, INPUT_TOOLS);
 }
 
-/** このタブの保存領域から入力を復元する。保存領域を読めない場合は初期値に戻す。 */
+/** このタブの保存領域から入力を復元する。全消去中や起動時の消去失敗、保存領域を読めない場合は初期値に戻す。 */
 export function readInput(key: InputKey, initial: string): string {
+  if (isClearingData()) return initial;
   return safe(() => sessionStorage.getItem(INPUT_PREFIX + key) ?? initial, initial);
 }
 

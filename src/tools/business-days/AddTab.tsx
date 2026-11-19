@@ -5,6 +5,7 @@ import { addBusinessDays, dayInfo, type Calendar } from './logic';
 import { DateInput, withDow } from './tabFields';
 import { attempt } from '../../lib/errors';
 import { ErrorText } from '../../components/ErrorMessage';
+import { parseBusinessOffset } from './numericInput';
 
 export function AddTab({ cal, today }: { cal: Calendar; today: Ymd }) {
   const [base, setBase] = useInput('bizdays:base', formatYmd(today));
@@ -13,8 +14,7 @@ export function AddTab({ cal, today }: { cal: Calendar; today: Ymd }) {
   const r = useMemo(
     () =>
       attempt(() => {
-        const n = Number(nText);
-        if (nText.trim() === '' || !Number.isInteger(n)) throw new Error('営業日数を整数で入力してください（前にさかのぼる場合はマイナス）');
+        const n = parseBusinessOffset(nText);
         const b = parseYmd(base);
         return { result: addBusinessDays(b, n, cal), info: dayInfo(b, cal), n };
       }),

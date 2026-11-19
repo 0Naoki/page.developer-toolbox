@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { base64ToBytes, bytesToBase64 } from '../../lib/bytes';
+import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../../lib/bytes.fixtures';
 import {
   bytesToText,
   decode,
@@ -18,6 +19,16 @@ import {
 const text = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
 describe('Base64', () => {
+  it.each(VALID_BASE64_PADDING)('有効なパディングと完全省略を読む：%s', (input, expected) => {
+    expect(decodeBase64(input)).toBe(expected);
+    expect(text(decodeInput(`data:text/plain;base64,${input}`).bytes)).toBe(expected);
+  });
+
+  it.each(INVALID_BASE64_PADDING)('不正なパディングを通常入力とdata: URIのどちらでも拒否する：%s', (input) => {
+    expect(() => decodeBase64(input)).toThrow();
+    expect(() => decodeInput(`data:text/plain;base64,${input}`)).toThrow();
+  });
+
   it('日本語をエンコード・デコードできる', () => {
     const encoded = encodeBase64('こんにちは');
     expect(encoded).toBe('44GT44KT44Gr44Gh44Gv');

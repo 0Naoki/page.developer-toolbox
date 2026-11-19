@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LargeTextInput } from '../../components/LargeTextInput';
 import { Check } from '../../components/Check';
 import { CopyButton } from '../../components/CopyButton';
 import { Segmented } from '../../components/Segmented';
@@ -8,16 +9,15 @@ import { integerBetween, oneOf } from '../../lib/settings';
 import { ErrorBox } from '../../components/ErrorMessage';
 import {
   CHARSETS,
+  CONFIG_PREVIEW_LIMIT,
   DEFAULT_OPTIONS,
   MAX_LENGTH,
   MIN_LENGTH,
-  entropyBits,
+  createPasswordPlan,
   pinEntropyBits,
-  generateMany,
   generatePin,
   isPasswordOptions,
   strengthOf,
-  validate,
   type PasswordOptions,
 } from './logic';
 
@@ -38,23 +38,23 @@ export default function PasswordGenerator() {
   const [count, setCount] = usePreference('password:count', 5, oneOf(...COUNTS));
   const [pinLength, setPinLength] = usePreference('password:pin', 6, integerBetween(4, 32));
   const [results, setResults] = useState<string[]>([]);
-  const symbolInputId = useId();
 
   const update = (patch: Partial<PasswordOptions>) => setOptions({ ...options, ...patch });
 
-  const error = mode === 'password' ? validate(options) : null;
-  const bits = mode === 'password' ? entropyBits(options) : pinEntropyBits(pinLength);
+  const plan = useMemo(() => createPasswordPlan(options), [options]);
+  const error = mode === 'password' ? plan.error : null;
+  const bits = mode === 'password' ? plan.bits : pinEntropyBits(pinLength);
   const strength = strengthOf(bits);
 
   const regenerate = useCallback(() => {
     if (mode === 'pin') {
       setResults(Array.from({ length: count }, () => generatePin(pinLength)));
-    } else if (!validate(options)) {
-      setResults(generateMany(options, count));
+    } else if (plan.ok) {
+      setResults(Array.from({ length: count }, () => plan.generate()));
     } else {
       setResults([]);
     }
-  }, [mode, options, count, pinLength]);
+  }, [mode, plan, count, pinLength]);
 
   useEffect(regenerate, [regenerate]);
 
@@ -119,32 +119,29 @@ export default function PasswordGenerator() {
                 /** label の中にボタンを入れると入力欄の名前が正しく付かないため、label は文言だけを囲む */
                 <div className="field">
                   <span className="field-label">
-                    <label htmlFor={symbolInputId}>使用する記号</label>
+                    <span>使用する記号</span>
                     <button type="button" className="link-btn" onClick={() => update({ symbolSet: CHARSETS.symbols })}>
                       初期値に戻す
                     </button>
                   </span>
-                  <input
-                    id={symbolInputId}
+                  <LargeTextInput label="使用する記号" previewLimit={CONFIG_PREVIEW_LIMIT}
                     className="input mono"
                     value={options.symbolSet}
-                    onChange={(e) => update({ symbolSet: e.target.value })}
-                    spellCheck={false}
+                    onChange={(symbolSet) => update({ symbolSet })}
                   />
                   <span className="hint">サイトによって使える記号が限られる場合に絞り込んでください</span>
                 </div>
               )}
 
-              <label className="field">
+              <div className="field">
                 <span className="field-label">除外する文字</span>
-                <input
+                <LargeTextInput label="除外する文字" previewLimit={CONFIG_PREVIEW_LIMIT}
                   className="input mono"
                   value={options.exclude}
-                  onChange={(e) => update({ exclude: e.target.value })}
+                  onChange={(exclude) => update({ exclude })}
                   placeholder="例: xyz"
-                  spellCheck={false}
                 />
-              </label>
+              </div>
 
               <Check
                 label={<>見間違えやすい文字を除く <span className="mono muted">(I l 1 | O 0 o など)</span></>}
@@ -184,7 +181,7 @@ export default function PasswordGenerator() {
             </ul>
           )}
           <p className="hint">
-            強度はエントロピー（長さ × log2(文字の種類数)）による目安です。PINは総当たりに弱いため、回数制限のある用途に限って使ってください。
+            強度は生成方法に合わせた保守的な目安です。必須文字は各文字種のサイズ、残りは全体のサイズから評価し、並べ替えで増える分は加算しません。PINは回数制限のある用途に限って使ってください。
           </p>
         </div>
       </div>

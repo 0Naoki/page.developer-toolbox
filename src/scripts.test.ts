@@ -71,7 +71,8 @@ describe('計測スクリプト', () => {
     expect(problems).toEqual([]);
   });
 
-  it.each(scripts)('%s：読み込むファイルのパス（src/tools/unix-time/epoch.ts など）が、存在するファイルを指している', (file, source) => {
+  /** Nodeのテストは一時ディレクトリへ架空のパスを作るため、実在するソースのパス検査から除く。構文とimportは検査し、動作はtest:scriptsで検査する。 */
+  it.each(scripts.filter(([file]) => !file.endsWith('.test.mjs')))('%s：読み込むファイルのパス（src/tools/unix-time/epoch.ts など）が、存在するファイルを指している', (file, source) => {
     /** 型チェックの対象外で、ファイルを移すと実行するまで壊れたことに気づけないため */
     const missing = [...parseSource(source, file).code.matchAll(/['"`]((?:src|e2e|docs)\/[^'"`\s$]+?\.(?:tsx?|mjs|json))['"`]/g)]
       .map(([, path = '']) => path)

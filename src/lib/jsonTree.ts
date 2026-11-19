@@ -1,5 +1,6 @@
 /** 数値・文字列・重複キーを元の表記で保持するJSON構文木。 */
 import { detailPreview } from './text/textPreview';
+import { endsLineAt } from './text/lines';
 
 export type JsonNode =
   | { kind: 'object'; entries: { key: string; name: string; value: JsonNode }[] }
@@ -169,6 +170,14 @@ export function parseJsonSource(text: string, warnings: string[]): JsonNode {
 }
 
 /**
+ * 「キーをソート」の並び（デコードしたキーの UTF-16 の順）。整形の出力とツリーの表示で同じ並びにする。
+ * 同じキーが重複していれば、元の順のまま並べる（安定ソート）
+ */
+export function sortedEntries(node: Extract<JsonNode, { kind: 'object' }>): Extract<JsonNode, { kind: 'object' }>['entries'] {
+  return [...node.entries].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+}
+
+/**
  * 元の値の表記を保って構文木を出力する。
  * @param unit - インデント文字列。nullなら改行なしで圧縮する。
  * @param maxLength - 出力の上限（UTF-16単位）。超える前に例外を投げる。
@@ -195,7 +204,7 @@ export function serializeJsonTree(node: JsonNode, unit: string | null, sortKeys:
       });
       if (value.items.length > 0) append(nl + pad(depth));
     } else {
-      const entries = sortKeys ? [...value.entries].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)) : value.entries;
+      const entries = sortKeys ? sortedEntries(value) : value.entries;
       entries.forEach((entry, i) => {
         append((i === 0 ? '' : ',') + nl + pad(depth + 1) + entry.key + (unit === null ? ':' : ': '));
         visit(entry.value, depth + 1);
@@ -209,13 +218,10 @@ export function serializeJsonTree(node: JsonNode, unit: string | null, sortKeys:
 }
 
 /**
- * i の文字で行が終わるか。CR・LF・CRLF をどれも1つの改行として数える（CRLF は LF の位置で数える）。
+ * i の文字で行が終わるか。CR・LF・CRLF をどれも1つの改行として数える（lib/text/lines.ts の endsLineAt）。
  * 入力を正規化せずに行番号を求めるため、エラーの位置と重複キーの警告で共通に使う
  */
-function endsLine(text: string, i: number): boolean {
-  const c = text.charCodeAt(i);
-  return c === 10 || (c === 13 && text.charCodeAt(i + 1) !== 10);
-}
+const endsLine = endsLineAt;
 
 /** pos の位置の行と列（どちらも1から）。列はコードポイントで数える */
 export function lineColumn(text: string, pos: number): { line: number; column: number } {

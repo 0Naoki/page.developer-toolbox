@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 入力を localStorage に保存しない：編集しても localStorage に書かず、localStorage に残った入力も読まないこと
+ * - [R008] 入力を localStorage に保存しない：編集しても localStorage に書かず、localStorage に残った入力も読まないこと
  * - 離れていた間の全消去：入力を保存した消去世代と今の世代が違えば、起動時にこのタブの入力を捨てること（捨て切れなければ次の起動でも捨て直す）
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';

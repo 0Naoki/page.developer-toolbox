@@ -3,7 +3,9 @@ import { bytesToBase64 } from '../../lib/bytes';
 import { ED25519, LEAF, ROOT_CA } from '../cert/certificates.fixtures';
 import { LEAF_JWK, P384_JWK, P521_PUBLIC_PEM, RSA_JWK, RSA_PUBLIC_PEM, RSA_PUBLIC_PKCS1_PEM, SECRET, SECRET_BASE64, TOKENS, base64Url, decodeJwt } from './tokens.fixtures';
 import { readPublicKey, secretBytes, shortSecretWarning } from './keys';
+import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../../lib/bytes.fixtures';
 import { verifyJwt, type VerifyKey } from './verify';
+import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
 import { limitMessage, MESSAGE_LIMIT } from '../../lib/text/textPreview';
 
 /** トークンの署名を、ヘッダの alg で検証する */
@@ -62,6 +64,14 @@ describe('verifyJwt：HMAC（HS256 など）', () => {
 
   it('Base64 として読めない秘密鍵は、日本語のエラーにする', () => {
     expect(() => secretBytes('abc$', 'base64')).toThrow('秘密鍵を Base64 として読めません');
+  });
+
+  it.each(VALID_BASE64_PADDING)('Base64のHMAC鍵は有効なパディングと完全省略を読む：%s', (input, expected) => {
+    expect(new TextDecoder().decode(secretBytes(input, 'base64'))).toBe(expected);
+  });
+
+  it.each(INVALID_BASE64_PADDING)('Base64のHMAC鍵の不正なパディングを拒否する：%s', (input) => {
+    expect(() => secretBytes(input, 'base64')).toThrow('秘密鍵を Base64 として読めません');
   });
 
   it('UTF-8 の秘密鍵に対になっていないサロゲートがあれば、U+FFFD に置き換えて検証しない', () => {
@@ -298,6 +308,16 @@ describe('verifyJwt：公開鍵（RS・PS・ES・EdDSA）', () => {
     expect(await verify(TOKENS.EDDSA, pub(ED25519), subtle)).toMatchObject({ status: 'unsupported', message: expect.stringContaining('Ed25519') });
   });
 
+  it('回帰：公開鍵を読み込めないときは「一致しない」でなく「検証できない」と返す（証明書デコーダーと同じ扱い）', async () => {
+    /** 鍵の読み込みの失敗を invalid にしていたため、画面に「署名が一致しない」のバッジが出ていた */
+    const subtle = {
+      importKey: () => Promise.reject(new DOMException('壊れた鍵', 'DataError')),
+    } as unknown as SubtleCrypto;
+    expect(await verify(TOKENS.RS256, pub(RSA_PUBLIC_PEM), subtle)).toEqual({ status: 'unsupported', message: '公開鍵を読み込めません（DataError）' });
+    /** Ed25519 でも、未対応（NotSupportedError）以外の失敗は「ブラウザが対応していない」とは言わない */
+    expect(await verify(TOKENS.EDDSA, pub(ED25519), subtle)).toEqual({ status: 'unsupported', message: '公開鍵を読み込めません（DataError）' });
+  });
+
   it('secp256k1 の鍵は「一致しない」でなく「検証できない」と返す', async () => {
     const k1 = JSON.stringify({ kty: 'EC', crv: 'secp256k1', x: 'AA', y: 'AA' });
     expect(await verify(TOKENS.ES256, pub(k1))).toMatchObject({ status: 'unsupported', message: expect.stringContaining('secp256k1') });
@@ -394,5 +414,13 @@ describe('verifyJwt：b64（RFC 7797）', () => {
   it('b64 が true（既定と同じ）か、ないときは検証する', async () => {
     expect(await sign({ alg: 'HS256', b64: true })).toMatchObject({ status: 'valid' });
     expect(await sign({ alg: 'HS256' })).toMatchObject({ status: 'valid' });
+  });
+});
+
+describe('サンプルのトークン', () => {
+  it('テスト用の TOKENS.HS256・SECRET と同じで、サンプルの秘密鍵で署名を確かめられる', async () => {
+    expect(SAMPLE_TOKEN).toBe(TOKENS.HS256);
+    expect(SAMPLE_SECRET).toBe(SECRET);
+    expect(await verify(SAMPLE_TOKEN, secret(SAMPLE_SECRET))).toMatchObject({ status: 'valid' });
   });
 });

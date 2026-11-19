@@ -2,10 +2,10 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 入力の保存と消去：入力を localStorage に保存せず、タブ内（sessionStorage）だけに残すこと。機密値・編集履歴を含む全消去、西暦入力の保存先と復元
- * - 保存と全消去の競合：全消去通知を遅らせても、通知前の編集が入力を書き戻さないこと
- * - 離れていた間の全消去：別のページへ移動していたタブに戻っても、その間の全消去より前の入力を復元しないこと（あわせて `src/lib/storage/index.test.ts`・`src/lib/storage/clear.test.ts`）
- * - 古いキーの整理：以前の版が残したキー（localStorage の入力・保存設定・名前空間のない表示設定）と、削除したツールの入力・設定を起動時に消し、入力や設定として読まないこと。
+ * - [R006] 入力の保存と消去：入力を localStorage に保存せず、タブ内（sessionStorage）だけに残すこと。機密値・編集履歴を含む全消去、西暦入力の保存先と復元
+ * - [R007] 保存と全消去の競合：全消去通知を遅らせても、通知前の編集が入力を書き戻さないこと
+ * - [R011] 離れていた間の全消去：別のページへ移動していたタブに戻っても、その間の全消去より前の入力を復元しないこと。起動時に削除できないときは入力画面を出さず、再試行後に空欄で再開すること（あわせて `src/lib/storage/index.test.ts`・`src/lib/storage/clear.test.ts`）
+ * - [R013] 古いキーの整理：以前の版が残したキー（localStorage の入力・保存設定・名前空間のない表示設定）と、削除したツールの入力・設定を起動時に消し、入力や設定として読まないこと。
  *   新しく開いたタブが古いキーを消しても、開いているほかのタブを全消去させないこと。テーマを初期値へ戻すと別タブにも反映すること。ツールIDが予約した先頭と重ならないこと（あわせて `src/lib/storage/index.test.ts`・`src/lib/storage/preferences.test.ts`・`src/registry.test.ts`）
  */
 import { expect, test } from './fixtures';
@@ -24,6 +24,34 @@ const inputLocation = (page: Page, key: string) => page.evaluate((k) => ({
   local: localStorage.getItem(`dev-toolbox:input:${k}`),
   session: sessionStorage.getItem(`dev-toolbox:input:${k}`),
 }), key);
+
+test('起動時の全消去に失敗しても旧入力を表示せず、タブ内の削除を再試行できる', CROSS_BROWSER, async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('e2e-startup-seeded')) {
+      sessionStorage.setItem('e2e-startup-seeded', '1');
+      sessionStorage.setItem('dev-toolbox:input:json', '{"old":true}');
+      sessionStorage.setItem('dev-toolbox:event:tab-generation', 'before');
+      localStorage.setItem('dev-toolbox:event:clear', 'after');
+      localStorage.setItem('dev-toolbox:pref:theme', '"dark"');
+    }
+    const remove = Storage.prototype.removeItem;
+    Storage.prototype.removeItem = function (key: string) {
+      if (this === sessionStorage && key === 'dev-toolbox:input:json' && !sessionStorage.getItem('e2e-allow-remove')) {
+        throw new DOMException('denied', 'SecurityError');
+      }
+      remove.call(this, key);
+    };
+  });
+  await page.goto('./#/json');
+  await expect(page.getByRole('heading', { name: '保存データの全消去' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '入力', exact: true })).toHaveCount(0);
+  expect((await inputLocation(page, 'json')).session).toBe('{"old":true}');
+  await page.evaluate(() => sessionStorage.setItem('e2e-allow-remove', '1'));
+  await page.getByRole('button', { name: '全消去を再試行', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '入力', exact: true })).toHaveValue('');
+  expect((await inputLocation(page, 'json')).session).toBeNull();
+  expect(await page.evaluate(() => [localStorage.getItem('dev-toolbox:event:clear'), localStorage.getItem('dev-toolbox:pref:theme')])).toEqual(['after', '"dark"']);
+});
 
 test('第n営業日は再読み込み後もタブ内に残り、localStorage には書かない', async ({ page }) => {
   await page.goto('./#/bizdays');
@@ -113,6 +141,8 @@ test('和暦の西暦入力をタブ内に保持し、移動・再読込後に�
 test('修正確認：全消去で各タブの入力・機密値・編集履歴を破棄し、再保存しない', CROSS_BROWSER, async ({ page, context }) => {
   /** 4タブの再読み込みと再確認を行うため、WebKitでも全手順を検証できる時間を確保する。 */
   test.setTimeout(60_000);
+  /** 入力した値と、消えたことを確かめる値は同じ定数にする（別々に書くと、綴りの違いで確認が空振りするため） */
+  const SESSION_ONLY_VALUE = 'private-data';
   await page.goto('./#/json');
   await page.getByRole('textbox', { name: '入力', exact: true }).fill('{"secret":123}');
   const other = await context.newPage();
@@ -122,7 +152,7 @@ test('修正確認：全消去で各タブの入力・機密値・編集履歴�
     await other.goto('./#/json');
     await other.getByRole('textbox', { name: '入力', exact: true }).fill('{"secret":456}');
     await sessionOnly.goto('./#/base64');
-    await sessionOnly.getByRole('textbox', { name: '入力', exact: true }).fill('private-data');
+    await sessionOnly.getByRole('textbox', { name: '入力', exact: true }).fill(SESSION_ONLY_VALUE);
     await memoryOnly.goto('./#/jwt');
     await memoryOnly.getByRole('textbox', { name: 'トークン', exact: true }).fill('memory-secret');
     const reloaded = Promise.all([page, other, sessionOnly, memoryOnly].map((tab) => tab.waitForEvent('load')));
@@ -133,7 +163,7 @@ test('修正確認：全消去で各タブの入力・機密値・編集履歴�
       await expect(tab.getByRole('textbox', { name: '入力', exact: true })).toHaveValue('');
       const stored = await tab.evaluate(() => [...Object.values(localStorage), ...Object.values(sessionStorage)].join('\n'));
       expect(stored).not.toContain('secret');
-      expect(stored).not.toContain('private_data');
+      expect(stored).not.toContain(SESSION_ONLY_VALUE);
       await tab.reload();
       await expect(tab.getByRole('textbox', { name: '入力', exact: true })).toHaveValue('');
     }

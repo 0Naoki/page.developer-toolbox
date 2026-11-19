@@ -4,16 +4,25 @@
 
 ## 実行コマンド
 
-初回は `npm ci` と `npm run e2e:install` で依存パッケージとブラウザを準備します。
+初回は `npm run setup` と `npm run e2e:install` で依存パッケージとブラウザを準備します（`npm run setup` は CI と同じ手順です）。
 
 ```bash
-npm run check        # 型チェック・単体テスト・本番ビルド
+npm run check        # 型チェック・単体テスト・計測基盤テスト・本番ビルド
 npm run e2e:run      # 上で作ったビルドを全ブラウザで検査
 ```
 
 E2Eだけ実行するときは `npm run e2e` でビルドから実行できます。`e2e:run` は既存の `dist` を使います。
 
-`e2e:run` は、古いビルドを検査しないよう、ビルドの結果を変えるファイルが `dist` より新しければ、実行の前に止めて `npm run build` を案内します（`e2e/globalSetup.mjs`）。対象は `src`・`public`・`index.html`・`vite.config.ts`・`csp.config.ts`・`tsconfig.json`・`package.json`・`package-lock.json` で、テストからだけ使うファイルは除きます。CIは `check` の後にE2Eを実行し、ビルドを重複させません。
+`e2e:run` は、古いビルドを検査しないよう、ビルドの結果を変えるファイルが `dist` より新しければ、実行の前に止めて `npm run build` を案内します。
+`e2e/globalSetup.mjs` とブラウザ性能計測は、`scripts/build-freshness.mjs` の同じ確認を使います。
+対象は `src`・`public`・`index.html`・`vite.config.ts`・`csp.config.ts`・`tsconfig.json`・`package.json`・`package-lock.json` で、テストからだけ使うファイルは除きます。
+更新時刻による検査のため、ファイル削除や、更新時刻を保存したコピーによる内容変更のすべては検出できません。
+対象の版でビルドし直す手順と、成果物のハッシュの記録も維持してください。
+CIは `check` の後にE2Eを実行し、ビルドを重複させません。
+
+`npm run test:scripts` は、計測基盤のNodeテストだけを実行します。`check` にも含めています。
+一時ディレクトリと一時Gitリポジトリで、古いビルドの拒否・比較方式・依存ファイルの移動・異なるpackage-lockの拒否を確認します。
+作業中のリポジトリのファイル・ブランチ・コミットは変更しません。
 
 型チェック（`tsc --noEmit`）では、`tsconfig.json` の `noUncheckedIndexedAccess` で、配列やオブジェクトの添字で読んだ値を「ないかもしれない値」として検査します（テスト・E2E を含む）。アプリのコードでは、分割代入の既定値・`entries()`・`charAt` などで「ない場合」を扱い、既定値が実際には使われないときはその理由をコメントに書きます。添字が範囲内であることがアルゴリズムで決まる速度重視のループ（テキスト差分の Myers 法など）だけは、`?? 0` などの分岐を足さずに `!` で示し、理由をコメントに書いています。テストでは、値があることを確かめる位置で `!` や `?.` を使ってかまいません。
 
@@ -39,13 +48,19 @@ npm run e2e:run -- e2e/storage.spec.ts --project=webkit --workers=2
 |---|---|---|
 | `src/architecture.test.ts` | アプリのソースが、下の「[静的検査の規則](#静的検査の規則)」を守っていること | 失敗したときに表示する直し方に従う（規則ごとの直し方は `src/sourceRules.testing.ts` の `fix`） |
 | `src/sourceScan.test.ts` | 静的検査が使う解析（コメントの除去・通信の API の参照・ローカル依存の抽出）が、紛らわしい書き方を誤らないこと | `src/sourceScan.testing.ts` を直す |
-| `src/docs.test.ts` | README の一覧・件数、入力保存対象と説明、ツールのファイルの分担、回帰テストの担当と先頭コメントがコードと一致すること | README・USAGE・TESTING や担当ファイルの説明を直す |
+| `src/docs.test.ts` | README の一覧・件数、入力保存対象と説明、ツールのファイルの分担、回帰IDと担当コメントがコードと一致すること | README・USAGE・TESTING や担当ファイルの説明を直す |
 | `src/documentLinks.test.ts` | Markdown の相対リンク・見出しリンク、コード表記のファイルパス、コードのコメントや文言に書いたファイルのパスが存在すること（運用記録の過去のパスと書き方の例を除く） | リンク先・見出し・パスを直す |
 | `src/styles.classes.test.ts` | CSS のクラスが、使う画面の範囲に合ったファイルにあること（ツール別の CSS のクラスをほかの画面で使わない。部品の層の CSS に1つの画面だけのクラスを置かない。ツール別の CSS のファイル名がツールのフォルダ名と同じ）。`src/styles/` のどのファイルも入口（`src/styles.css`）で1回だけ、見出しの番号に合った層（`layer(...)`）に入れて読み込むこと（読み込み忘れたファイルの規則は本番でまったく効かず、層に入れない規則はどの層よりも優先されるため）。クラスと画面の対応の読み方は `src/cssClasses.testing.ts` | クラスを、使う画面の範囲に合った CSS に移す（例外は、理由を書いてテストの `ALLOWED` に足す）。読み込みは `src/styles.css` の該当する層に足す |
-| `src/scripts.test.ts` | 計測スクリプト（`scripts/*.mjs`）が、構文として正しく、読み込む先（Node の標準・`package.json` の依存・ほかのスクリプトの export）と、読み込むファイルのパス、比べる計算処理の関数・定数があること（スクリプトは型チェックの対象外で、計測のときにしか実行しないため） | スクリプトの import・パス・使う関数の名前を直す |
+| `src/scripts.test.ts` | 計測スクリプト（`scripts/*.mjs`）の構文・import・ファイルのパス・計算処理の関数と定数を確認する。Nodeテスト内の一時ファイルのパスは、実在するソースとして検査しない | スクリプトの import・パス・使う関数の名前を直す |
 | `src/documentLimits.test.ts` | [USAGE.md](USAGE.md) の上限・表示量・打ち切りが実装の定数と一致し、クラウドの参照元と確認日が載っていること | USAGE の制約を、実装の定数と照合して直す |
 
-文書の収集は `src/documentSources.testing.ts`、見出しアンカーと数値表記の照合は `src/documentMarkdown.testing.ts` に分けています。検査を移すときも検査項目を削らず、文書とコードの契約・リンク・上限の担当を保ちます。
+文書の収集は `src/documentSources.testing.ts`、見出しアンカー・固定マーカー・数値と単位の照合は `src/documentMarkdown.testing.ts` に分けています。
+上限の固定IDと期待値は `src/documentLimitsCatalog.testing.ts` にあります。IDはツール・列・値・単位と対応させます。
+文章の言い回しや改行は検査対象にしません。保存しない入力は明示したマーカーの範囲で照合します。
+上限は `<!-- limit:subnet.split-preview:start -->` のような開始・終了マーカーで囲みます。
+数値を変えるときはマーカー内だけを書き換えます。説明を言い換えてもIDは維持し、別の項目へ移さないでください。
+値・単位の変更、欠落、重複、表示上限と計算上限の入れ替えを検出します。
+検査を移すときも検査項目を削らず、文書とコードの契約・リンク・上限の担当を保ちます。
 
 ### 静的検査の規則
 
@@ -59,7 +74,7 @@ npm run e2e:run -- e2e/storage.spec.ts --project=webkit --workers=2
 
 - 書き方の規則（`SOURCE_RULES`）：禁止している API（HTML の挿入・`eval`・`Math.random`・`?worker`・現地時刻の日時のメソッド）と、共通の処理（エラー・警告・バッジ・欄の表示、例外の文言、Worker、非同期の結果、行の分割、長い出力、ファイルの読み込み、IME、日本時間、数の書式、大きな入力欄）を通しているか、再 export をしていないか
 - import の向きの規則（`IMPORT_RULES`）：ツール同士、`src/lib/` からツールと `src/calculation/`、計算の振り分け（`src/calculation/handlers.ts`）、保存領域の内部、テストからだけ読むファイル
-- 外部と通信する API の参照（`fetch`・`XMLHttpRequest`・`WebSocket`・`EventSource`・`sendBeacon`・`WebTransport`）：正規表現の規則ではなく、構文木から探す別の検査（`src/sourceScan.testing.ts` の `networkReferences`）で見つけます。変数に入れる・`window['fetch']`・分割代入なども見つけられ、正規表現より検出の範囲が広いためです。同じ関心事の正規表現の規則は持ちません。直し方は `src/architecture.test.ts` にあります
+- 外部と通信する API の参照（`fetch`・WebRTC など。一覧は `NETWORK_NAMES`）：正規表現の規則ではなく、構文木から探す別の検査（`src/sourceScan.testing.ts` の `networkReferences`）で見つけます。変数に入れる・文字列のキーで参照するなどの書き方も見つけられ、正規表現より検出の範囲が広いためです。検出する書き方はその TSDoc、直し方は `src/architecture.test.ts` にあります
 
 規則の例外（許可したファイル・箇所・import の組）には理由を書き、使わなくなった例外は検査の失敗にします。規則を足すときは、直し方と、例を両方とも書いてください。
 
@@ -92,7 +107,7 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 - コピーした内容は `captureClipboard` で記録し、`copiedText`・`copiedLength`・`copiedLines` で確かめます（OS のクリップボードは変えません。長いテキストは長さや行数をページの中で数え、全文をテストへ渡しません）。
 - 読み込みを遅らせる・失敗させるなど、特別なファイルを使うテストだけはページの中で直接作ります。
 - ページを渡す前に外部通信・CSP違反・実行時エラーの監視を始め、終了時にまとめて検査するため、ケースごとの `watch` 呼び出しは不要です。
-- CSPの拒否そのものを試すケースは標準の `test` を `probeTest` として明示し、期待する拒否をケース内で検証します。既存のopener・読込失敗を含む `security.spec.ts`・`navigation.spec.ts` は引き続き個別に検証します。
+- CSPの拒否そのものを試すケースは標準の `test` を `probeTest` として明示し、期待する拒否をケース内で検証します。opener・読込失敗を扱う `security.spec.ts`・`navigation.spec.ts` も、標準の `test` を使い、ケースごとに検証します。
 
 ### 短縮するときのルール
 
@@ -107,61 +122,66 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 
 期待する動作は構成と設計方針の [非同期の結果](ARCHITECTURE.md#非同期の結果を表示できる条件) と [保存と全消去の調整](STORAGE.md#保存と全消去の調整) を参照してください。
 
-表は、既知の不具合を守る検証の担当のファイルです。残すべき検証（不具合を起こした入力と、確かめること）は、担当のファイル（E2E があれば E2E、なければ最初に挙げたファイル）の先頭のコメントに書いています。テストを移動・統合するときは、そのコメントに挙げた入力とアサーションを削らずに引き継ぎ、コメントも移してください。下の「入力の境界と組み合わせ」の表も含め、どの行も担当のファイルの先頭のコメントに載っていることを `src/docs.test.ts` が確かめます。
+表は、既知の不具合を守る検証の担当のファイルです。残すべき検証（不具合を起こした入力と、確かめること）は、担当のファイル（E2E があれば E2E、なければ最初に挙げたファイル）の先頭のコメントに書いています。テストを移動・統合するときは、そのコメントに挙げた入力とアサーションを削らずに引き継ぎ、コメントも移してください。各行には非表示の固定ID（`regression:R001` など）を付けています。担当コメントの `[R001]` と対応することを `src/docs.test.ts` が確かめます。
+
+IDは説明文を変えても維持してください。テストを移すときは担当とIDも移し、削除したIDを再利用しないでください。IDの対応検査は、アサーションの実行を代わりに保証するものではありません。
 
 ### 画面全体と安全対策
 
 | 検査対象 | ファイル |
 |---|---|
-| 全ツールの表示 | `e2e/smoke.spec.ts` |
-| CSP・埋め込み | `e2e/browser-security.spec.ts` |
-| 設定・opener | `e2e/security.spec.ts` |
-| ナビゲーション | `e2e/navigation.spec.ts` |
-| スマートフォンのメニュー | `e2e/mobile-navigation.spec.ts` |
+| 全ツールの表示 <!-- regression:R001 --> | `e2e/smoke.spec.ts` |
+| CSP・埋め込み <!-- regression:R002 --> | `e2e/browser-security.spec.ts`・`src/csp.test.ts` |
+| 設定・opener <!-- regression:R003 --> | `e2e/security.spec.ts` |
+| ナビゲーション <!-- regression:R004 --> | `e2e/navigation.spec.ts` |
+| スマートフォンのメニュー <!-- regression:R005 --> | `e2e/mobile-navigation.spec.ts` |
 
 ### 保存
 
 | 検査対象 | ファイル |
 |---|---|
-| 入力の保存と消去 | `e2e/storage.spec.ts` |
-| 保存と全消去の競合 | `e2e/storage.spec.ts` |
-| 入力を localStorage に保存しない | `src/lib/storage/index.test.ts` |
-| 全消去の順序と遅れた通知 | `src/lib/storage/clear.test.ts` |
-| 離れていた間の全消去 | `e2e/storage.spec.ts`・`src/lib/storage/index.test.ts`・`src/lib/storage/clear.test.ts` |
-| 表示設定の保存 | `e2e/security.spec.ts` |
-| 古いキーの整理 | `src/lib/storage/index.test.ts`・`src/lib/storage/preferences.test.ts`・`src/registry.test.ts`・`e2e/storage.spec.ts` |
-| 保存失敗・編集 | `e2e/edit-storage.spec.ts` |
+| 入力の保存と消去 <!-- regression:R006 --> | `e2e/storage.spec.ts` |
+| 保存と全消去の競合 <!-- regression:R007 --> | `e2e/storage.spec.ts` |
+| 入力を localStorage に保存しない <!-- regression:R008 --> | `src/lib/storage/index.test.ts` |
+| 全消去の順序と遅れた通知 <!-- regression:R009 --> | `src/lib/storage/clear.test.ts` |
+| 取りこぼした通知 <!-- regression:R010 --> | `src/lib/storage/clear.test.ts` |
+| 離れていた間の全消去 <!-- regression:R011 --> | `e2e/storage.spec.ts`・`src/lib/storage/index.test.ts`・`src/lib/storage/clear.test.ts` |
+| 表示設定の保存 <!-- regression:R012 --> | `e2e/security.spec.ts` |
+| 古いキーの整理 <!-- regression:R013 --> | `src/lib/storage/index.test.ts`・`src/lib/storage/preferences.test.ts`・`src/registry.test.ts`・`e2e/storage.spec.ts` |
+| 保存失敗・編集 <!-- regression:R014 --> | `e2e/edit-storage.spec.ts`・`src/lib/text/textEdit.test.ts` |
 
 ### 大容量の計算と表示
 
 | 検査対象 | ファイル |
 |---|---|
-| 大容量計算 | `e2e/calculation.spec.ts` |
-| テキスト差分の改行 | `src/tools/text-diff/logic.test.ts`・`e2e/calculation.spec.ts` |
-| 行の分割 | `src/lib/text/lines.test.ts`・各ツールの `logic.test.ts` |
-| 文字数・不可視文字 | `e2e/text-count.spec.ts` |
+| 大容量計算 <!-- regression:R015 --> | `e2e/calculation.spec.ts` |
+| テキスト差分の改行 <!-- regression:R016 --> | `src/tools/text-diff/packed.test.ts`・`src/tools/text-diff/logic.test.ts`・`e2e/calculation.spec.ts` |
+| 行の分割 <!-- regression:R017 --> | `src/lib/text/lines.test.ts`・各ツールの `logic.test.ts` |
+| 文字数・不可視文字 <!-- regression:R018 --> | `e2e/text-count.spec.ts` |
 
 ### ツール別
 
 | 検査対象 | ファイル |
 |---|---|
-| CSVの読込・編集 | `e2e/csv-file-edit.spec.ts` |
-| CSV変換 | `src/tools/csv-json/logic.test.ts`・`src/tools/csv-json/parseCsv.test.ts`・`src/tools/csv-json/writeCsv.test.ts`・`src/tools/csv-json/roundTrip.test.ts`・`src/tools/csv-json/csvFormat.test.ts`・`e2e/csv.spec.ts`・`e2e/calculation.spec.ts` |
-| Base64 | `src/tools/base64/conversion.test.ts`・`src/tools/base64/presentation.test.ts`・`e2e/base64.spec.ts` |
-| 正規表現 | `e2e/regex.spec.ts` |
-| ハッシュ | `e2e/hash.spec.ts` |
-| JWT | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts` |
-| 証明書 | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts` |
-| JSON整形・和暦・テキスト差分 | `e2e/tools.spec.ts` |
-| 独自休日の診断 | `src/tools/business-days/logic.test.ts` |
-| UNIX時間の入力単位 | `e2e/unix-time.spec.ts` |
-| 日時の拡張年と往復 | `src/lib/time/dateTimeInput.test.ts`・`e2e/unix-time.spec.ts` |
-| UNIX時間の期間計算 | `src/tools/unix-time/logic.test.ts`・`src/lib/time/civilTime.test.ts`・`e2e/unix-time.spec.ts` |
-| 営業日の期間集計 | `src/tools/business-days/logic.test.ts`・`e2e/business-days.spec.ts` |
-| Kubernetesのcron式 | `src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
-| UUID v7・ULID の生成順 | `src/tools/uuid/logic.test.ts` |
-| UUID の形式と時刻 | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |
-| サブネット | `e2e/subnet.spec.ts`・`src/tools/subnet/ipv4.test.ts` |
+| CSVの読込・編集 <!-- regression:R019 --> | `e2e/csv-file-edit.spec.ts` |
+| CSV変換 <!-- regression:R020 --> | `src/tools/csv-json/logic.test.ts`・`src/tools/csv-json/parseCsv.test.ts`・`src/tools/csv-json/writeCsv.test.ts`・`src/tools/csv-json/roundTrip.test.ts`・`src/tools/csv-json/csvFormat.test.ts`・`e2e/csv.spec.ts`・`e2e/calculation.spec.ts` |
+| Base64 <!-- regression:R021 --> | `src/tools/base64/conversion.test.ts`・`src/tools/base64/presentation.test.ts`・`e2e/base64.spec.ts` |
+| 正規表現 <!-- regression:R022 --> | `e2e/regex.spec.ts`・`src/tools/regex/logic.test.ts` |
+| ハッシュ <!-- regression:R023 --> | `e2e/hash.spec.ts` |
+| JWT <!-- regression:R024 --> | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts` |
+| 証明書 <!-- regression:R025 --> | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts` |
+| JSON整形・和暦・テキスト差分 <!-- regression:R026 --> | `e2e/tools.spec.ts` |
+| 独自休日の診断 <!-- regression:R027 --> | `src/tools/business-days/logic.test.ts` |
+| UNIX時間の入力単位 <!-- regression:R028 --> | `e2e/unix-time.spec.ts`・`src/tools/unix-time/logic.test.ts` |
+| 日時の拡張年と往復 <!-- regression:R029 --> | `src/lib/time/dateTimeInput.test.ts`・`e2e/unix-time.spec.ts` |
+| UNIX時間の期間計算 <!-- regression:R030 --> | `src/tools/unix-time/logic.test.ts`・`src/lib/time/civilTime.test.ts`・`e2e/unix-time.spec.ts` |
+| 営業日の期間集計 <!-- regression:R031 --> | `src/tools/business-days/logic.test.ts`・`e2e/business-days.spec.ts` |
+| Kubernetesのcron式 <!-- regression:R032 --> | `src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
+| cron式の組み立て <!-- regression:R033 --> | `e2e/cron.spec.ts`・`src/tools/cron/logic.test.ts` |
+| cron の実行日時の貼り戻し <!-- regression:R034 --> | `e2e/cron.spec.ts`・`src/tools/cron/logic.test.ts`・`src/lib/time/dateTimeInput.test.ts` |
+| UUID v7・ULID の生成順 <!-- regression:R035 --> | `src/tools/uuid/logic.test.ts` |
+| UUID の形式と時刻 <!-- regression:R036 --> | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |
+| サブネット <!-- regression:R037 --> | `e2e/subnet.spec.ts`・`src/tools/subnet/ipv4.test.ts`・`src/tools/subnet/ipv6.test.ts` |
 
 純粋関数の境界値・大きな整数や小数の表記・日時の夏時間・パーサーの上限などは `src/**/*.test.ts` で検査します。ユニットテストの環境分離は、ストレージやモジュールの状態を他のテストへ漏らさないため維持します。
 
@@ -173,22 +193,51 @@ Workerの実行管理は `src/lib/worker/runWorker.test.ts` でも、待機中�
 
 | 条件 | テスト |
 |---|---|
-| 日本時間の日付・年の変更 × 誕生日・空の基準日・タブ復帰 | `e2e/tools.spec.ts`・`e2e/business-days.spec.ts` |
-| UUID の括弧・ハイフン × バージョン・バリアント | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |
-| ファイル名の大文字・未知の拡張子・拡張子なし × 現在の変換方向と区切り文字 | `src/tools/csv-json/fileOptions.test.ts`・`e2e/csv.spec.ts` |
-| 証明書の開始・終了日時 × GeneralizedTime の小数秒・小数分 | `src/tools/cert/logic.test.ts`・`e2e/cert.spec.ts` |
-| JSONのエスケープ × CSVの見出し・セル × UTF-8保存 | `src/tools/csv-json/writeCsv.test.ts`・`e2e/csv.spec.ts` |
-| 曲線OID × 表示と署名検証 | `src/lib/crypto/curves.test.ts`・`src/tools/cert/verify.test.ts`・`src/tools/jwt-decoder/verify.test.ts` |
-| 整数演算とIEEE754の分離 | `src/tools/radix/logic.test.ts`・`src/tools/radix/float.test.ts` |
-| コピー × 対象の変更・書き込みの遅延・拒否・連続操作 | `e2e/copy.spec.ts` |
-| クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件 | `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`・`e2e/subnet.spec.ts` |
-| 日時の上限・下限 × UTC・正負の時差 × 暦日と経過時間の相殺 | `src/tools/unix-time/logic.test.ts`・`e2e/unix-time.spec.ts` |
-| Date の範囲より前の現地日付 × cron の曜日判定 | `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
-| 秘密鍵・共通鍵の混在 × kid 不一致・alg 不一致 × 配列の順序 | `src/tools/jwt-decoder/verify.test.ts`・`e2e/jwt.spec.ts` |
-| パスワードの一括生成 × Unicode・除外・必須文字種 | `src/tools/password-generator/logic.test.ts` |
-| 不完全なサロゲート × CR・LF・CRLF × 改行の数え方 | `src/tools/text-count/logic.test.ts`・`e2e/text-count.spec.ts` |
-| 巨大なエポック × 範囲外・長い先頭の0・長い小数部 × 単位の指定 | `src/tools/unix-time/logic.test.ts`・`e2e/unix-time.spec.ts` |
-| import × 文字列・式のないテンプレート・実行時の式 | `src/sourceScan.test.ts` |
+| 日本時間の日付・年の変更 × 誕生日・空の基準日・タブ復帰 <!-- regression:R038 --> | `e2e/tools.spec.ts`・`e2e/business-days.spec.ts` |
+| UUID の括弧・ハイフン × バージョン・バリアント <!-- regression:R039 --> | `src/tools/uuid/logic.test.ts`・`e2e/tools.spec.ts` |
+| ファイル名の大文字・未知の拡張子・拡張子なし × 現在の変換方向と区切り文字 <!-- regression:R040 --> | `src/tools/csv-json/fileOptions.test.ts`・`e2e/csv.spec.ts` |
+| 証明書の開始・終了日時 × GeneralizedTime の小数秒・小数分 <!-- regression:R041 --> | `src/tools/cert/logic.test.ts`・`e2e/cert.spec.ts` |
+| JSONのエスケープ × CSVの見出し・セル × UTF-8保存 <!-- regression:R042 --> | `src/tools/csv-json/writeCsv.test.ts`・`e2e/csv.spec.ts` |
+| 曲線OID × 表示と署名検証 <!-- regression:R043 --> | `src/lib/crypto/curves.test.ts`・`src/tools/cert/verify.test.ts`・`src/tools/jwt-decoder/verify.test.ts` |
+| 整数演算とIEEE754の分離 <!-- regression:R044 --> | `src/tools/radix/logic.test.ts`・`src/tools/radix/float.test.ts` |
+| コピー × 対象の変更・書き込みの遅延・拒否・連続操作 <!-- regression:R045 --> | `e2e/copy.spec.ts` |
+| クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件 <!-- regression:R046 --> | `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`・`e2e/subnet.spec.ts` |
+| 日時の上限・下限 × UTC・正負の時差 × 暦日と経過時間の相殺 <!-- regression:R047 --> | `src/tools/unix-time/logic.test.ts`・`e2e/unix-time.spec.ts` |
+| Date の範囲より前の現地日付 × cron の曜日判定 <!-- regression:R048 --> | `src/lib/time/date.test.ts`・`src/tools/cron/logic.test.ts`・`e2e/cron.spec.ts` |
+| 秘密鍵・共通鍵の混在 × kid 不一致・alg 不一致 × 配列の順序 <!-- regression:R049 --> | `src/tools/jwt-decoder/verify.test.ts`・`e2e/jwt.spec.ts` |
+| パスワードの一括生成 × Unicode・除外・必須文字種 <!-- regression:R050 --> | `src/tools/password-generator/logic.test.ts` |
+| 不完全なサロゲート × CR・LF・CRLF × 改行の数え方 <!-- regression:R051 --> | `src/tools/text-count/logic.test.ts`・`e2e/text-count.spec.ts` |
+| 巨大なエポック × 範囲外・長い先頭の0・長い小数部 × 単位の指定 <!-- regression:R052 --> | `src/tools/unix-time/logic.test.ts`・`e2e/unix-time.spec.ts` |
+| import × 文字列・式のないテンプレート・実行時の式 <!-- regression:R053 --> | `src/sourceScan.test.ts` |
+| CSVの重複した親キー × 展開・配列・エスケープ <!-- regression:R054 --> | `src/tools/csv-json/writeCsv.test.ts`・`e2e/csv.spec.ts` |
+| 文字診断の全件取得 × 抜粋・総数・位置・入力変更 <!-- regression:R055 --> | `src/tools/text-count/reports.test.ts`・`e2e/text-count.spec.ts` |
+| 入力の表示上限 × IME確定・取消・保存・履歴 <!-- regression:R056 --> | `e2e/input-composition.spec.ts` |
+
+### 実装との比較だけでは見つからない条件
+
+Base64のパディングは、正常・完全省略・余剰・部分省略・途中挿入・本文なしを同じ入力例で検査します。
+汎用変換・data: URI・PEM・Base64指定のHMAC鍵を対象とし、画面とWorkerのエラー後の復旧もE2Eで確認します。
+JWTの署名検証が、表示用デコードより厳しい条件を保つことも検査します。
+
+パスワード生成は、小さな文字集合で全生成経路を列挙します。文字集合が重なる場合・絵文字・結合文字を含めます。
+各出力のコードポイント数・使用可能文字・最頻出値の確率を確認し、強度の下限を超える確率がないか検査します。
+不正なサロゲートは生成と保存設定の復元で拒否し、有効な設定へ戻せることをE2Eでも確認します。
+差分では参照実装との比較に加え、両側の本文と行番号を独立に復元して確認します。
+遅延生成するコピーは、失敗後の再試行と、対象変更後に古い完了を表示しないことを証明書のE2Eで確認します。
+文字診断は、通常の表示量を抑えても入力全文を取得でき、文字の形を追加表示できることをE2Eで確認します。
+全件出力は、小さな出力上限で全種類の収集前に停止することと、集約・分割連結後も件数・位置・表記が一致することを単体テストで確認します。
+
+## IME入力の検査範囲
+
+入力欄の状態遷移は [ARCHITECTURE.md](ARCHITECTURE.md) の「計算と表示の流れ」にまとめています。
+
+| 検査方法 | 確かめること | 対象外 |
+|---|---|---|
+| ChromiumのCDPネイティブIMEイベント | 2,000単位・500単位の境界、変換中の表示上限縮小、確定・取消・保存値・Undo／Redo | OSのIME候補画面と実際のキー操作 |
+| Chromium・Firefox・WebKitのイベント模擬 | compositionendの前後に最終inputが届いても全文と履歴を保持すること | 各ブラウザとOSが実際に発行するIMEイベントの順序 |
+| OSの実IMEによる手動確認 | 候補の選択・確定・取消、フォーカスとキャレットの操作感 | 自動テストの代替にはしない |
+
+手動確認の項目は冒頭で案内した環境準備の文書にあります。
 
 ## CSS を整理するときの見た目の比較
 

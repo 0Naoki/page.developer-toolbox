@@ -35,6 +35,15 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: version
+    attributes:
+      label: 版
+      description: サイドバーの一番下（スマートフォンではメニューの中の一番下）にある「版：」の後ろを、そのまま貼ってください。どの版で起きたかを確かめるためです。
+      placeholder: 例：v0.1.0（abc1234）
+    validations:
+      required: true
+
   - type: textarea
     id: steps
     attributes:

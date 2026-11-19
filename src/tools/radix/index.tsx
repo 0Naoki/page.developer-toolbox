@@ -78,6 +78,8 @@ export default function RadixTool() {
     >
       <div className="toolbar">
         <Segmented<Width> label="ビット幅" value={width} onChange={setWidth} options={WIDTHS} />
+        {/** 負の数を入れ、2の補数・符号なしの値も見せる */}
+        <button type="button" className="btn btn-ghost" onClick={() => edit(10, '-42')}>サンプル</button>
       </div>
 
       <div className="radix-fields">

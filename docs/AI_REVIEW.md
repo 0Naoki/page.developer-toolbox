@@ -28,7 +28,7 @@
 - **Claude**：プルリクエストごとに動く Code Review の機能を有効にしない
 - **Claude**：定期レビューのタスクのトリガーは**スケジュールだけ**にする。GitHub トリガー・API トリガーを追加しない（タスクの実行は、タスクの持ち主の使用量を消費する）
 - **CodeRabbit**：公開リポジトリだけで使う（private リポジトリは無料プランの対象外）。有料プランに切り替えず、使った分だけ課金される機能（リポジトリ全体を見る Deep Scan など）を使わない
-- **CodeRabbit**：コードを書き込む機能（単体テストの生成・指摘の自動修正・CI の修正・衝突の解消など）と承認の機能は、`.coderabbit.yaml` で切っておく
+- **CodeRabbit**：コードを書き込む機能（単体テストの生成・指摘の自動修正・コードの簡略化・CI の修正・衝突の解消など）と承認の機能は、`.coderabbit.yaml` で切っておく。既定で有効な機能は設定の変更として現れないため、[設定のスキーマ](https://coderabbit.ai/integrations/schema.v2.json)が更新されたら、書き込む機能・承認の機能が増えていないか確かめる
 - **共通**：コラボレーターを追加せず（書き込み権限があると、AI の連携やタスクを起動できる操作が増えるため）、Actions の Secrets に AI のキーやトークンを登録しない
 
 ## 外部サービスの情報と運用記録
@@ -51,7 +51,7 @@
 
 注意：
 
-- 他の人のプルリクエストのコードは、手元で実行（`npm ci`・`npm run check` など）する前に中身を確かめてください。依存関係やスクリプトに悪意のあるコードが含まれている可能性があります
+- 他の人のプルリクエストのコードは、手元で実行（`npm run setup`・`npm run check` など）する前に中身を確かめてください。依存関係やスクリプトに悪意のあるコードが含まれている可能性があります
 - レビューの結果をプルリクエストに残すときは、内容を確かめてから自分でコメントしてください
 - 実行は ChatGPT・Claude の使用量を消費します
 
@@ -83,7 +83,7 @@
 ## 手順
 1. develop ブランチを取り出す（git fetch origin develop && git checkout develop）。develop がなければ既定のブランチのままでよい。
 2. AGENTS.md の「Code Review Rules」と CONTRIBUTING.md を読み、その観点でリポジトリ全体をレビューする。直近7日間の変更（git log --since="7 days ago" -p）は特に重点的に見る。
-3. 可能なら npm ci と npm run check を実行し、失敗があれば原因を調べる。実行環境（ネットワークや Node のバージョンなど）が原因の失敗は Issue にしない。
+3. 可能なら npm run setup と npm run check を実行し、失敗があれば原因を調べる。実行環境（ネットワークや Node のバージョンなど）が原因の失敗は Issue にしない。
 4. 既存の Issue を確認して重複を避ける。閉じた Issue も含め、同じ内容のものは登録しない。100件を超えても漏れないよう、全ページを取得する。
    gh api --paginate "repos/<OWNER>/<REPO>/issues?state=all&labels=ai-review&per_page=100" --jq '.[] | "#\(.number) [\(.state)] \(.title)"'
 5. ラベル ai-review がなければ作る。

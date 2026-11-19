@@ -2,8 +2,10 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 全消去の順序と遅れた通知：消去世代を記録してから削除すること。再試行で共有領域の削除や消去世代の更新を行わず、キーの列挙失敗や同じ内容の再保存があっても、消去後に別タブで保存された入力・設定を残すこと
+ * - [R009] 全消去の順序と遅れた通知：消去世代を記録してから削除すること。再試行で共有領域の削除や消去世代の更新を行わず、キーの列挙失敗や同じ内容の再保存があっても、消去後に別タブで保存された入力・設定を残すこと
  * - 戻る・進むのキャッシュ：キャッシュから戻ったタブも、離れていた間に消去世代が変わっていれば、タブ内データを消すこと
+ * - [R010] 取りこぼした通知：起動から受け取りの登録までの間の全消去や、世代の記録の通知を取りこぼした場合も、世代のずれに気づいてタブ内データを消すこと
+ * - 起動時の消去失敗：旧世代の入力を削除できない間は復元・保存を止め、通知登録後に失敗を示し、自分のタブだけを再試行すること
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_PREFIX } from './index';
@@ -16,6 +18,38 @@ import { memoryStorage } from './memory.fixtures';
  */
 describe('保存データの全消去', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('起動時に旧世代の入力を削除できなければ復元と保存を止め、通知登録後に再試行できる', async () => {
+    vi.resetModules();
+    const input = `${INPUT_PREFIX}json`;
+    const local = memoryStorage({ [`${APP_PREFIX}event:clear`]: 'after', [`${APP_PREFIX}pref:theme`]: '"dark"' });
+    const session = memoryStorage({ [input]: 'old-input', [`${APP_PREFIX}event:tab-generation`]: 'before' });
+    let fail = true;
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('sessionStorage', { ...session, get length() { return session.length; }, removeItem: (key: string) => {
+      if (fail && key === input) throw new DOMException('denied', 'SecurityError');
+      session.removeItem(key);
+    } });
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('BroadcastChannel', undefined);
+    vi.stubGlobal('navigator', {});
+    const { prepareStorage, readInput, saveInput, isClearingData, subscribeClearData } = await import('./index');
+    prepareStorage(['json']);
+    expect(isClearingData()).toBe(true);
+    expect(readInput('json', '')).toBe('');
+    expect(saveInput('json', 'new-input', '')).toBe(false);
+    expect(session.getItem(input)).toBe('old-input');
+    const listener = vi.fn();
+    const unsubscribe = subscribeClearData(listener);
+    const result = listener.mock.calls[0]?.[0];
+    expect(result).toMatchObject({ ok: false, sharedPending: false, retry: expect.any(Function) });
+    fail = false;
+    result.retry();
+    await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith({ ok: true }));
+    expect(session.getItem(input)).toBeNull();
+    expect(local.dump()).toEqual({ [`${APP_PREFIX}event:clear`]: 'after', [`${APP_PREFIX}pref:theme`]: '"dark"' });
+    unsubscribe();
+  });
 
   it('ストレージが使えなくてもタブ間通知でタブ内データを消し、重複通知を無視する', async () => {
     vi.resetModules();
@@ -91,6 +125,50 @@ describe('保存データの全消去', () => {
     expect(session.dump()).toEqual({});
     /** 共有領域は消去を始めたタブだけが消す */
     expect(local.dump()).toEqual({ [`${APP_PREFIX}event:clear`]: 'after' });
+    unsubscribe();
+  });
+
+  it('回帰：起動から受け取りの登録までの間に別タブで全消去されても、登録の直後にタブ内データを消す', async () => {
+    /** 通知は登録前に届いて失われ、世代のずれで保存だけが黙って止まり続けていた（入力は消えず、再読み込みもされない） */
+    vi.resetModules();
+    const local = memoryStorage({ [`${APP_PREFIX}event:clear`]: 'before' });
+    const session = memoryStorage({ [`${INPUT_PREFIX}base64`]: 'secret' });
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('sessionStorage', session);
+    vi.stubGlobal('BroadcastChannel', undefined);
+    const { subscribeClearData } = await import('./index');
+    /** 別タブの全消去（世代の記録）が、このタブの受け取りの登録より先に起きる */
+    local.setItem(`${APP_PREFIX}event:clear`, 'after');
+    const listener = vi.fn();
+    const unsubscribe = subscribeClearData(listener);
+    await vi.waitFor(() => expect(listener).toHaveBeenCalledWith({ ok: true }));
+    expect(session.dump()).toEqual({});
+    /** 共有領域は消去を始めたタブだけが消す */
+    expect(local.dump()).toEqual({ [`${APP_PREFIX}event:clear`]: 'after' });
+    unsubscribe();
+  });
+
+  it('回帰：世代の記録の通知を取りこぼしても、ほかのキーの storage イベントで世代のずれに気づいてタブ内データを消す', async () => {
+    vi.resetModules();
+    const local = memoryStorage({ [`${APP_PREFIX}event:clear`]: 'before' });
+    const session = memoryStorage({ [`${INPUT_PREFIX}base64`]: 'secret' });
+    const target = new EventTarget();
+    vi.stubGlobal('window', target);
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('sessionStorage', session);
+    vi.stubGlobal('BroadcastChannel', undefined);
+    const { subscribeClearData } = await import('./index');
+    const listener = vi.fn();
+    const unsubscribe = subscribeClearData(listener);
+    const prefChanged = () => target.dispatchEvent(Object.assign(new Event('storage'), { key: `${APP_PREFIX}pref:theme`, newValue: '"dark"', storageArea: local }));
+    /** 世代が変わっていなければ、ほかのキーの変更は全消去として扱わない */
+    prefChanged();
+    expect(listener).not.toHaveBeenCalled();
+    local.setItem(`${APP_PREFIX}event:clear`, 'after');
+    prefChanged();
+    await vi.waitFor(() => expect(listener).toHaveBeenCalledWith({ ok: true }));
+    expect(session.dump()).toEqual({});
     unsubscribe();
   });
 

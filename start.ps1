@@ -19,28 +19,45 @@ try {
 
     $nodeCommand = Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     $npmCommand = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    # 対応する版は package.json の engines（^22.12.0 || ^24.0.0 || >=26.0.0）と同じ。推奨は .nvmrc の 24
+    $nodeRequirement = 'Node.js 24（または 22.12 以上の 22、26 以上）'
     if (-not $nodeCommand -or -not $npmCommand) {
-        throw 'Node.js 22.12以上とnpmが必要です。Node.js 24をインストールしてから、もう一度実行してください。'
+        throw "$nodeRequirement とnpmが必要です。Node.js 24をインストールしてから、もう一度実行してください。"
     }
     $nodeVersion = & $nodeCommand.Source -p 'process.versions.node'
-    if ($LASTEXITCODE -ne 0 -or [version]$nodeVersion -lt [version]'22.12.0') {
-        throw 'Node.jsが古いか、実行できません。Node.js 24をインストールしてください。'
+    $supported = $false
+    if ($LASTEXITCODE -eq 0) {
+        $version = [version]$nodeVersion
+        $supported = ($version.Major -eq 22 -and $version -ge [version]'22.12.0') -or $version.Major -eq 24 -or $version.Major -ge 26
+    }
+    if (-not $supported) {
+        throw "Node.js（$nodeVersion）はこのアプリに対応していないか、実行できません。$nodeRequirement をインストールしてください。"
     }
 
-    if (-not (Test-Path -LiteralPath 'node_modules/.bin/vite.cmd') -or
-        -not (Test-Path -LiteralPath 'node_modules/.bin/tsc.cmd')) {
-        Write-Host '初回の準備として、依存パッケージをダウンロードします。'
-        # CI（.github/workflows/checks.yml）と同じく、依存のインストールスクリプトは実行しない。
-        # 次の署名の検証より前に、改ざんされたパッケージのコードを動かさないため
-        Invoke-ProjectNpm -Arguments @('ci', '--ignore-scripts')
+    # 依存の準備を終えた印。署名の検証が通った直後に、そのときの package-lock.json のハッシュを書く。
+    # node_modules があるだけでは準備済みとみなさない。取得や検証の途中でウィンドウを閉じた・Ctrl+C で止めたときに、
+    # 検証していない依存が残り、次の起動で検証せずに使ってしまうため。git pull などで package-lock.json が変わったときも、準備し直す
+    $verifiedMarker = 'node_modules/.dev-toolbox-verified'
+    $lockHash = (Get-FileHash -LiteralPath 'package-lock.json' -Algorithm SHA256).Hash
+    # 空の印（書き込みの途中で止めたときなど）は、Get-Content が値を返さないため、文字列に埋め込んで空文字として比べる（準備し直す）
+    $verified = (Test-Path -LiteralPath $verifiedMarker) -and ("$(Get-Content -LiteralPath $verifiedMarker -Raw)".Trim() -eq $lockHash)
+    if (-not $verified) {
+        if (Test-Path -LiteralPath 'node_modules') {
+            Write-Host '依存パッケージが package-lock.json と合わないか、署名の検証を終えていないため、準備し直します。'
+        }
+        else {
+            Write-Host '初回の準備として、依存パッケージをダウンロードします。'
+        }
+        # CI（.github/workflows/checks.yml）と同じ npm run setup。依存のインストールスクリプトは実行せずに取得し、署名を検証する
         try {
-            Invoke-ProjectNpm -Arguments @('run', 'audit:signatures')
+            Invoke-ProjectNpm -Arguments @('run', 'setup')
         }
         catch {
-            # 検証に通らなかった依存を残すと、次の起動では準備済みとみなして、検証せずに使ってしまうため消す
+            # 取得や検証に失敗した依存は残さない（印がないので次の起動でも準備し直すが、途中の依存を誤って使わないように消す）
             Remove-Item -LiteralPath 'node_modules' -Recurse -Force -ErrorAction SilentlyContinue
-            throw "依存パッケージの署名を検証できませんでした。ダウンロードした依存パッケージは削除しました。（$($_.Exception.Message)）"
+            throw "依存パッケージの取得または署名の検証に失敗しました。ダウンロードした依存パッケージは削除しました。（$($_.Exception.Message)）"
         }
+        Set-Content -LiteralPath $verifiedMarker -Value $lockHash -Encoding ascii -NoNewline
     }
 
     Write-Host '本番ビルドを作成しています。'

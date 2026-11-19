@@ -48,6 +48,8 @@ describe('ドキュメントのリンクとパス', () => {
      */
     const missing: string[] = [];
     for (const [file, text] of Object.entries(codeSources)) {
+      /** Nodeの基盤テストのパスは一時ディレクトリの入力データ。実行時に作成・検証するため、リポジトリの文書参照としては調べない。 */
+      if (file.startsWith('/scripts/') && file.endsWith('.test.mjs')) continue;
       for (const [, path = ''] of text.matchAll(/(?:^|[\s(（`'"])((?:src|e2e|scripts|docs|\.github)\/[^\s`'"()（）、。]+?\.(?:tsx|ts|mjs|css|md|ya?ml|json))(?![\w.])/gm)) {
         if (/[<>*$]/.test(path)) continue;
         if (!exists(`/${path}`)) missing.push(`${file} → ${path}`);

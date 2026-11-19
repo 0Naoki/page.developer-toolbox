@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { parseDer, valueOf, type Node } from '../../lib/crypto/asn1';
+import { tlvNumbers as tlv } from '../../lib/crypto/der.testing';
 import { ED25519, ENCODING_CA_PRINTABLE, ENCODING_LEAF, LEAF, LEAF_CSR, LEAF_PSS, PSS_CSR, ROLLOVER_NEW_CA, ROLLOVER_OLD_CA, ROOT_CA, ROOT_CA_ROLLOVER, SAME_NAME_CA1, SAME_NAME_CA2, SAME_NAME_LEAF } from './certificates.fixtures';
 import { parseItem, type Certificate, type Csr } from './logic';
 import { readPem } from './pem';
 import { sameBytes } from './name';
-import { verifyInList, verifySigned } from './verify';
+/** 検査の対象：verify.ts・verifySigned.ts・signatureScheme.ts・issuerCandidates.ts。 */
+import { verifyInList } from './verify';
+import { verifySigned } from './verifySigned';
 
 const parse = (pem: string) => parseItem(readPem(pem)[0]!);
 const leaf = parse(LEAF) as Certificate;
@@ -67,6 +70,11 @@ describe('verifySigned（openssl verify で正しいと確かめた証明書）'
     expect(await verifySigned(signed, spki)).toEqual({
       status: 'unsupported',
       message: 'この曲線（secp256k1）の署名は、ブラウザ（Web Crypto API）で検証できません',
+    });
+    /** 署名の DER が途中で切れていることは、曲線に対応していなくても分かる（形式が正しくない） */
+    expect(await verifySigned({ ...signed, signature: Uint8Array.from([0x30, 0x06, 2, 1, 1, 2]) }, spki)).toEqual({
+      status: 'invalid',
+      message: '署名の形式が正しくありません',
     });
     /** RSA の署名を secp256k1 の鍵で検証しようとするのは、鍵の種類の違い（一致しない） */
     expect(await verifySigned({ ...leaf.signed }, spki)).toMatchObject({ status: 'invalid', message: expect.stringContaining('鍵の種類（ECDSA）') });
@@ -157,9 +165,6 @@ describe('verifyInList', () => {
   });
 });
 
-/** DER の要素（短い値だけ）を組み立てる */
-const derLength = (n: number) => (n < 0x80 ? [n] : [0x81, n]);
-const tlv = (tag: number, body: number[]) => [tag, ...derLength(body.length), ...body];
 
 describe('RSA-PSS のパラメーター（RFC 4055）', () => {
   /** CSR の外側の署名アルゴリズムは署名の対象ではないため、書き換えても署名の値は正しいまま */
@@ -222,6 +227,28 @@ describe('RSA-PSS のパラメーター（RFC 4055）', () => {
     const withNull = tlv(0x30, [...SHA256_OID, 0x05, 0x00]);
     const MGF1_NULL = tlv(0xa1, tlv(0x30, [...tlv(0x06, [0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08]), ...withNull]));
     expect(await verifyWith([tlv(0xa0, withNull), MGF1_NULL, SALT])).toMatchObject({ status: 'valid' });
+  });
+
+  it('値が同じでも、DER の規則に合わない整数・OID の書き方は正しくないとする（署名の外側なので書き換えられる）', async () => {
+    const cases: [number[][], string][] = [
+      /** 余分な先頭の0（00 20 は 32 と同じ値） */
+      [[HASH, MGF1, tlv(0xa2, tlv(0x02, [0x00, 0x20]))], 'saltLength の書き方が DER の規則に合いません'],
+      [[HASH, MGF1, tlv(0xa2, tlv(0x02, []))], 'saltLength が空です'],
+      [[HASH, MGF1, SALT, tlv(0xa3, tlv(0x02, [0x00, 0x01]))], 'trailerField の書き方が DER の規則に合いません'],
+    ];
+    for (const [items, message] of cases) {
+      expect(await verifyWith(items), message).toEqual({ status: 'invalid', message: `RSA-PSS のパラメーターが正しくありません（${message}）` });
+    }
+    /** OID の成分の先頭に余分な 0x80 を付けたもの（値は SHA-256・MGF1 と同じ） */
+    const SHA256_PADDED = tlv(0x30, tlv(0x06, [0x60, 0x80, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01]));
+    expect(await verifyWith([tlv(0xa0, SHA256_PADDED), MGF1, SALT])).toEqual({ status: 'invalid', message: 'ハッシュアルゴリズムの OID の書き方が DER の規則に合いません' });
+    const MGF1_PADDED = mgf([0x2a, 0x80, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x08]);
+    expect(await verifyWith([HASH, MGF1_PADDED, SALT])).toEqual({ status: 'invalid', message: 'マスク生成関数の OID の書き方が DER の規則に合いません' });
+    const paddedAlg = tlv(0x06, [0x2a, 0x80, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0a]);
+    const raw = new Uint8Array(tlv(0x30, [...paddedAlg, ...tlv(0x30, [HASH, MGF1, SALT].flat())]));
+    expect(await verifySigned({ ...pssCsr.signed, algorithm: parseDer(raw) }, pssCsr.signed.spki)).toEqual({ status: 'invalid', message: '署名アルゴリズムの OID の書き方が DER の規則に合いません' });
+    /** 最上位ビットが1の値を正にする先頭の0は正しい書き方（ソルト長128は署名と合わないので、一致しないになる） */
+    expect(await verifyWith([HASH, MGF1, tlv(0xa2, tlv(0x02, [0x00, 0x80]))])).toMatchObject({ status: 'invalid', message: expect.stringContaining('一致しません') });
   });
 });
 

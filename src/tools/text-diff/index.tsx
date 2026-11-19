@@ -2,8 +2,10 @@
  * テキスト差分のファイルの分担。
  * - `myers.ts`：列の差分の計算（Myers 法）と、時間での打ち切り。テキストに依存しない
  * - `logic.ts`：行・文字の差分（改行の扱い、空白・大文字小文字の無視、行内の強調）
- * - `rows.ts`：画面に並べる行（変更のない行の折りたたみ・統合表示の並べ替え）
+ * - `rows.ts`：左右表示・統合表示の行の型
  * - `unified.ts`：コピー用の unified 形式のパッチの生成（元の改行を保つ）
+ * - `packed.ts`：本文量・行数から入力参照と行の直接保持を選ぶ Worker の応答
+ * - `preview.ts`：圧縮した応答から、表示する範囲だけを復元
  * - `calculation.ts`：計算 Worker で差分と unified 形式をまとめて求める
  */
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -22,7 +24,8 @@ import { isBoolean, oneOf } from '../../lib/settings';
 import { textPreview } from '../../lib/text/textPreview';
 import type { DiffCalculation } from './calculation';
 import type { DiffLine } from './logic';
-import { unifiedDisplayRows, visibleRows, type FoldedRow, type UnifiedDisplayRow } from './rows';
+import type { FoldedRow, UnifiedDisplayRow } from './rows';
+import { splitPreview, unifiedPreview } from './preview';
 import { formatNumber } from '../../lib/number';
 import { Check } from '../../components/Check';
 
@@ -43,7 +46,7 @@ WHERE category = 'book'
   AND stock > 0
 ORDER BY price DESC;`;
 
-const EMPTY_RESULT: DiffCalculation = { rows: [], added: 0, removed: 0, identical: true, approximate: false, unified: '' };
+const EMPTY_RESULT: DiffCalculation = { rows: { blocks: [], before: '', after: '', leftStarts: new Uint32Array(), rightStarts: new Uint32Array(), length: 0 }, added: 0, removed: 0, identical: true, approximate: false, unified: '' };
 
 export default function TextDiff() {
   const [before, setBefore] = useInput('diff:before');
@@ -76,10 +79,13 @@ export default function TextDiff() {
     setExpanded([]);
   }, [result]);
 
-  const rows = useMemo(() => visibleRows(result.rows, { onlyChanges, context: 3, expanded }), [result, onlyChanges, expanded]);
-
-  const unified = useMemo(() => (view === 'unified' ? unifiedDisplayRows(rows) : []), [rows, view]);
-  const totalRows = view === 'split' ? rows.length : unified.length;
+  const preview = useMemo(() => {
+    const options = { onlyChanges, context: 3, expanded, limit: renderLimit };
+    return view === 'split'
+      ? { view: 'split' as const, ...splitPreview(result.rows, options) }
+      : { view: 'unified' as const, ...unifiedPreview(result.rows, options) };
+  }, [result, onlyChanges, expanded, renderLimit, view]);
+  const totalRows = preview.total;
 
   const swap = () => {
     setBefore(after);
@@ -161,11 +167,9 @@ export default function TextDiff() {
               <div className="diff-scroll">
                 <table className={`diff-table view-${view}`}>
                   <tbody>
-                    {view === 'split'
-                      ? rows.slice(0, renderLimit).map((r, i) => <SplitRow key={i} row={r} onExpand={(from) => setExpanded([...expanded, from])} />)
-                      : unified
-                          .slice(0, renderLimit)
-                          .map((u, i) => <UnifiedRow key={i} item={u} onExpand={(from) => setExpanded([...expanded, from])} />)}
+                    {preview.view === 'split'
+                      ? preview.shown.map((r, i) => <SplitRow key={i} row={r} onExpand={(from) => setExpanded([...expanded, from])} />)
+                      : preview.shown.map((u, i) => <UnifiedRow key={i} item={u} onExpand={(from) => setExpanded([...expanded, from])} />)}
                   </tbody>
                 </table>
                 {totalRows > renderLimit && (

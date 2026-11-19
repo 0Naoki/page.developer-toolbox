@@ -6,9 +6,11 @@
  * - `keys.ts`：鍵（秘密鍵・公開鍵・JWK Set）の読み込みと安全検査
  * - `verify.ts`：署名の検証（Web Crypto API を使う非同期処理）
  * - `useVerification.ts`：鍵の入力の読み込みと、署名の検証の結果を画面で使うフック
+ * - `sample.ts`：「サンプル」のボタンで入れるトークンと、その署名に使った秘密鍵（テスト用の架空の値）
  * トークン・鍵は保存しない（useInput を使わない）。
  */
 import { useMemo, useState } from 'react';
+import { MAX_KEY } from './keys';
 import { Pane } from '../../components/Pane';
 import { Badge } from '../../components/Badge';
 import { Notice } from '../../components/Notice';
@@ -27,11 +29,16 @@ import { attempt } from '../../lib/errors';
 import { previewList } from '../../lib/listPreview';
 import { ListRest } from '../../components/ListRest';
 import { TextOutputPreview } from '../../components/FormattedOutput';
+import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
+import { OpenInToolButton } from '../../components/OpenInToolButton';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { ClippedText } from '../../components/ClippedText';
 
 export default function JwtDecoder() {
   /** トークンは機密情報になり得るため、どこにも保存しない（useInput を使わず、メモリ内だけで持つ） */
   const [token, setToken] = useState('');
+  /** サンプルで入力を差し替えたとき、編集履歴を作り直す（LargeTextInput の resetKey） */
+  const [tokenRevision, setTokenRevision] = useState(0);
   const result = useMemo(() => {
     if (!token.trim()) return null;
     return attempt(() => {
@@ -44,9 +51,16 @@ export default function JwtDecoder() {
     <ToolShell
       description="中身を表示し、秘密鍵（HS256 など）か公開鍵（RS256・ES256 など）を入力すると署名を検証します。トークンと鍵はブラウザ内でのみ処理され、保存もされません。"
     >
-      <Pane title="トークン">
+      <Pane title="トークン" actions={
+        <button type="button" className="btn btn-ghost" onClick={() => {
+          setToken(SAMPLE_TOKEN);
+          setTokenRevision((revision) => revision + 1);
+        }}>
+          サンプル
+        </button>
+      }>
         {/** 長いトークン（改行のない1行）を普通の textarea で描画すると、画面が数十秒止まることがあるため、表示を先頭までにする */}
-        <LargeTextInput label="トークン" className="code code-short" value={token} onChange={setToken} placeholder="eyJhbGciOi...（Bearer 付きでも可）" />
+        <LargeTextInput label="トークン" className="code code-short" value={token} onChange={setToken} resetKey={tokenRevision} placeholder="eyJhbGciOi...（Bearer 付きでも可）" />
       </Pane>
 
       {result && !result.ok && (
@@ -58,6 +72,7 @@ export default function JwtDecoder() {
           <Notice tone="warn">
             JWE（暗号化されたトークン）です。中身（ペイロード）は暗号化されているため、復号の鍵がないと表示できません。読めるのはヘッダだけです。
           </Notice>
+          <HandoffHint />
           <div className="split">
             <JsonPane title="ヘッダ" text={result.jwe.headerJson} />
           </div>
@@ -146,6 +161,7 @@ function Decoded({ parsed }: { parsed: ParsedJwt }) {
 
       <VerifyPanel data={data} verification={verification} />
 
+      <HandoffHint />
       <div className="split">
         <JsonPane title="ヘッダ" text={data.headerJson} />
         <JsonPane title="ペイロード" text={data.payloadJson} />
@@ -188,6 +204,17 @@ function VerifyPanel({ data, verification: v }: { data: DecodedJwt; verification
               autoComplete="off"
             />
           </label>
+          {/** サンプルのトークンのときだけ、署名に使った秘密鍵（テスト用の架空の値）を入れられるようにする */}
+          {`${data.signingInput}.${data.signature}` === SAMPLE_TOKEN && v.keyText !== SAMPLE_SECRET && (
+            <div className="toolbar">
+              <button type="button" className="btn btn-ghost" onClick={() => {
+                v.setEncoding('utf-8');
+                v.setKeyText(SAMPLE_SECRET);
+              }}>
+                サンプルの秘密鍵を入れる
+              </button>
+            </div>
+          )}
         </>
       ) : (
         /**
@@ -196,7 +223,7 @@ function VerifyPanel({ data, verification: v }: { data: DecodedJwt; verification
          */
         <div className="field">
           <span className="field-label">公開鍵（{algLabel || 'alg なし'}。PEM・証明書・JWK・JWK Set。保存されません）</span>
-          <LargeTextInput
+          <LargeTextInput limit={MAX_KEY}
             label="公開鍵"
             className="code code-short"
             value={v.keyText}
@@ -228,9 +255,20 @@ function VerifyPanel({ data, verification: v }: { data: DecodedJwt; verification
   );
 }
 
+/**
+ * トークンはどこにも保存しないが、JSON整形は入力をこのタブに保存する。渡す前に分かるよう、
+ * 「JSON整形で開く」（JsonPane）を出す画面（JWS・JWE の両方）に添える
+ */
+function HandoffHint() {
+  return <p className="hint">「JSON整形で開く」と、その内容は JSON整形の入力として、このタブを閉じるまで残ります（全消去でも消せます）。</p>;
+}
+
 function JsonPane({ title, text }: { title: string; text: string }) {
   return (
-    <Pane title={title} actions={<CopyButton text={text} />}>
+    <Pane title={title} actions={<>
+      <OpenInToolButton to="json" text={text} limit={MAX_CALCULATION_INPUT} />
+      <CopyButton text={text} />
+    </>}>
       {/** 長い JSON を丸ごと描画すると画面が止まるため、表示は先頭だけにする。コピーは全文を対象にする */}
       <TextOutputPreview label={title} text={text} as="pre" />
     </Pane>

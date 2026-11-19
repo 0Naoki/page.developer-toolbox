@@ -1,3 +1,7 @@
+/**
+ * 回帰テストとして残す検証（docs/TESTING.md）。対象はwriteCsv.ts・validateJson.ts。
+ * - [R054] CSVの重複した親キー：展開・配列内・エスケープ表記を含めて元の構造を検証し、列名の衝突と区別する。
+ */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_JSON_TO_CSV, jsonToCsv, neutralizeFormula } from './writeCsv';
 import { parseCsv } from './parseCsv';
@@ -123,6 +127,13 @@ describe('JSON→CSV で数値の表記を保つ', () => {
 });
 
 describe('項目名の衝突', () => {
+  it('展開後の列名が異なる親キーや、配列内の重複キーも展開前に拒否する', () => {
+    for (const json of ['[{"a":{"x":1},"a":{"y":2}}]', '[{"a":{"x":1},"a":2}]',
+      '[{"a":{"x":1,"x":2}}]', '[[{"a":1,"a":2}]]', '[{"a":1,"\\u0061":2}]']) {
+      for (const flatten of [true, false]) expect(() => jsonToCsv(json, { ...DEFAULT_JSON_TO_CSV, flatten })).toThrow(/項目名.*重複/);
+    }
+    expect(jsonToCsv('[{"a":{"x":1},"b":{"x":2}}]', { ...DEFAULT_JSON_TO_CSV, newline: '\n' }).csv).toBe('a.x,b.x\n1,2');
+  });
   it('フラット化で同じ列名になる場合はエラーにする', () => {
     const json = '[{"a.b":"first","a":{"b":"second"}}]';
     expect(() => jsonToCsv(json, DEFAULT_JSON_TO_CSV)).toThrow(/a\.b/);

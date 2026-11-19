@@ -1,0 +1,1351 @@
+{
+  "scope": "Nodeの計算全体・範囲への圧縮・structuredClone・先頭1000表示行の復元・V8 serializeサイズ。ヒープ使用量とブラウザの描画時間は対象外。",
+  "inputDescription": "同一・中央1行変更・全行変更・交互変更・長行・改行主体。探索打ち切りがある場合、最短パッチの一致ではなく元の入力を復元できることを確認する。",
+  "cases": [
+    {
+      "lines": 1000,
+      "shape": "same",
+      "inputUtf16": 4889,
+      "afterUtf16": 4889,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              3.4067999999999756,
+              3.003399999999999,
+              2.709099999999978
+            ],
+            "medianMs": 3.003399999999999
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              2.4302999999999884,
+              2.083500000000015,
+              2.038600000000031
+            ],
+            "medianMs": 2.083500000000015
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.03530000000000655,
+              0.030799999999999272,
+              0.026499999999998636
+            ],
+            "medianMs": 0.030799999999999272
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.031799999999975626,
+              0.04070000000001528,
+              0.07099999999996953
+            ],
+            "medianMs": 0.04070000000001528
+          },
+          "serializedBytes": 81509,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              2.554899999999975,
+              3.2980999999999767,
+              2.6014999999999873
+            ],
+            "medianMs": 2.6014999999999873
+          },
+          "packing": {
+            "runsMs": [
+              0.27199999999999136,
+              0.2296999999999798,
+              0.20210000000002992
+            ],
+            "medianMs": 0.2296999999999798
+          },
+          "clone": {
+            "runsMs": [
+              0.03440000000000509,
+              0.02019999999998845,
+              0.047300000000007
+            ],
+            "medianMs": 0.03440000000000509
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.00529999999997699,
+              0.0030000000000427463,
+              0.010299999999972442
+            ],
+            "medianMs": 0.00529999999997699
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.00760000000002492,
+              0.0027000000000043656,
+              0.0024999999999977263
+            ],
+            "medianMs": 0.0027000000000043656
+          },
+          "serializedBytes": 27761,
+          "rowObjectsOrBlocks": 1,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 1000,
+      "shape": "one",
+      "inputUtf16": 4889,
+      "afterUtf16": 4890,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              4.13330000000002,
+              4.497800000000041,
+              2.5153000000000247
+            ],
+            "medianMs": 4.13330000000002
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              2.2449999999999477,
+              2.017400000000009,
+              1.8700000000000045
+            ],
+            "medianMs": 2.017400000000009
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.02379999999999427,
+              0.019200000000012096,
+              0.01850000000001728
+            ],
+            "medianMs": 0.019200000000012096
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.059799999999995634,
+              0.04770000000002028,
+              0.0221000000000231
+            ],
+            "medianMs": 0.04770000000002028
+          },
+          "serializedBytes": 81822,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              2.519200000000012,
+              2.095100000000002,
+              2.0270999999999617
+            ],
+            "medianMs": 2.095100000000002
+          },
+          "packing": {
+            "runsMs": [
+              0.208500000000015,
+              0.24740000000002738,
+              0.18909999999999627
+            ],
+            "medianMs": 0.208500000000015
+          },
+          "clone": {
+            "runsMs": [
+              0.03829999999999245,
+              0.02800000000002001,
+              0.032199999999988904
+            ],
+            "medianMs": 0.032199999999988904
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.004800000000045657,
+              0.0033999999999991815,
+              0.0036000000000058208
+            ],
+            "medianMs": 0.0036000000000058208
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.028900000000021464,
+              0.008900000000039654,
+              0.007399999999961437
+            ],
+            "medianMs": 0.008900000000039654
+          },
+          "serializedBytes": 28214,
+          "rowObjectsOrBlocks": 3,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "shape": "same",
+      "inputUtf16": 58889,
+      "afterUtf16": 58889,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              14.367000000000019,
+              21.75109999999995,
+              12.489199999999983
+            ],
+            "medianMs": 14.367000000000019
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              19.809300000000007,
+              29.056699999999978,
+              29.200900000000047
+            ],
+            "medianMs": 29.056699999999978
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.20409999999992579,
+              0.1711999999999989,
+              0.1893999999999778
+            ],
+            "medianMs": 0.1893999999999778
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.20420000000001437,
+              0.06590000000005602,
+              0.03300000000001546
+            ],
+            "medianMs": 0.06590000000005602
+          },
+          "serializedBytes": 859127,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              20.026700000000005,
+              17.60259999999994,
+              14.416799999999967
+            ],
+            "medianMs": 17.60259999999994
+          },
+          "packing": {
+            "runsMs": [
+              3.255800000000022,
+              2.5646000000000413,
+              2.499499999999898
+            ],
+            "medianMs": 2.5646000000000413
+          },
+          "clone": {
+            "runsMs": [
+              0.17980000000000018,
+              0.0625,
+              0.070699999999988
+            ],
+            "medianMs": 0.070699999999988
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.0018000000000029104,
+              0.0014999999999645297,
+              0.0013000000000147338
+            ],
+            "medianMs": 0.0014999999999645297
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.0016000000000531145,
+              0.0013999999999896318,
+              0.0013999999999896318
+            ],
+            "medianMs": 0.0013999999999896318
+          },
+          "serializedBytes": 315768,
+          "rowObjectsOrBlocks": 1,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "shape": "one",
+      "inputUtf16": 58889,
+      "afterUtf16": 58890,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              17.5150000000001,
+              12.496500000000083,
+              14.377100000000041
+            ],
+            "medianMs": 14.377100000000041
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              26.826599999999985,
+              28.374799999999937,
+              21.58420000000001
+            ],
+            "medianMs": 26.826599999999985
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.08429999999998472,
+              0.04729999999995016,
+              0.028899999999907777
+            ],
+            "medianMs": 0.04729999999995016
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.03170000000000073,
+              0.031100000000037653,
+              0.03049999999996089
+            ],
+            "medianMs": 0.031100000000037653
+          },
+          "serializedBytes": 859462,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              20.70240000000001,
+              17.01120000000003,
+              9.805299999999988
+            ],
+            "medianMs": 17.01120000000003
+          },
+          "packing": {
+            "runsMs": [
+              1.6804999999999382,
+              1.4785000000000537,
+              1.523200000000088
+            ],
+            "medianMs": 1.523200000000088
+          },
+          "clone": {
+            "runsMs": [
+              0.15390000000002146,
+              0.10149999999998727,
+              0.08509999999989759
+            ],
+            "medianMs": 0.10149999999998727
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.003399999999942338,
+              0.0027000000000043656,
+              0.0026000000000294676
+            ],
+            "medianMs": 0.0027000000000043656
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.004600000000095861,
+              0.004700000000070759,
+              0.004099999999993997
+            ],
+            "medianMs": 0.004600000000095861
+          },
+          "serializedBytes": 316248,
+          "rowObjectsOrBlocks": 3,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 100000,
+      "shape": "same",
+      "inputUtf16": 688889,
+      "afterUtf16": 688889,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              128.7129,
+              108.00749999999994,
+              140.77179999999998
+            ],
+            "medianMs": 128.7129
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              300.01970000000006,
+              248.58099999999968,
+              196.04320000000007
+            ],
+            "medianMs": 248.58099999999968
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.8735000000001492,
+              0.7518000000000029,
+              0.6626000000001113
+            ],
+            "medianMs": 0.7518000000000029
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.8470999999999549,
+              0.6085999999995693,
+              0.6109999999998763
+            ],
+            "medianMs": 0.6109999999998763
+          },
+          "serializedBytes": 9139128,
+          "rowObjectsOrBlocks": 100000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              119.2456000000002,
+              133.89059999999972,
+              166.2539999999999
+            ],
+            "medianMs": 133.89059999999972
+          },
+          "packing": {
+            "runsMs": [
+              8.1567,
+              8.297699999999622,
+              8.330800000000181
+            ],
+            "medianMs": 8.297699999999622
+          },
+          "clone": {
+            "runsMs": [
+              2.848399999999856,
+              2.690299999999752,
+              2.683899999999994
+            ],
+            "medianMs": 2.690299999999752
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.0009999999997489795,
+              0.0007000000000516593,
+              0.005699999999706051
+            ],
+            "medianMs": 0.0009999999997489795
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.0013999999996485712,
+              0.0010000000002037268,
+              0.0009000000000014552
+            ],
+            "medianMs": 0.0010000000002037268
+          },
+          "serializedBytes": 3555768,
+          "rowObjectsOrBlocks": 1,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 100000,
+      "shape": "one",
+      "inputUtf16": 688889,
+      "afterUtf16": 688890,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              173.87580000000025,
+              155.23990000000003,
+              229.01389999999992
+            ],
+            "medianMs": 173.87580000000025
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              272.84320000000025,
+              300.71669999999995,
+              289.4502999999995
+            ],
+            "medianMs": 289.4502999999995
+          },
+          "splitRestore": {
+            "runsMs": [
+              1.0497999999997774,
+              0.7211000000006607,
+              0.7223999999996522
+            ],
+            "medianMs": 0.7223999999996522
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.7406000000000859,
+              0.684400000000096,
+              0.6272999999991953
+            ],
+            "medianMs": 0.684400000000096
+          },
+          "serializedBytes": 9139484,
+          "rowObjectsOrBlocks": 100000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              154.3186999999998,
+              181.58309999999983,
+              171.76509999999962
+            ],
+            "medianMs": 171.76509999999962
+          },
+          "packing": {
+            "runsMs": [
+              11.331100000000333,
+              13.29110000000037,
+              13.62840000000051
+            ],
+            "medianMs": 13.29110000000037
+          },
+          "clone": {
+            "runsMs": [
+              4.216699999999946,
+              5.188299999999799,
+              6.152699999999641
+            ],
+            "medianMs": 5.188299999999799
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.007700000000113505,
+              0.008499999999912689,
+              0.00680000000011205
+            ],
+            "medianMs": 0.007700000000113505
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.011500000000523869,
+              0.011099999999714782,
+              0.01190000000042346
+            ],
+            "medianMs": 0.011500000000523869
+          },
+          "serializedBytes": 3556280,
+          "rowObjectsOrBlocks": 3,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 1000,
+      "shape": "all",
+      "inputUtf16": 4889,
+      "afterUtf16": 5889,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              7.1141999999999825,
+              7.2348000000001775,
+              5.221700000000055
+            ],
+            "medianMs": 7.1141999999999825
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              5.3377999999993335,
+              5.27350000000024,
+              5.689300000000003
+            ],
+            "medianMs": 5.3377999999993335
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.10409999999956199,
+              0.10240000000067084,
+              0.09839999999985594
+            ],
+            "medianMs": 0.10240000000067084
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.41460000000006403,
+              0.3631999999997788,
+              0.16439999999965949
+            ],
+            "medianMs": 0.3631999999997788
+          },
+          "serializedBytes": 235886,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              12.585599999999431,
+              5.466699999999946,
+              5.200000000000728
+            ],
+            "medianMs": 5.466699999999946
+          },
+          "packing": {
+            "runsMs": [
+              0.0738999999994121,
+              0.06270000000040454,
+              0.052800000000388536
+            ],
+            "medianMs": 0.06270000000040454
+          },
+          "clone": {
+            "runsMs": [
+              5.617699999999786,
+              5.404199999999946,
+              5.357200000000375
+            ],
+            "medianMs": 5.404199999999946
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.025399999999535794,
+              0.024399999999332067,
+              0.024400000000241562
+            ],
+            "medianMs": 0.024400000000241562
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.21129999999993743,
+              0.2709999999997308,
+              0.3011999999998807
+            ],
+            "medianMs": 0.2709999999997308
+          },
+          "serializedBytes": 235960,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 1000,
+      "shape": "alternating",
+      "inputUtf16": 4889,
+      "afterUtf16": 5389,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              5.536000000000058,
+              9.41859999999997,
+              7.52100000000064
+            ],
+            "medianMs": 7.52100000000064
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              6.086100000000442,
+              4.963600000000042,
+              3.85779999999977
+            ],
+            "medianMs": 4.963600000000042
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.09489999999914289,
+              0.1823999999996886,
+              0.1959999999999127
+            ],
+            "medianMs": 0.1823999999996886
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.2915000000002692,
+              0.2201999999997497,
+              0.12359999999989668
+            ],
+            "medianMs": 0.2201999999997497
+          },
+          "serializedBytes": 165532,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              5.326600000000326,
+              5.027900000000045,
+              5.93579999999929
+            ],
+            "medianMs": 5.326600000000326
+          },
+          "packing": {
+            "runsMs": [
+              0.4029000000000451,
+              0.39840000000003783,
+              0.30540000000019063
+            ],
+            "medianMs": 0.39840000000003783
+          },
+          "clone": {
+            "runsMs": [
+              6.621000000000095,
+              3.280999999999949,
+              3.243999999999687
+            ],
+            "medianMs": 3.280999999999949
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.12470000000030268,
+              0.08300000000053842,
+              0.09540000000015425
+            ],
+            "medianMs": 0.09540000000015425
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.11699999999927968,
+              0.12089999999989232,
+              0.12209999999959109
+            ],
+            "medianMs": 0.12089999999989232
+          },
+          "serializedBytes": 181386,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 1000,
+      "shape": "long",
+      "inputUtf16": 304889,
+      "afterUtf16": 304590,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              4.402399999999943,
+              4.35779999999977,
+              6.9284999999999854
+            ],
+            "medianMs": 4.402399999999943
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              3.898400000000038,
+              3.85779999999977,
+              3.5554000000001906
+            ],
+            "medianMs": 3.85779999999977
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.009000000000014552,
+              0.008800000000519503,
+              0.0078000000003157766
+            ],
+            "medianMs": 0.008800000000519503
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.012700000000222644,
+              0.012200000000120781,
+              0.01040000000011787
+            ],
+            "medianMs": 0.012200000000120781
+          },
+          "serializedBytes": 1287292,
+          "rowObjectsOrBlocks": 1000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              7.95049999999992,
+              12.55369999999948,
+              12.231299999999464
+            ],
+            "medianMs": 12.231299999999464
+          },
+          "packing": {
+            "runsMs": [
+              4.838200000000143,
+              4.465100000000348,
+              4.835899999999128
+            ],
+            "medianMs": 4.835899999999128
+          },
+          "clone": {
+            "runsMs": [
+              1.4774999999999636,
+              1.4803000000001703,
+              1.420600000000377
+            ],
+            "medianMs": 1.4774999999999636
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.0016999999998006388,
+              0.0018000000000029104,
+              0.00120000000060827
+            ],
+            "medianMs": 0.0016999999998006388
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.002199999999902502,
+              0.0017000000007101335,
+              0.0036000000000058208
+            ],
+            "medianMs": 0.002199999999902502
+          },
+          "serializedBytes": 1232292,
+          "rowObjectsOrBlocks": 3,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 1000,
+      "shape": "newlines",
+      "inputUtf16": 1998,
+      "afterUtf16": 2003,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              3.026499999999942,
+              2.3634000000001834,
+              1.426100000000588
+            ],
+            "medianMs": 2.3634000000001834
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              2.5466999999998734,
+              2.0189000000000306,
+              1.980199999999968
+            ],
+            "medianMs": 2.0189000000000306
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.004199999999400461,
+              0.003200000000106229,
+              0.0030999999999039574
+            ],
+            "medianMs": 0.003200000000106229
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.00889999999981228,
+              0.00650000000041473,
+              0.006699999999909778
+            ],
+            "medianMs": 0.006699999999909778
+          },
+          "serializedBytes": 79178,
+          "rowObjectsOrBlocks": 1001,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              2.275800000000345,
+              2.3054000000001906,
+              2.438000000000102
+            ],
+            "medianMs": 2.3054000000001906
+          },
+          "packing": {
+            "runsMs": [
+              0.1610000000000582,
+              0.16529999999966094,
+              0.1433999999999287
+            ],
+            "medianMs": 0.1610000000000582
+          },
+          "clone": {
+            "runsMs": [
+              0.01540000000022701,
+              0.01389999999992142,
+              0.01720000000022992
+            ],
+            "medianMs": 0.01540000000022701
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.0029999999997016857,
+              0.002800000000206637,
+              0.003499999999803549
+            ],
+            "medianMs": 0.0029999999997016857
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.03780000000006112,
+              0.03870000000006257,
+              0.03519999999934953
+            ],
+            "medianMs": 0.03780000000006112
+          },
+          "serializedBytes": 14580,
+          "rowObjectsOrBlocks": 4,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "shape": "all",
+      "inputUtf16": 58889,
+      "afterUtf16": 68889,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              100.72130000000016,
+              89.73919999999998,
+              103.8823999999995
+            ],
+            "medianMs": 100.72130000000016
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              68.6323999999995,
+              59.65300000000025,
+              76.22980000000007
+            ],
+            "medianMs": 68.6323999999995
+          },
+          "splitRestore": {
+            "runsMs": [
+              1.0582000000003973,
+              0.9949999999998909,
+              1.0713999999998123
+            ],
+            "medianMs": 1.0582000000003973
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              2.360700000000179,
+              2.1081999999996697,
+              4.27179999999953
+            ],
+            "medianMs": 2.360700000000179
+          },
+          "serializedBytes": 2485892,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              98.60329999999976,
+              113.63469999999961,
+              119.85860000000048
+            ],
+            "medianMs": 113.63469999999961
+          },
+          "packing": {
+            "runsMs": [
+              0.0967000000000553,
+              0.07990000000063446,
+              0.17120000000068103
+            ],
+            "medianMs": 0.0967000000000553
+          },
+          "clone": {
+            "runsMs": [
+              104.14649999999983,
+              100.33569999999963,
+              72.38150000000041
+            ],
+            "medianMs": 100.33569999999963
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.3117000000002008,
+              0.2007000000003245,
+              0.2782999999999447
+            ],
+            "medianMs": 0.2782999999999447
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              1.541200000000572,
+              0.9115999999994528,
+              1.2418000000006941
+            ],
+            "medianMs": 1.2418000000006941
+          },
+          "serializedBytes": 2485966,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "shape": "alternating",
+      "inputUtf16": 58889,
+      "afterUtf16": 63889,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              71.04019999999946,
+              74.8770999999997,
+              49.384900000000926
+            ],
+            "medianMs": 71.04019999999946
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              62.10289999999986,
+              58.323999999998705,
+              57.72759999999835
+            ],
+            "medianMs": 58.323999999998705
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.5910000000003492,
+              0.5825999999997293,
+              0.5416000000004715
+            ],
+            "medianMs": 0.5825999999997293
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              2.019800000000032,
+              4.0799000000006345,
+              3.9519000000000233
+            ],
+            "medianMs": 3.9519000000000233
+          },
+          "serializedBytes": 1742346,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              40.73279999999977,
+              43.70610000000124,
+              51.507400000000416
+            ],
+            "medianMs": 43.70610000000124
+          },
+          "packing": {
+            "runsMs": [
+              1.5216999999993277,
+              0.907999999999447,
+              0.8906999999999243
+            ],
+            "medianMs": 0.907999999999447
+          },
+          "clone": {
+            "runsMs": [
+              41.5653999999995,
+              41.188099999999395,
+              45.312700000000405
+            ],
+            "medianMs": 41.5653999999995
+          },
+          "splitRestore": {
+            "runsMs": [
+              1.1649000000015803,
+              6.008500000001732,
+              0.7436999999990803
+            ],
+            "medianMs": 1.1649000000015803
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              1.6310000000012224,
+              1.3382000000001426,
+              1.413300000000163
+            ],
+            "medianMs": 1.413300000000163
+          },
+          "serializedBytes": 1922014,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "shape": "long",
+      "inputUtf16": 3058889,
+      "afterUtf16": 3058590,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              59.19579999999951,
+              52.33899999999994,
+              66.8173999999999
+            ],
+            "medianMs": 59.19579999999951
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              38.98570000000109,
+              59.17100000000028,
+              35.1786000000011
+            ],
+            "medianMs": 38.98570000000109
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.04049999999915599,
+              0.02170000000114669,
+              0.019700000000739237
+            ],
+            "medianMs": 0.02170000000114669
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.02170000000114669,
+              0.020000000000436557,
+              0.019500000000334694
+            ],
+            "medianMs": 0.020000000000436557
+          },
+          "serializedBytes": 12882930,
+          "rowObjectsOrBlocks": 10000,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              99.11319999999978,
+              78.34750000000167,
+              73.83830000000125
+            ],
+            "medianMs": 78.34750000000167
+          },
+          "packing": {
+            "runsMs": [
+              27.849599999999555,
+              27.988400000000183,
+              27.86529999999948
+            ],
+            "medianMs": 27.86529999999948
+          },
+          "clone": {
+            "runsMs": [
+              9.8729000000003,
+              9.703299999999217,
+              18.49079999999958
+            ],
+            "medianMs": 9.8729000000003
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.0018000000000029104,
+              0.0015000000003055902,
+              0.001399999999193824
+            ],
+            "medianMs": 0.0015000000003055902
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.0017000000007101335,
+              0.0015999999995983671,
+              0.001699999998891144
+            ],
+            "medianMs": 0.001699999998891144
+          },
+          "serializedBytes": 12320320,
+          "rowObjectsOrBlocks": 3,
+          "approximate": false
+        }
+      }
+    },
+    {
+      "lines": 10000,
+      "shape": "newlines",
+      "inputUtf16": 19998,
+      "afterUtf16": 20004,
+      "versions": {
+        "HEAD": {
+          "calculation": {
+            "runsMs": [
+              11.060099999998783,
+              9.81919999999991,
+              7.432600000000093
+            ],
+            "medianMs": 9.81919999999991
+          },
+          "packing": null,
+          "clone": {
+            "runsMs": [
+              44.638199999999415,
+              27.69549999999981,
+              28.438899999999194
+            ],
+            "medianMs": 28.438899999999194
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.02410000000054424,
+              0.023100000000340515,
+              0.02780000000166183
+            ],
+            "medianMs": 0.02410000000054424
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.09150000000045111,
+              0.040300000000570435,
+              0.04129999999895517
+            ],
+            "medianMs": 0.04129999999895517
+          },
+          "serializedBytes": 793808,
+          "rowObjectsOrBlocks": 10001,
+          "approximate": false
+        },
+        "workingTree": {
+          "calculation": {
+            "runsMs": [
+              7.510200000000623,
+              9.785900000000765,
+              8.693999999999505
+            ],
+            "medianMs": 8.693999999999505
+          },
+          "packing": {
+            "runsMs": [
+              0.3863000000001193,
+              0.3942000000006374,
+              0.3841000000011263
+            ],
+            "medianMs": 0.3863000000001193
+          },
+          "clone": {
+            "runsMs": [
+              0.0485000000007858,
+              0.043299999999362626,
+              0.04460000000108266
+            ],
+            "medianMs": 0.04460000000108266
+          },
+          "splitRestore": {
+            "runsMs": [
+              0.0023999999993975507,
+              0.0019000000011146767,
+              0.0018999999992956873
+            ],
+            "medianMs": 0.0019000000011146767
+          },
+          "unifiedRestore": {
+            "runsMs": [
+              0.0022999999982857844,
+              0.00240000000121654,
+              0.0020000000004074536
+            ],
+            "medianMs": 0.0022999999982857844
+          },
+          "serializedBytes": 140602,
+          "rowObjectsOrBlocks": 4,
+          "approximate": false
+        }
+      }
+    }
+  ],
+  "startedAt": "2026-11-18T03:41:37.805Z",
+  "measuredAt": "2026-11-18T03:41:48.123Z",
+  "commit": "b4aff2838239df25db83fdba0dd83b062c159491",
+  "modifiedFiles": "M SECURITY.md\n M docs/ARCHITECTURE.md\n M docs/PERFORMANCE.md\n M docs/STORAGE.md\n M docs/TESTING.md\n M docs/USAGE.md\n M docs/records/PERFORMANCE.md\n M e2e/base64.spec.ts\n M e2e/browser-security.spec.ts\n M e2e/business-days.spec.ts\n M e2e/calculation.spec.ts\n M e2e/cert.spec.ts\n M e2e/copy.spec.ts\n M e2e/cron.spec.ts\n M e2e/csv-file-edit.spec.ts\n M e2e/csv.spec.ts\n M e2e/edit-storage.spec.ts\n M e2e/hash.spec.ts\n M e2e/jwt.spec.ts\n M e2e/mobile-navigation.spec.ts\n M e2e/navigation.spec.ts\n M e2e/regex.spec.ts\n M e2e/security.spec.ts\n M e2e/smoke.spec.ts\n M e2e/storage.spec.ts\n M e2e/subnet.spec.ts\n M e2e/text-count.spec.ts\n M e2e/tools.spec.ts\n M e2e/unix-time.spec.ts\n M scripts/benchmark.mjs\n M scripts/measure-large-inputs.mjs\n M src/app/PrivacySettings.tsx\n M src/calculation/handlers.test.ts\n M src/calculation/handlers.ts\n M src/calculation/protocol.ts\n M src/docs.test.ts\n M src/documentLimits.test.ts\n M src/documentMarkdown.testing.ts\n M src/documentSources.testing.ts\n M src/hooks/usePreference.ts\n M src/lib/crypto/asn1.ts\n M src/lib/crypto/curves.test.ts\n M src/lib/settings.ts\n M src/lib/storage/clear.test.ts\n M src/lib/storage/clear.ts\n M src/lib/storage/index.test.ts\n M src/lib/storage/index.ts\n M src/lib/storage/preferences.test.ts\n M src/lib/storage/preferences.ts\n M src/lib/text/lines.test.ts\n M src/sourceScan.test.ts\n M src/tools/business-days/AddTab.tsx\n M src/tools/business-days/MonthTab.tsx\n M src/tools/business-days/index.tsx\n M src/tools/business-days/logic.test.ts\n M src/tools/cert/CertView.tsx\n M src/tools/cert/extensions.ts\n M src/tools/cert/index.tsx\n M src/tools/cert/logic.test.ts\n M src/tools/cert/logic.ts\n M src/tools/cert/verify.test.ts\n M src/tools/cert/verify.ts\n M src/tools/password-generator/index.tsx\n M src/tools/password-generator/logic.test.ts\n M src/tools/password-generator/logic.ts\n M src/tools/radix/logic.test.ts\n M src/tools/subnet/Splitter.tsx\n M src/tools/subnet/index.tsx\n M src/tools/subnet/ipv4.ts\n M src/tools/subnet/ipv6.test.ts\n M src/tools/subnet/ipv6.ts\n M src/tools/subnet/listCalculation.ts\n M src/tools/subnet/ranges.ts\n M src/tools/text-diff/calculation.ts\n M src/tools/text-diff/index.tsx\n M src/tools/text-diff/logic.test.ts\n M src/tools/text-diff/rows.ts\n M src/tools/uuid/logic.test.ts\n?? docs/records/diff-transfer-2026-11-18.json\n?? scripts/measure-diff-transfer.mjs\n?? src/documentLimitsCatalog.testing.ts\n?? src/lib/crypto/asn1.test.ts\n?? src/lib/storage/clearOperations.ts\n?? src/lib/storage/clearState.test.ts\n?? src/lib/storage/clearState.ts\n?? src/tools/business-days/numericInput.test.ts\n?? src/tools/business-days/numericInput.ts\n?? src/tools/cert/chain.ts\n?? src/tools/cert/encoding.fixtures.ts\n?? src/tools/cert/extensions.test.ts\n?? src/tools/cert/fingerprints.ts\n?? src/tools/cert/issuerCandidates.ts\n?? src/tools/cert/signatureScheme.ts\n?? src/tools/cert/validity.ts\n?? src/tools/cert/verifySigned.ts\n?? src/tools/subnet/addressRange.ts\n?? src/tools/text-diff/packed.test.ts\n?? src/tools/text-diff/packed.ts\n?? src/tools/text-diff/preview.ts\n?? src/tools/text-diff/rowReference.testing.ts",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "provenance": {
+    "HEAD": {
+      "entry": "src/tools/text-diff/calculation.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-diff/calculation.ts": "484ce4fe7201fe4ac362df47aee4c3a7c0c627638510e1b888cf08512f43c156",
+        "src/tools/text-diff/logic.ts": "12f32cbbfc2bac4b82e9504182d75d2233db256726b2e2a6a62e16d2f4edc1dc",
+        "src/tools/text-diff/myers.ts": "0e68f36f21e3035c8462ab8c326a0bf487f053922ffb8944723628c182834ad6",
+        "src/tools/text-diff/unified.ts": "657a0b4ef93b5c9bd082caa84c18b4182c906a058b3a60471e7a1bc67a0ebf26"
+      },
+      "bundleSha256": "d273296e2398ba8d14d8580a42740cf80e7b08951568311b9641d7b8b7b28b46"
+    },
+    "workingTree": {
+      "entry": "src/tools/text-diff/calculation.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-diff/calculation.ts": "30a7d41069909e037864c994cfafc2d2146d8586282fa6a4a6c058635b1a3787",
+        "src/tools/text-diff/logic.ts": "12f32cbbfc2bac4b82e9504182d75d2233db256726b2e2a6a62e16d2f4edc1dc",
+        "src/tools/text-diff/myers.ts": "0e68f36f21e3035c8462ab8c326a0bf487f053922ffb8944723628c182834ad6",
+        "src/tools/text-diff/packed.ts": "6735ca1c49d5a7d7fd912414c72dd1c4b5c9a910fb9908a484af61a199ff9340",
+        "src/tools/text-diff/unified.ts": "657a0b4ef93b5c9bd082caa84c18b4182c906a058b3a60471e7a1bc67a0ebf26"
+      },
+      "bundleSha256": "5377be3923171b6555a8451f9cfc2ec786770c40f2a6fd88050ba2fb41661d9b"
+    },
+    "src/tools/text-diff/packed.ts": {
+      "entry": "src/tools/text-diff/packed.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-diff/packed.ts": "6735ca1c49d5a7d7fd912414c72dd1c4b5c9a910fb9908a484af61a199ff9340"
+      },
+      "bundleSha256": "ca7cd4f0a14ef3013a60ed9a03dd32017e139efaec0fb09bd6f4e2d361d42637"
+    },
+    "src/tools/text-diff/preview.ts": {
+      "entry": "src/tools/text-diff/preview.ts",
+      "files": {
+        "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+        "src/tools/text-diff/packed.ts": "6735ca1c49d5a7d7fd912414c72dd1c4b5c9a910fb9908a484af61a199ff9340",
+        "src/tools/text-diff/preview.ts": "9f54304156d9cef90acf74e135f312fea2820edff08ebd9891609b089328b077"
+      },
+      "bundleSha256": "09ddaa4c629fe2553680783144dcb99b82af8f37fe324328cb632318fcf50044"
+    },
+    "src/tools/text-diff/rowReference.testing.ts": {
+      "entry": "src/tools/text-diff/rowReference.testing.ts",
+      "files": {
+        "src/tools/text-diff/rowReference.testing.ts": "12b25c16e27ad17bd3006e5c510e605cd0934968f1e31555c15f1b26ee3dc136"
+      },
+      "bundleSha256": "4f138cdd88cafe07741ec60308f642d76239df118b91aa2f4600f2a3661840eb"
+    }
+  },
+  "snapshotFiles": {
+    "package-lock.json": "7746d6021e7f83f7063294014cde814b975d37e4460255097303161e35abd3ba",
+    "scripts/benchmark.mjs": "e42c9129e171418acfb1902a7b6a9c44b25eeafb850599a56eb23269340917fd",
+    "scripts/measure-diff-transfer.mjs": "e86380f3b79768e0f87f95163a7b1991ef9a5022645989bf9524f7266e09f0d2",
+    "src/tools/text-diff/unified.ts": "657a0b4ef93b5c9bd082caa84c18b4182c906a058b3a60471e7a1bc67a0ebf26",
+    "src/tools/text-diff/logic.ts": "12f32cbbfc2bac4b82e9504182d75d2233db256726b2e2a6a62e16d2f4edc1dc",
+    "src/tools/text-diff/myers.ts": "0e68f36f21e3035c8462ab8c326a0bf487f053922ffb8944723628c182834ad6",
+    "src/lib/text/lines.ts": "5198425dc5ae2d1a8d97699a77adb98abc623a9cb36dbccf9e1e4ebefa2e2404",
+    "src/tools/text-diff/calculation.ts": "30a7d41069909e037864c994cfafc2d2146d8586282fa6a4a6c058635b1a3787",
+    "src/tools/text-diff/packed.ts": "6735ca1c49d5a7d7fd912414c72dd1c4b5c9a910fb9908a484af61a199ff9340",
+    "src/tools/text-diff/preview.ts": "9f54304156d9cef90acf74e135f312fea2820edff08ebd9891609b089328b077",
+    "src/tools/text-diff/rowReference.testing.ts": "12b25c16e27ad17bd3006e5c510e605cd0934968f1e31555c15f1b26ee3dc136"
+  },
+  "dependencySource": "両版とも作業ツリーの同じスナップショットを使用。HEAD は入口だけを開始時のコミットから読む。"
+}

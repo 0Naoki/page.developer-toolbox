@@ -2,13 +2,19 @@
  * 文字数・バイト数のファイルの分担。
  * - `encoding.ts`：文字コード（Shift_JIS・EUC-JP など）の判定とバイト数
  * - `count.ts`：文字数・バイト数の集計
+ * - `issues.ts`：診断の総種類数と表示用の詳細。全件取得時は選んだ診断だけを収集
+ * - `reports.ts`：全件診断のTSV出力（上限付き）
+ * - `reportText.ts`：出力予算の検査と、一定量ずつの文字列化
+ * - `DiagnosticOutput.tsx`：操作時にWorkerで全件を準備し、コピー・保存
  * - `invisible.ts`：不可視文字の検査と、ファイルの読み取り
  * - `characterDetails.ts`：一覧に並べる文字の種類・位置
  * - `logic.ts`：Worker から呼ぶ測定処理と、行別の結果のページ分割
  * - `useTextCount.ts`：画面の状態（入力・表示設定・ファイルの読み込み・ページ）と計算の結果をまとめるフック
  * - `InvisibleCharacters.tsx`：不可視文字の表示
  */
+import { useState } from 'react';
 import { Badge } from '../../components/Badge';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 import { Notice } from '../../components/Notice';
 import { CalculationStatus } from '../../components/CalculationStatus';
 import { LargeTextInput } from '../../components/LargeTextInput';
@@ -17,8 +23,10 @@ import { Segmented } from '../../components/Segmented';
 import { Stat } from '../../components/Stat';
 import { ToolShell } from '../../components/ToolShell';
 import { InvisibleCharacters } from './InvisibleCharacters';
-import { MAX_LISTED } from './characterDetails';
-import type { CharIssue, Newline } from './count';
+import { countInputPreviewLimit, ISSUE_GLYPH_PREVIEW, MAX_LISTED } from './characterDetails';
+import type { Newline } from './count';
+import type { CharIssue, IssueKind } from './issues';
+import { DiagnosticOutput } from './DiagnosticOutput';
 import { MEASURES, LINE_PAGE_SIZE, type Measure, type Segment } from './logic';
 import { useTextCount, type View } from './useTextCount';
 import { ErrorText, ErrorBox } from '../../components/ErrorMessage';
@@ -61,7 +69,7 @@ export default function TextCount() {
         </button>
       </div>
 
-      <LargeTextInput
+      <LargeTextInput limit={MAX_CALCULATION_INPUT} previewLimit={countInputPreviewLimit(text)}
         label="テキスト"
         className="code code-mid"
         value={text}
@@ -100,6 +108,7 @@ export default function TextCount() {
       </div>
 
       <CharIssues
+        input={text} kind="unsupported" label="Shift_JIS診断"
         tone="bad"
         title="Shift_JIS で表現できない文字があります"
         note="バイト数は2バイトとして概算しています"
@@ -107,6 +116,7 @@ export default function TextCount() {
         total={analysis.issueTotals.unsupported}
       />
       <CharIssues
+        input={text} kind="unsupportedEuc" label="EUC-JP診断"
         tone="bad"
         title="EUC-JP で表現できない文字があります"
         note="バイト数は2バイトとして概算しています"
@@ -114,6 +124,7 @@ export default function TextCount() {
         total={analysis.issueTotals.unsupportedEuc}
       />
       <CharIssues
+        input={text} kind="vendor" label="機種依存文字の診断"
         tone="warn"
         title="機種依存文字があります"
         note="Shift_JIS（Windows の CP932）では表現できますが、JIS X 0208 だけに対応した環境（ISO-2022-JP のメール、古いシステムなど）では文字化けするおそれがあります"
@@ -123,7 +134,7 @@ export default function TextCount() {
       </>}
       </section>}
 
-      {view === 'invisible' && analysis && <InvisibleCharacters result={analysis.invisible} />}
+      {view === 'invisible' && analysis && <InvisibleCharacters input={text} result={analysis.invisible} />}
 
       {view === 'lines' && <section className="stack" aria-label="桁あふれの結果">
       <h2 className="section-title">行ごとの長さ（桁あふれチェック）</h2>
@@ -201,15 +212,18 @@ export default function TextCount() {
   );
 }
 
-function CharIssues({ tone, title, note, issues, total }: { tone: 'bad' | 'warn'; title: string; note: string; issues: CharIssue[]; total: number }) {
+function CharIssues({ tone, title, note, issues, total, input, kind, label }: {
+  tone: 'bad' | 'warn'; title: string; note: string; issues: CharIssue[]; total: number; input: string; kind: IssueKind; label: string;
+}) {
+  const [showGlyphs, setShowGlyphs] = useState(false);
   if (issues.length === 0) return null;
   return (
     <Notice tone={tone} className="stack">
       <strong>{title}</strong>（{note}）
       <div className="tag-list">
-        {issues.slice(0, MAX_LISTED).map((u) => (
+        {issues.slice(0, MAX_LISTED).map((u, index) => (
           <span key={u.char} className="tag">
-            <span className="char-glyph">{u.char}</span>
+            <span className="char-glyph">{showGlyphs || index < ISSUE_GLYPH_PREVIEW ? u.char : '…'}</span>
             <span className="mono muted">
               {u.codePoint}
               {u.count > 1 && ` ×${u.count}`}
@@ -221,7 +235,14 @@ function CharIssues({ tone, title, note, issues, total }: { tone: 'bad' | 'warn'
           </span>
         ))}
       </div>
+      {issues.length > ISSUE_GLYPH_PREVIEW && <>
+        <p className="hint">文字の形は通常、先頭{ISSUE_GLYPH_PREVIEW}種類を表示します。コードポイント・位置・件数は一覧と全件出力で確認できます。</p>
+        <button type="button" className="btn btn-ghost" aria-pressed={showGlyphs} onClick={() => setShowGlyphs((value) => !value)}>
+          {showGlyphs ? `${label}の文字の形を先頭だけ表示` : `${label}の文字の形をすべて表示`}
+        </button>
+      </>}
       {total > MAX_LISTED && <p className="hint">ほか {formatNumber(total - MAX_LISTED)} 種類</p>}
+      <DiagnosticOutput input={input} kind={kind} label={label} />
     </Notice>
   );
 }

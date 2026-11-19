@@ -12,7 +12,8 @@ import { IMPORT_RULES, SOURCE_RULES, type SourceRule } from './sourceRules.testi
 const sources = import.meta.glob<string>(['/src/**/*.{ts,tsx}', '!/src/**/*.test.ts', '!/src/**/*.testing.ts', '!/src/**/*.fixtures.ts', '!/src/**/*.d.ts'], { query: '?raw', import: 'default', eager: true });
 
 /** 構文木から通信の API の参照を探す検査（sourceScan.testing.ts の networkReferences）の直し方 */
-const NETWORK_FIX = '外部と通信しない書き方に直す（fetch・XMLHttpRequest・WebSocket・EventSource・sendBeacon・WebTransport を、変数に入れる・window["fetch"] などの形でも参照しない）';
+const NETWORK_FIX = '外部と通信しない書き方に直す（fetch・XMLHttpRequest・WebSocket・EventSource・sendBeacon・WebTransport・WebRTC（RTCPeerConnection など）を、変数に入れる・window["fetch"] などの形でも参照しない。'
+  + 'window・globalThis・navigator などを動的なキー（window[name]）で参照したり、Reflect.get などに渡したりしない）';
 
 /** 規則の pattern から、すべての箇所を探すための正規表現を作る */
 const globalOf = (pattern: RegExp) => new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');

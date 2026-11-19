@@ -2,6 +2,44 @@
 
 実装時の必須ルールは [CONTRIBUTING.md](../CONTRIBUTING.md)、レビュー観点は [AGENTS.md](../AGENTS.md) を参照してください。
 
+## 最初に読む処理の流れ
+
+矢印は import の向きです。計算 Worker はツールの純粋関数を呼び、画面と同じ計算を実行します。
+
+```mermaid
+flowchart TD
+  App[アプリとツールの画面] --> Hooks[共通・ツール専用のフック]
+  App --> Components[共通の画面部品]
+  App --> Logic[ツールの純粋関数]
+  Hooks --> Lib[共通ライブラリと保存の入口]
+  Components --> Lib
+  Logic --> Lib
+  Worker[計算 Worker] --> Logic
+```
+
+JSON整形では、入力から出力までを次の順で追えます。
+
+1. 画面が `useInput` で入力を保持し、`usePreference` で表示設定を読みます。
+2. `useCalculation` が入力と設定を一つの要求にまとめ、Workerへ渡します。
+3. Workerがツールの純粋関数を呼び、解析・計算した結果を返します。
+4. フックが要求と結果の対応を確認し、画面が上限付きのプレビューを表示します。
+5. コピー・保存では、表示用の抜粋と区別した全文を使います。
+
+入力全体を読むパーサーは、公開関数の入口で末尾まで検証します。部分範囲を読む補助関数とは区別してください。
+画面での検証だけに頼らないでください。
+
+JSONの構文・深さ・位置と重複キーの警告は共通パーサーが担当します。重複を許容するかは用途で決めます。
+
+| 呼び出し側 | 重複キーの扱い |
+|---|---|
+| JSON整形 | 表記を保持し、警告する |
+| CSV変換 | 列への展開前に構造全体を検証し、同じオブジェクト内の重複を拒否する。展開後の列名の衝突も別に検査する |
+| JWTの表示 | JSON表示には保持して警告する。個別クレームではJSON.parseと同じく後の値を使う。署名の検証は別処理 |
+
+CSVの具体的な入力例は [利用ガイド](USAGE.md#csv変換) を参照してください。
+
+解析結果は、生データ・解析値・表示用抜粋を区別します。描画では先頭の抜粋だけを扱い、全文のコピー・保存に使う文字列は操作時に作ります。どのツールで何を保持するかは、そのツールの計算処理の TSDoc にあります（証明書の拡張・テキスト差分の Worker 応答・文字診断の全件出力など）。
+
 ## コードの配置
 
 フォルダごとの役割を書きます。フォルダの中の個々のファイルの役割は、ファイルの先頭のコメント（ツールのフォルダは `index.tsx` の先頭）に書き、この表には書きません。ファイルを足したり移したりするたびに、この表を直さなくてよいようにするためです。
@@ -92,7 +130,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 大容量の計算 | `src/hooks/useCalculation.ts`・`src/calculation/protocol.ts`・`src/lib/worker/calculationLimits.ts`（Worker の扱いは正規表現と共通の `src/hooks/useWorkerJob.ts`。流れは「[計算と表示の流れ](#計算と表示の流れ)」） | 静的検査（`runWorker` を `useWorkerJob` の外で呼ばない。振り分けを Worker の入口の外で読み込まない）・`src/calculation/handlers.test.ts`・`src/lib/worker/runWorker.test.ts` |
 | 画面の非同期の結果（署名の検証・指紋・ハッシュなど） | `src/hooks/useAsyncFor.ts`（計算処理に渡す型は `src/lib/asyncContext.ts` の `AsyncContext`） | 静的検査（取り消しの印 `cancelled` を画面で直接持たない） |
 | ファイルの読み込み | `src/hooks/useFileLoader.ts`（ツールの画面の入口）・`src/lib/file.ts`（`readFileWithin`・上限超過と読み込み失敗の文言） | 静的検査（`arrayBuffer` と上限超過の文言を直接書かない）・`src/lib/file.test.ts` |
-| テキストの行 | `src/lib/text/lines.ts`（`splitLines`。CRLF・LF・CR とその混在を区切りにする） | 静的検査（`split` に改行を直接渡さない）・`src/lib/text/lines.test.ts` |
+| テキストの行 | `src/lib/text/lines.ts`（`splitLines`。CRLF・LF・CR とその混在を区切りにする。行の文字列を作らずに走査するときは、同じ規則の `eachLineRange`（行の範囲）・`endsLineAt`（位置で行が終わるか）） | 静的検査（`split` に改行を直接渡さない）・`src/lib/text/lines.test.ts` |
 | UTF-8 にできない文字の検出 | `src/lib/text/surrogate.ts`（`findLoneSurrogate`・`describeAt`・`replacementWarning`。拒否と警告の使い分けは [USAGE.md](USAGE.md#utf-8に変換できない文字)） | 使う側の単体テスト（CSV・Base64・ハッシュ・署名） |
 | 長い出力の表示 | `src/components/FormattedOutput.tsx` の `TextOutputPreview` | 静的検査（ツールの画面で `textPreview` を直接呼ばない。差分の行は除く） |
 | 長い1つの値（表のマス・一覧の項目） | `src/components/ClippedText.tsx` | E2E |
@@ -102,9 +140,11 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 件数の多い一覧 | `src/lib/listPreview.ts` の `previewList`・`src/components/ListRest.tsx` | `src/lib/listPreview.test.ts` |
 | エラーの表示 | `src/components/ErrorMessage.tsx` の `ErrorText`・`ErrorBox`（`children` には入力を含まないものだけを置く） | 静的検査（`error-text`・`error-box` のクラスを直接書かない） |
 | 案内・警告・判定の結果の表示 | `src/components/Notice.tsx`（入力を含む文言は `message` で渡し、`children` には置かない） | 静的検査（`notice` のクラスを直接書かない） |
+| ツール間の受け渡し | `src/lib/handoff.ts`（タブ内のメモリだけで1件を渡す。URL に載せない）・`src/components/OpenInToolButton.tsx`（「〇〇で開く」）。受け取る側は、画面を開いたときに `takeHandoff` で1回だけ受け取る | `src/lib/handoff.test.ts`・`e2e/tools.spec.ts` |
+| エラー・判定の結果の読み上げ | `src/components/LiveAnnouncer.tsx`（App に1つだけ置く読み上げの領域。`ErrorText`・`ErrorBox` は自動で読む。判定の結果は、同じ要素の文言が変わる `Notice` なら `role="status"` で示し、表示のたびに差し込むバッジなどは `useAnnounce` で読む）・`src/lib/announcements.ts`（読み上げを待つ文言と、読むまでの時間の管理。読む前に消えたエラーは読まない） | `src/lib/announcements.test.ts`・`e2e/smoke.spec.ts` の「読み上げ」 |
 | エラー・警告・バッジ・見出しに入れる入力 | `src/lib/text/textPreview.ts` の `detailPreview`（作る側で抜粋にする。文言の途中の長い入力で、後ろの理由が表示の上限で切れるため） | `src/lib/text/textPreview.test.ts`・使う側の単体テスト |
 | 例外の文言 | `src/lib/errors.ts` の `errorMessage`（描画中の計算は `attempt`） | 静的検査（`(e as Error).message` を書かない）・`src/lib/errors.test.ts` |
-| コピーと完了通知 | `src/components/CopyButton.tsx`（条件は「[非同期の結果を表示できる条件](#非同期の結果を表示できる条件)」） | E2E |
+| コピーと完了通知 | `src/components/CopyButton.tsx`。大きな本文は同期関数を渡して操作時に作る。関数は対象ごとに`useCallback`などで参照を固定する（条件は「[非同期の結果を表示できる条件](#非同期の結果を表示できる条件)」） | E2E |
 | 択一の切り替え | `src/components/Segmented.tsx` | E2E |
 | チェックボックス | `src/components/Check.tsx` | E2E |
 | キー操作 | `src/lib/keyboard.ts` の `isImeComposing` | 静的検査（`keyCode === 229`・`nativeEvent.isComposing` を直接書かない） |
@@ -112,6 +152,25 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 数の書式（件数・文字数・バイト数の3桁区切り） | `src/lib/number.ts` の `formatNumber` | 静的検査（`toLocaleString` を直接呼ばない）・`src/lib/number.test.ts` |
 | 今日の日付 | `src/hooks/useTodayJst.ts` | `src/lib/time/date.test.ts` |
 | 暦の中間計算 | `src/lib/time/civilTime.ts`（`src/lib/time/date.ts` と `src/lib/time/timezone.ts` の `addZonedElapsed` も同じ計算を使う） | `src/lib/time/civilTime.test.ts` |
+
+### Base64を読むときの検証
+
+`src/lib/bytes.ts` は、空白と記号の正規化、パディングの検証、バイト列への復号を分けます。
+明示された `=` は削除せずに検証し、完全に省略された場合だけ補います。
+パディングを書く場合は末尾の1〜2個とし、空白を除く全体長が4の倍数でなければ拒否します。
+省略した場合も、本文の長さを4で割った余りが1なら拒否します。
+
+| 用途 | 許容する文字と空白 | 共通検証に加える条件 |
+|---|---|---|
+| Base64・Base64URL変換 | 標準とURL用の記号、その混在、JavaScriptの空白文字 | data: URIは本文をパーセント復号してから読む |
+| JWTの表示用デコード | 汎用変換と同じ | UTF-8とJSONの形式を確認する。表示できることを署名検証の成功とは扱わない |
+| JWTの署名検証 | パディング・空白のないBase64URLだけ | verify.tsのjwsBytesで再符号化し、未使用ビットを含めて元の文字列との一致を確認する |
+| PEMの本文 | 標準のBase64だけ。空白・改行とパディングの完全省略は許容 | pemBodyToBytesでURL用の記号を拒否する。ブロックの種類・個数・秘密鍵の拒否は呼び出し側が担当する |
+| Base64指定のHMAC鍵 | 汎用変換と同じ | secretBytesで公開鍵・秘密鍵の形式を拒否する。UTF-8指定の鍵はBase64として読まない |
+
+パディングの共通入力例は `src/lib/bytes.fixtures.ts` に置き、Base64・PEM・HMAC鍵の単体テストで同じ条件を検証します。
+JWTの厳密な検証と、画面・Workerで同じ拒否になることも検査します。
+利用者向けの例は [USAGE.md の「Base64の入力」](USAGE.md#base64の入力)にあります。
 
 ## 計算と表示の流れ
 
@@ -121,7 +180,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 
 大容量計算は次の順に進みます。
 
-1. JSON整形・CSV変換・文字数計算・テキスト差分・UNIX時間の一括変換・Base64（10万単位を超えるテキスト）・サブネットの集約、重複チェック、VLSMの画面が、入力と設定を `useCalculation` に渡す。
+1. JSON整形・CSV変換・文字数計算・テキスト差分・UNIX時間の一括変換・Base64（10万単位を超えるテキスト）・サブネットの集約、重複チェック、VLSM、均等分割の全件出力の画面が、入力と設定を `useCalculation` に渡す。
 2. フックが入力上限の確認を加えて `useWorkerJob` に渡し、入力変更の待機の後、`src/calculation/createWorker.ts` の `createCalculationWorker` でWorkerを起動する。
 3. `src/calculation/worker.ts` が要求を受け取り、`src/calculation/handlers.ts` の `calculate` がツールのロジックを呼ぶ。ツールごとの処理は `HANDLERS` の表にあり（結果の形を整える処理はツールの側に置き、表は呼ぶだけにする）、要求と結果の型の組をコンパイル時に確かめる。応答にはツールの種類（`tool`）を含める。
 4. フックが現在の要求に対応する結果だけを画面へ返す（要求と違うツールの結果はエラーにする）。入力変更・中断・画面移動時はWorkerを終了する。
@@ -138,6 +197,21 @@ Worker で計算するツールを加えるときは、次の2つに足します
 どちらもビルド時に `?worker-source` でまとめたコードから `createTrustedWorker` が起動します。CSP・Trusted Typesの安全対策と限界は [SECURITY.md](../SECURITY.md) を参照してください。
 
 大きな文字列は全文を計算・コピー・保存に使い、画面への表示量を制限します。`LargeTextInput` と `src/lib/text/textEdit.ts` は編集・Undo／Redoを扱い、編集履歴はメモリ内だけに保持します。
+
+`src/hooks/useTextInputMode.ts` が、全文表示の選択とIME変換の段階をまとめて管理します。
+変換中に表示上限が縮んだ場合も、確定した全文を取り込んでから表示量を制限します。
+
+| 状態・操作 | 入力欄と履歴 |
+|---|---|
+| 通常編集 | 表示上限以内では全文を編集する。大きな貼り付けも全文を記録し、上限を超えたらプレビューへ移る |
+| IME変換中 | 上限を超えても全文を編集可能に保つ。途中の入力を1操作の履歴にまとめ、表示切り替えとUndo／Redoを保留する |
+| IME終了直後 | 終了時のDOM値と、同じタスク内の最終inputを取り込む。改行の元表記を保持し、次のタスクで表示状態を決める |
+| プレビュー | 入力欄を読み取り専用にして先頭だけ表示する。計算・保存・全文コピーは全文を使う |
+| 全文編集 | 明示的に選ぶと、上限を超えても全文を編集する。上限以内へ戻ると通常編集になる |
+| ファイル・サンプル・消去による置換 | 古い履歴と変換状態を破棄し、保留していた表示切り替えを取り消す |
+
+IME変換の取消もDOM値へ反映し、確定時と同じ経路で取り込みます。
+フォーカスは表示状態の切り替えで移動させず、同じ入力欄を使います。
 
 ### 非同期の結果を表示できる条件
 
@@ -165,7 +239,7 @@ Worker で計算するツールを加えるときは、次の2つに足します
 | `pem.ts` | PEM のブロック（BEGIN〜END）と本文の標準の Base64 の読み取り。受け付ける種類・ブロックの数は呼び出し側が決める |
 | `privateKey.ts` | 秘密鍵の検出（解析も保存もしないため、見た目と外側の型だけで判定する） |
 | `curves.ts` | 曲線の OID・名称・ビット数・Web Crypto 対応を共有する。表示と署名検証の可否の判断は呼び出し側に残す |
-| `signature.ts` | 署名の検証結果（`SignatureVerification`）と Web Crypto API のハッシュ名の型。受け付けるアルゴリズムと文言は各ツールが決める |
+| `signature.ts` | 署名の検証結果（`SignatureVerification`）の型と、公開鍵の読み込みと検証（`verifyWithPublicKey`。鍵を読めないときは「検証できない」）。受け付けるアルゴリズムと、鍵とアルゴリズムの組み合わせの確認は各ツールが決める |
 | `spki.ts` | 公開鍵（SubjectPublicKeyInfo）の種類と ECDSA の曲線の判定 |
 | `x509.ts` | 証明書から、公開鍵と主体の CN だけを取り出す（JWT の検証の鍵） |
 

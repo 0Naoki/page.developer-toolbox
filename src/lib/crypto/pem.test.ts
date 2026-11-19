@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bytesToBase64 } from '../bytes';
+import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../bytes.fixtures';
 import { PEM_UNMATCHED, pemBodyToBytes, readPemBlocks } from './pem';
 
 const ANY = { checkType: () => {}, maxBlocks: 10, tooMany: '多すぎます' };
@@ -8,6 +9,16 @@ const BYTES = new Uint8Array([0x30, 0x03, 0x02, 0x01, 0x05, 0xfb, 0xff]);
 const BODY = bytesToBase64(BYTES);
 
 describe('pemBodyToBytes', () => {
+  it.each(VALID_BASE64_PADDING)('PEMも正常なパディングと完全省略を読む：%s', (input, expected) => {
+    expect(new TextDecoder().decode(pemBodyToBytes(input))).toBe(expected);
+    expect(new TextDecoder().decode(readPemBlocks(block('PUBLIC KEY', input), ANY)[0]!.der)).toBe(expected);
+  });
+
+  it.each(INVALID_BASE64_PADDING)('PEMの不正なパディングを拒否する：%s', (input) => {
+    expect(() => pemBodyToBytes(input)).toThrow('Base64');
+    expect(() => readPemBlocks(block('PUBLIC KEY', input), ANY)).toThrow('Base64');
+  });
+
   it('標準の Base64 を、空白・改行を無視して読む', () => {
     expect([...pemBodyToBytes(`${BODY.slice(0, 4)}\n ${BODY.slice(4)}\r\n`)]).toEqual([...BYTES]);
   });

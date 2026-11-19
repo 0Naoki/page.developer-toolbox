@@ -5,6 +5,7 @@ import { toolsByCategory, type ToolDef } from '../registry';
 import { focusMainHeading, type useAppNavigation } from './useAppNavigation';
 import { isMac } from './platform';
 import type { Theme } from './useTheme';
+import { VERSION_LABEL } from '../buildInfo';
 
 /** ツール一覧・検索・テーマ・保存設定を表示する。 */
 export function Sidebar({ navigation, favoriteTools, theme, setTheme }: {
@@ -85,6 +86,8 @@ export function Sidebar({ navigation, favoriteTools, theme, setTheme }: {
           />
         </div>
         <PrivacySettings />
+        {/** 不具合の報告で、どの版で起きたかを書いてもらうため */}
+        <p className="app-version">版：{VERSION_LABEL}</p>
       </div>
     </aside>
   );

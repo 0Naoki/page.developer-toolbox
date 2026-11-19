@@ -4,7 +4,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 独自休日の診断：読めない項目を件数と1件の長さで制限し、行番号・総件数・元の長さを返すこと。CRLF・LF・CR とその混在を行の区切りにし、行番号を元の行に合わせること
+ * - [R027] 独自休日の診断：読めない項目を件数と1件の長さで制限し、行番号・総件数・元の長さを返すこと。CRLF・LF・CR とその混在を行の区切りにし、行番号を元の行に合わせること
  */
 import { describe, expect, it } from 'vitest';
 import { formatYmd } from '../../lib/time/date';
@@ -179,6 +179,21 @@ describe('営業日計算', () => {
     expect(addBusinessDays({ y: 2026, m: 9, d: 24 }, -1, cal)).toEqual({ y: 2026, m: 9, d: 18 });
     /** 0 は「休みなら翌営業日」 */
     expect(addBusinessDays({ y: 2026, m: 5, d: 2 }, 0, cal)).toEqual({ y: 2026, m: 5, d: 7 });
+  });
+
+  it('前後移動は4桁の年の両端を含み、範囲外へ進むと止まる', () => {
+    const everyDay = { ...cal, weekend: [], holidays: false, yearEnd: false, extra: [] };
+    const first = { y: 0, m: 1, d: 1 };
+    const last = { y: 9999, m: 12, d: 31 };
+    expect(addBusinessDays({ ...first, d: 2 }, -1, everyDay)).toEqual(first);
+    expect(addBusinessDays({ ...last, d: 30 }, 1, everyDay)).toEqual(last);
+    for (const date of [first, last]) expect(addBusinessDays(date, 0, everyDay)).toEqual(date);
+    const message = '営業日の前後移動は0000〜9999年の範囲で計算してください';
+    expect(() => addBusinessDays(first, -1, everyDay)).toThrow(message);
+    expect(() => addBusinessDays(last, 1, everyDay)).toThrow(message);
+    expect(() => addBusinessDays(last, 0, { ...everyDay, extra: ['9999-12-31'] })).toThrow(message);
+    expect(() => addBusinessDays({ ...last, d: 30 }, 1, { ...everyDay, extra: ['9999-12-31'] })).toThrow(message);
+    for (const y of [-1, 10000]) expect(() => addBusinessDays({ y, m: 1, d: 1 }, 0, everyDay)).toThrow(message);
   });
 
   it('すべての曜日が休みなら、0営業日後でも止まってエラーにする', () => {

@@ -1,7 +1,7 @@
 import { countText, type CountOptions, type CountResult } from './count';
 import { eucjpBytesOf, isHalfWidth, sjisBytesOf } from './encoding';
-import { MAX_LISTED } from './characterDetails';
 import { inspectInvisible, type InvisibleInspection } from './invisible';
+import { eachLineRange } from '../../lib/text/lines';
 
 export type Measure = 'sjis' | 'eucjp' | 'utf8' | 'utf16' | 'chars' | 'width';
 
@@ -49,24 +49,14 @@ export type TextMeasurement = {
 /** 全文の文字数と不可視文字を集計し、行ごとの計測値と位置を求める。 */
 export function measureText(input: string, options: CountOptions & { measure: Measure }): TextMeasurement {
   const counts = countText(input, options);
-  const issueTotals = { unsupported: counts.unsupported.length, unsupportedEuc: counts.unsupportedEuc.length, vendor: counts.vendor.length };
-  counts.unsupported = counts.unsupported.slice(0, MAX_LISTED);
-  counts.unsupportedEuc = counts.unsupportedEuc.slice(0, MAX_LISTED);
-  counts.vendor = counts.vendor.slice(0, MAX_LISTED);
+  const issueTotals = counts.issueTotals;
   const starts: number[] = [];
   const ends: number[] = [];
   if (input !== '') {
-    let start = 0;
-    for (let i = 0; i < input.length; i++) {
-      const c = input.charCodeAt(i);
-      if (c !== 10 && c !== 13) continue;
+    eachLineRange(input, (start, end) => {
       starts.push(start);
-      ends.push(i);
-      if (c === 13 && input.charCodeAt(i + 1) === 10) i++;
-      start = i + 1;
-    }
-    starts.push(start);
-    ends.push(input.length);
+      ends.push(end);
+    });
   }
   const values = Float64Array.from(starts, (s, i) => measureOf(input.slice(s, ends[i]), options.measure));
   return { counts, invisible: inspectInvisible(input), issueTotals, measure: options.measure, values, starts: Uint32Array.from(starts), ends: Uint32Array.from(ends) };

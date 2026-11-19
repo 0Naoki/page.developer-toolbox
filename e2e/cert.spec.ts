@@ -2,9 +2,12 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 証明書：チェーンと署名の検証、秘密鍵の非保存、期限の更新。SAN を大量に含む証明書で、SAN・拡張・拡張の値を先頭100件だけ描画し、全件をコピーできること。SAN が少数でも長い値は「以降省略」と元の長さを示し、
- *   全文をコピーできること（短い値には何も付けない）。発行者の CN が長くても、署名の検証に使った鍵の説明と日時のエラーには抜粋だけを入れること（あわせて `src/tools/cert/logic.test.ts`）
- * - 証明書の開始・終了日時 × GeneralizedTime の小数秒・小数分：小数部を黙って切り捨てずに拒否する。通常の秒単位の日時は保ち、画面でエラーを表示した後も修正して解析を再開できる（あわせて `src/tools/cert/logic.test.ts`）
+ * - [R025] 証明書：チェーンと署名の検証、秘密鍵の非保存、期限の更新。SAN を大量に含む証明書で、SAN・拡張・拡張の値を先頭100件だけ描画し、全件をコピーできること。SAN が少数でも長い値は「以降省略」と元の長さを示し、
+ *   全文をコピーできること（短い値には何も付けない）。発行者の CN が長くても、署名の検証に使った鍵の説明と日時のエラーには抜粋だけを入れること。
+ *   チェーンの診断の「n 枚目」を、読めないブロックや CSR が間にあってもカードの番号とそろえ、読めないブロックがあれば「正しい順番」と言わないこと。
+ *   壊れた同じ拡張が大量に並んでも解析で画面を止めず、重複した拡張で SAN などを上書きしないこと（あわせて `src/tools/cert/logic.test.ts`）
+ *   不正なUTF8String・BMPString・UniversalStringを正常な名前として表示せず、有効な値への編集で復旧すること。未知の拡張の先頭32バイト以降も、生バイトを全文コピーできること
+ * - [R041] 証明書の開始・終了日時 × GeneralizedTime の小数秒・小数分：小数部を黙って切り捨てずに拒否する。通常の秒単位の日時は保ち、画面でエラーを表示した後も修正して解析を再開できる（あわせて `src/tools/cert/logic.test.ts`）
  */
 import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';
@@ -12,12 +15,69 @@ import { CROSS_BROWSER } from './tags';
 import { LEAF, ROLLOVER_NEW_CA, ROLLOVER_OLD_CA, ROOT_CA } from '../src/tools/cert/certificates.fixtures';
 import { TOKENS } from '../src/tools/jwt-decoder/tokens.fixtures';
 import { certificateWithTime } from '../src/tools/cert/time.fixtures';
+import { certificateWithSubject, certificateWithRawExtension } from '../src/tools/cert/encoding.fixtures';
 import { settleRendering, openNavigation } from './app';
 import { pasteLargeInput } from './paste';
 import { pickFile } from './files';
-import { captureClipboard, copiedLength, copiedLines } from './clipboard';
+import { captureClipboard, copiedLength, copiedLines, copiedText } from './clipboard';
 
 /** 証明書デコーダーの E2E（ファイル読み込みの競合・上限、署名の検証とチェーン、期限の表示、SAN・拡張の表示の上限） */
+
+test('証明書：不正な文字列を拒否し、有効な文字列への編集で復旧する', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/cert');
+  const input = page.getByLabel('証明書または CSR（PEM）');
+  for (const [tag, bytes] of [[12, [255]], [30, [65]], [28, [0, 0, 65]]] as const) {
+    await input.fill(certificateWithSubject(tag, [...bytes]));
+    await expect(page.getByRole('heading', { name: '読めません', exact: true })).toBeVisible();
+    await expect(page.locator('.cert-card table')).toHaveCount(0);
+  }
+  await input.fill(certificateWithSubject(12, [...new TextEncoder().encode('日本😀')]));
+  await expect(page.getByRole('heading', { name: '証明書', exact: true })).toBeVisible();
+  await expect(page.locator('.cert-card')).toContainText('CN=日本😀');
+});
+
+test('証明書：未知の拡張は抜粋を表示し、生バイトを末尾までコピーできる', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/cert');
+  await captureClipboard(page);
+  const bytes = Array.from({ length: 40 }, (_, i) => i);
+  await page.getByLabel('証明書または CSR（PEM）').fill(certificateWithRawExtension(bytes));
+  await page.locator('summary', { hasText: 'すべての拡張' }).click();
+  await expect(page.locator('details .cert-table')).toContainText('1E 1F …');
+  await page.getByRole('button', { name: '1.2.3の生バイトを全文コピー', exact: true }).click();
+  await expect.poll(() => copiedText(page)).toBe(bytes.map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' '));
+});
+
+test('証明書：遅延生成したコピーは再試行でき、古い完了を次の証明書へ表示しない', CROSS_BROWSER, async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = window as unknown as { finishCopy: () => void; copiedText: string };
+    let attempts = 0;
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: (text: string) => {
+        state.copiedText = text;
+        attempts++;
+        if (attempts === 1) return Promise.reject(new Error('denied'));
+        if (attempts === 2) return new Promise<void>((resolve) => { state.finishCopy = resolve; });
+        return Promise.resolve();
+      },
+    } });
+  });
+  await page.goto('./#/cert');
+  const input = page.getByLabel('証明書または CSR（PEM）');
+  const button = page.getByRole('button', { name: '1.2.3の生バイトを全文コピー', exact: true });
+  await input.fill(certificateWithRawExtension([1, 2, 3]));
+  await page.locator('summary', { hasText: 'すべての拡張' }).click();
+  await button.click();
+  await expect(page.locator('details .error-text')).toContainText('コピーできませんでした');
+  await button.click();
+  await expect(page.getByRole('button', { name: 'コピー中…', exact: true })).toBeDisabled();
+  await input.fill(certificateWithRawExtension([4, 5, 6]));
+  await expect(page.locator('details .cert-table')).toContainText('04 05 06');
+  await page.evaluate(() => (window as unknown as { finishCopy: () => void }).finishCopy());
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { copiedText: string }).copiedText)).toBe('04 05 06');
+  await expect(page.locator('details .error-text')).toHaveCount(0);
+});
 
 test('証明書：小数部のある有効期間を拒否し、修正した日時で解析を再開する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/cert');
@@ -168,7 +228,8 @@ test('証明書：表示したまま期限を過ぎると、期限切れの表�
   await page.getByLabel('証明書または CSR（PEM）').fill(LEAF);
   await expect(page.getByText('あと 0 日で期限切れ', { exact: true })).toBeVisible();
   await page.clock.fastForward('02:00');
-  await expect(page.getByText('期限切れ（本日）', { exact: true })).toBeVisible();
+  /** 過ぎてから24時間未満は、暦の日付によらず「24時間以内」（日付が変わる直前に切れたものを翌日に開いても「本日」としない） */
+  await expect(page.getByText('期限切れ（24時間以内）', { exact: true })).toBeVisible();
 });
 
 test('証明書：自己発行の鍵の更新は、旧い CA の鍵で検証し、自己署名とは表示しない', async ({ page }) => {
@@ -236,6 +297,7 @@ test('証明書：大量の SAN と長い値は、先頭だけを描画し、全
 
 test('証明書：拡張の個数も先頭だけを描画し、全件はコピーで取り出せる', async ({ page }) => {
   await page.goto('./#/cert');
+  await captureClipboard(page);
   await page.getByLabel('証明書または CSR（PEM）').fill(await certWithManySans(page, 1, 'a.example.com', 150));
   const card = page.locator('.cert-card').first();
   /** SAN と、意味を持たない拡張150個の計151個のうち、先頭100個だけを描画する */
@@ -243,6 +305,8 @@ test('証明書：拡張の個数も先頭だけを描画し、全件はコピ�
   await expect(card.locator('details .cert-table > tbody > tr')).toHaveCount(100);
   await expect(card.getByText('ほか 51 件（先頭 100 件を表示）')).toBeVisible();
   await expect(card.getByRole('button', { name: 'すべての拡張をコピー', exact: true })).toBeVisible();
+  await card.getByRole('button', { name: 'すべての拡張をコピー', exact: true }).click();
+  await expect.poll(async () => (await copiedText(page) ?? '').split('生バイト：').length - 1).toBe(151);
 });
 
 test('証明書：件数が少なくても長い値は、省略を示して全文をコピーでき、短い値には何も付けない', async ({ page }) => {

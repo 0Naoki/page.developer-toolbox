@@ -2,10 +2,12 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - CSP・埋め込み：通信・HTML挿入の拒否、iframe内で入力できないこと
+ * - [R002] CSP・埋め込み：通信・HTML挿入の拒否、iframe内で入力できないこと、本番ビルドの CSP が csp.config.ts と完全一致すること
+ *   （指定の値そのものは src/csp.test.ts が完全一致で確かめる）
  */
 /** 拒否そのものを検査するケースは、期待するエラーを各ケース内で検証する。 */
 import { test as probeTest } from '@playwright/test';
+import { CSP } from '../csp.config';
 import { expect, test } from './fixtures';
 import { watch } from './watch';
 import { CROSS_BROWSER } from './tags';
@@ -21,9 +23,27 @@ probeTest('通信監視は同じホストでもプレビューと異なるポー
   expect(problems).toEqual([`外部への通信: ${other.href}`]);
 });
 
+probeTest('通信監視は、テストの途中で開いたタブの通信も検出する（fixtures.ts はコンテキスト単位で監視する）', async ({ context, baseURL }) => {
+  const preview = new URL(baseURL!);
+  const other = new URL(preview);
+  other.port = preview.port === '4180' ? '4181' : '4180';
+  const problems = await watch(context, preview.origin);
+  const tab = await context.newPage();
+  try {
+    await tab.route(other.href, (route) => route.fulfill({ body: '通信監視の検査' }));
+    await tab.goto(other.href);
+  } finally {
+    await tab.close();
+  }
+  expect(problems).toEqual([`外部への通信: ${other.href}`]);
+});
+
 test('本番ビルドに CSP が埋め込まれている', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./');
   const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  /** 部分一致だけでは、許可を足して緩めても通るため、埋め込んだ文字列全体を比べる（値は src/csp.test.ts で固定） */
+  expect(csp).toBe(CSP);
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
   expect(csp).toContain("connect-src 'none'");
   expect(csp).toContain("script-src 'self'");
   expect(csp).toContain("require-trusted-types-for 'script'");

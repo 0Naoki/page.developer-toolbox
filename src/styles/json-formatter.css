@@ -1,0 +1,70 @@
+/* =========================================================
+   JSON整形（ツリー表示）
+   ========================================================= */
+.json-tree,
+.json-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.json-tree {
+  max-height: 560px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* 入れ子の深さを、左の余白と線で示す */
+.json-tree ul {
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+  margin-left: 9px;
+}
+
+.json-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  flex-wrap: wrap;
+}
+
+.json-tree-toggle,
+.json-tree-spacer {
+  flex: none;
+  width: 20px;
+  text-align: center;
+}
+
+.json-tree-toggle {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.json-tree-key {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.json-tree-value {
+  min-width: 0;
+  word-break: break-all;
+}
+
+/* コピーのボタンは行の右端にまとめ、小さめにする（行が折り返しても、名前と値の並びを崩さない） */
+.json-tree-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.json-tree-actions .btn {
+  padding: 2px 8px;
+  font-size: 12px;
+}

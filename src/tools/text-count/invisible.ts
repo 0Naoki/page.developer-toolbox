@@ -63,10 +63,15 @@ export type InvisibleInspection = {
   previewTruncated: boolean;
 };
 
+/** 通常表示では既定の上限を使い、全件出力時は必要な一覧だけを取り出す。 */
+type InspectionOptions = { kindsLimit?: number; occurrencesLimit?: number; previewLimit?: number; onOccurrence?: (item: InvisibleOccurrence) => void };
+
 /** 元の改行を正規化せずに一度走査する。集計は全文、転送する位置・種類・プレビューだけを制限する。 */
-export function inspectInvisible(input: string): InvisibleInspection {
+export function inspectInvisible(input: string, options: InspectionOptions = {}): InvisibleInspection {
+  const { kindsLimit = MAX_LISTED, occurrencesLimit = MAX_LISTED, previewLimit = INVISIBLE_PREVIEW_LENGTH, onOccurrence } = options;
   const newlines = { crlf: 0, lf: 0, cr: 0 };
   const kinds = new Map<string, InvisibleOccurrence & { count: number }>();
+  const seenKinds = new Set<string>();
   const occurrences: InvisibleOccurrence[] = [];
   const preview: InvisibleInspection['preview'] = [];
   let occurrenceCount = 0;
@@ -89,13 +94,15 @@ export function inspectInvisible(input: string): InvisibleInspection {
       const occurrence = { ...info, codePoint, line, column, offset };
       const found = kinds.get(codePoint);
       if (found) found.count++;
-      else kinds.set(codePoint, { ...occurrence, count: 1 });
+      else if (!seenKinds.has(codePoint) && kinds.size < kindsLimit) kinds.set(codePoint, { ...occurrence, count: 1 });
+      seenKinds.add(codePoint);
       if (!newline && ch !== ' ' && ch !== '\u3000') {
         occurrenceCount++;
-        if (occurrences.length < MAX_LISTED) occurrences.push(occurrence);
+        if (occurrences.length < occurrencesLimit) occurrences.push(occurrence);
+        onOccurrence?.(occurrence);
       }
     }
-    if (offset + width <= INVISIBLE_PREVIEW_LENGTH) {
+    if (offset + width <= previewLimit) {
       previewEnd = offset + width;
       if (info) preview.push({ text: '', marker: info.marker, description: `${info.name}（${codePoint}）・${line}行目 ${column}文字目`, newline });
       else {
@@ -109,7 +116,7 @@ export function inspectInvisible(input: string): InvisibleInspection {
     offset += width;
   }
   return { newlines, mixedNewlines: Number(newlines.crlf > 0) + Number(newlines.lf > 0) + Number(newlines.cr > 0) > 1,
-    kinds: [...kinds.values()].slice(0, MAX_LISTED), kindCount: kinds.size, occurrences, occurrenceCount, preview, previewTruncated: previewEnd < input.length };
+    kinds: [...kinds.values()], kindCount: seenKinds.size, occurrences, occurrenceCount, preview, previewTruncated: previewEnd < input.length };
 }
 
 /** BOM を取り除かず、文字化けを置換で隠さずに UTF-8 を読む。 */

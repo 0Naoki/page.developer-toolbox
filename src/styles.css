@@ -38,6 +38,7 @@
 @import './styles/home.css' layer(app);
 
 /* 5. ツール別（そのツールだけが使うクラス。ファイル名はツールのフォルダ名と同じ） */
+@import './styles/json-formatter.css' layer(tools);
 @import './styles/csv-json.css' layer(tools);
 @import './styles/base64.css' layer(tools);
 @import './styles/radix.css' layer(tools);

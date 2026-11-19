@@ -14,7 +14,7 @@ import { usePreference } from '../../hooks/usePreference';
 import { useWorkerJob, type WorkerJobOptions } from '../../hooks/useWorkerJob';
 import { TEXT_PREVIEW_LIMIT } from '../../lib/text/textPreview';
 import { createRegexWorker } from './createWorker';
-import { MAX_MATCHES, isStoredFlags, validateRegexInputSize, type Match, type RegexInput, type RegexResult } from './logic';
+import { MAX_MATCHES, MAX_TEXT, isStoredFlags, validateRegexInputSize, type Match, type RegexInput, type RegexResult } from './logic';
 import { ErrorBox, ErrorText } from '../../components/ErrorMessage';
 import { TextOutputPreview } from '../../components/FormattedOutput';
 import { ClippedText } from '../../components/ClippedText';
@@ -68,7 +68,7 @@ export default function RegexTool() {
         {/** 入力欄の上に「元に戻す」などのボタンが並ぶため、label ではなく div で囲む（label の中のボタンが、見出しのクリックで押されないように） */}
         <Pane title="テスト文字列">
           {/** 長いテキストを普通の textarea で描画すると画面が止まるため、表示を先頭までにする。位置は改行の違いで変わるため、元の改行を保つ */}
-          <LargeTextInput label="テスト文字列" className="code code-mid" value={text} onChange={(value) => { setHasEdited(true); setText(value); }} preserveLineEndings />
+          <LargeTextInput limit={MAX_TEXT} label="テスト文字列" className="code code-mid" value={text} onChange={(value) => { setHasEdited(true); setText(value); }} preserveLineEndings />
         </Pane>
         <Pane title="マッチの強調表示">
           <pre className="code code-pre regex-preview" aria-label="マッチの強調表示" role="region" tabIndex={0}>
@@ -88,7 +88,7 @@ export default function RegexTool() {
       )}
       <div className="split">
         <Pane title="置換文字列">
-          <LargeTextInput className="code code-short" label="置換文字列" value={replacement} onChange={(value) => { setHasEdited(true); setReplacement(value); }} />
+          <LargeTextInput limit={MAX_TEXT} className="code code-short" label="置換文字列" value={replacement} onChange={(value) => { setHasEdited(true); setReplacement(value); }} />
           <span className="hint">{'$&：マッチ全体、$1〜$99：キャプチャ、$<名前>：名前付きキャプチャ、$$：$、$`：前の文字列、$\'：後ろの文字列'}</span>
         </Pane>
         <Pane title="置換結果" actions={<CopyButton text={output} />}>

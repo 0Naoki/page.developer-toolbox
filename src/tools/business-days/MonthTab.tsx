@@ -6,6 +6,7 @@ import { WEEKDAYS_JA, dayOfWeek, type Ymd } from '../../lib/time/date';
 import { nthBusinessDayOfMonth, yearSummary, type Calendar } from './logic';
 import { attempt } from '../../lib/errors';
 import { ErrorText } from '../../components/ErrorMessage';
+import { parseMonthOrdinal } from './numericInput';
 
 export function MonthTab({ cal, today }: { cal: Calendar; today: Ymd }) {
   const minYear = today.y - 10;
@@ -14,7 +15,8 @@ export function MonthTab({ cal, today }: { cal: Calendar; today: Ymd }) {
   const [savedYear, setYear] = usePreference('bizdays:year', today.y, isYear);
   const year = isYear(savedYear) ? savedYear : today.y;
   const [nthText, setNthText] = useInput('bizdays:nth', '5');
-  const nth = /^\d+$/.test(nthText) && Number(nthText) > 0 ? Number(nthText) : null;
+  const ordinal = useMemo(() => attempt(() => ({ value: parseMonthOrdinal(nthText) })), [nthText]);
+  const nth = ordinal.ok ? ordinal.value : null;
 
   const r = useMemo(
     () =>
@@ -41,11 +43,12 @@ export function MonthTab({ cal, today }: { cal: Calendar; today: Ymd }) {
         </label>
         <label>
           第
-          <input className="input input-num mono" inputMode="numeric" value={nthText} onChange={(e) => setNthText(e.target.value.replace(/[^\d]/g, ''))} />
+          <input className="input input-num mono" inputMode="numeric" value={nthText} onChange={(e) => setNthText(e.target.value)} />
           営業日も表示
         </label>
       </div>
       {!r.ok && <ErrorText message={r.error} />}
+      {!ordinal.ok && <ErrorText message={ordinal.error} />}
       {r.ok && (
         <table className="data-table">
           <thead>

@@ -2,10 +2,13 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - パスワードの一括生成 × Unicode・除外・必須文字種：個別生成と同じ乱数の流れと条件を保つ
+ * - [R050] パスワードの一括生成 × Unicode・除外・必須文字種：個別生成と同じ乱数の流れと条件を保つ
+ *   不正なサロゲートは保存値の復元時も拒否する。小さな集合の全生成経路で文字数・候補・確率の上限を確かめる。
  */
 import { describe, expect, it } from 'vitest';
 import {
+  createPasswordPlan,
+  isPasswordOptions,
   AMBIGUOUS,
   CHARSETS,
   DEFAULT_OPTIONS,
@@ -66,6 +69,17 @@ describe('buildPools', () => {
 });
 
 describe('validate', () => {
+  it('対になっていないサロゲートを含む文字集合・除外文字を、保存値の復元時も拒否する', () => {
+    for (const field of ['symbolSet', 'exclude'] as const) {
+      for (const value of ['\ud83d-\ude00😀', '\ud83d', '\ude00']) {
+        const o = opts({ [field]: value });
+        expect(validate(o)).not.toBeNull();
+        expect(isPasswordOptions(JSON.parse(JSON.stringify(o)))).toBe(false);
+        expect(createPasswordPlan(o).ok).toBe(false);
+        expect(() => generatePassword(o)).toThrow();
+      }
+    }
+  });
   it('必須の文字種が除外設定で空になる場合は生成しない', () => {
     for (const exclude of [CHARSETS.upper, CHARSETS.lower, CHARSETS.digits, CHARSETS.symbols]) {
       const o = opts({ exclude });
@@ -172,6 +186,42 @@ describe('generatePin', () => {
 });
 
 describe('entropyBits / strengthOf', () => {
+  it('生成計画は設定を確定し、重なる文字集合でも最頻出値の確率を過小評価しない', () => {
+    for (const alphabet of ['!?', 'AB', '😀🔑', 'é\u0301']) {
+      const overlapping = alphabet === 'AB';
+      const o = opts({ length: 4, upper: true, lower: false, digits: false, symbols: true, excludeAmbiguous: false,
+        symbolSet: alphabet, exclude: overlapping ? 'CDEFGHIJKLMNOPQRSTUVWXYZ' : 'BCDEFGHIJKLMNOPQRSTUVWXYZ' });
+      const plan = createPasswordPlan(o);
+      if (!plan.ok) throw new Error(plan.error);
+      o.length = 100;
+      const widths = overlapping ? [2, 2, 2, 2, 4, 3, 2] : [1, 2, 3, 3, 4, 3, 2];
+      const counts = new Map<string, number>();
+      let paths = 0;
+      const visit = (choices: number[]) => {
+        if (choices.length < widths.length) {
+          for (let i = 0; i < widths[choices.length]!; i++) visit([...choices, i]);
+          return;
+        }
+        let index = 0;
+        const value = plan.generate((buffer) => { buffer[0] = choices[index++]!; });
+        const characters = Array.from(value);
+        expect(characters).toHaveLength(4);
+        const allowed = new Set(['A', ...alphabet, ...(overlapping ? ['B'] : [])]);
+        expect(characters.every((c) => allowed.has(c))).toBe(true);
+        counts.set(value, (counts.get(value) ?? 0) + 1);
+        paths++;
+      };
+      visit([]);
+      for (const count of counts.values()) expect(count / paths).toBeLessThanOrEqual(2 ** -plan.bits + 1e-12);
+    }
+  });
+  it('必須文字種が偏った設定でも、候補数を超える強度を示さない', () => {
+    const symbolSet = Array.from({ length: 100_000 }, (_, i) => String.fromCodePoint(0x10000 + i)).join('');
+    const o = opts({ length: 4, excludeAmbiguous: false, symbolSet, requireEach: true });
+    expect(validate(o)).toBeNull();
+    expect(entropyBits(o)).toBeLessThanOrEqual(Math.log2(24 * 26 * 26 * 10 * 100_000));
+    expect(strengthOf(entropyBits(o)).label).toBe('弱い');
+  });
   it('PIN は桁数 × log2(10) で計算する（6桁は約19.9ビットで「弱い」）', () => {
     expect(pinEntropyBits(6)).toBeCloseTo(19.93, 2);
     expect(strengthOf(pinEntropyBits(6)).label).toBe('弱い');

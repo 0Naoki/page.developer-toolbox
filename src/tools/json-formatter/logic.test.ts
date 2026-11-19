@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { formatJson } from './logic';
+import { childPath, childrenOf, MAX_TREE_INPUT, TREE_CHILD_PAGE } from './tree';
+import { parseJsonTree } from '../../lib/jsonTree';
+import { MAX_CALCULATION_INPUT } from '../../lib/worker/calculationLimits';
 
 const out = (input: string, indent: Parameters<typeof formatJson>[1] = 2, sort = false) => {
   const r = formatJson(input, indent, sort);
@@ -120,5 +123,56 @@ describe('formatJson：構文エラーの位置', () => {
   it('絵文字が原因のエラーでは、絵文字を1文字として表示する', () => {
     expect(err('{"a": 😀}')).toBe('1:7 値が必要な位置に「😀」があります');
     expect(err('[1 😀]')).toBe('1:4 「,」または「]」が必要ですが、「😀」があります');
+  });
+});
+
+describe('ツリー表示', () => {
+  it('値の場所を JSONPath の形で組み立てる（識別子でないキーは ["…"] にし、記号や引用符はエスケープする）', () => {
+    expect(childPath('$', { name: 'user' })).toBe('$.user');
+    expect(childPath('$.user', { name: 'roles' })).toBe('$.user.roles');
+    expect(childPath('$.user.roles', { index: 0 })).toBe('$.user.roles[0]');
+    expect(childPath('$', { name: 'first name' })).toBe('$["first name"]');
+    expect(childPath('$', { name: '名前' })).toBe('$["名前"]');
+    expect(childPath('$', { name: 'a"b\\c' })).toBe('$["a\\"b\\\\c"]');
+    expect(childPath('$', { name: '' })).toBe('$[""]');
+    expect(childPath('$', { name: '1abc' })).toBe('$["1abc"]');
+  });
+
+  it('子を先頭から上限の数だけ切り出し、総数を返す。値は元の表記のまま', () => {
+    /** "\u3042" \u306f\u30a8\u30b9\u30b1\u30fc\u30d7\u306e\u307e\u307e\uff08\u3042 \u306b\u5c55\u958b\u3057\u306a\u3044\uff09\u8868\u8a18\u3092\u4fdd\u3064\u3053\u3068\u3092\u78ba\u304b\u3081\u308b */
+    const { root } = parseJsonTree('{"big":9007199254740993,"list":[1.10,"\\u3042",null],"dup":1,"dup":2}');
+    const top = childrenOf(root, '$', 2);
+    expect(top.total).toBe(4);
+    expect(top.children.map((c) => [c.label, c.path])).toEqual([['big', '$.big'], ['list', '$.list']]);
+    expect(top.children[0]?.node).toEqual({ kind: 'scalar', raw: '9007199254740993' });
+    const list = childrenOf(top.children[1]!.node, '$.list', TREE_CHILD_PAGE);
+    expect(list.children.map((c) => [c.label, c.path, c.node.kind === 'scalar' ? c.node.raw : null])).toEqual([
+      ['[0]', '$.list[0]', '1.10'],
+      ['[1]', '$.list[1]', '"\\u3042"'],
+      ['[2]', '$.list[2]', 'null'],
+    ]);
+    /** 重複したキーは、どちらも子として残す（同じ場所になる） */
+    expect(childrenOf(root, '$', TREE_CHILD_PAGE).children.slice(2).map((c) => c.path)).toEqual(['$.dup', '$.dup']);
+    expect(childrenOf({ kind: 'scalar', raw: '1' }, '$', 10)).toEqual({ children: [], total: 0 });
+  });
+
+  it('「キーをソート」では、整形の出力と同じ並びで子を返す（オフなら入力の順）', () => {
+    const input = '{"b":1,"a":{"d":2,"c":3},"b":4}';
+    const { root } = parseJsonTree(input);
+    const labels = (node: typeof root, sortKeys: boolean) => childrenOf(node, '$', TREE_CHILD_PAGE, sortKeys).children.map((c) => c.label);
+    expect(labels(root, false)).toEqual(['b', 'a', 'b']);
+    /** 重複したキーは元の順のまま並ぶ */
+    expect(labels(root, true)).toEqual(['a', 'b', 'b']);
+    const a = childrenOf(root, '$', TREE_CHILD_PAGE, true).children[0]!.node;
+    expect(labels(a, true)).toEqual(['c', 'd']);
+    expect(formatJson(input, 'minify', true)).toMatchObject({ output: '{"a":{"c":3,"d":2},"b":1,"b":4}' });
+  });
+
+  it('大きな配列でも、表示する分だけを切り出す', () => {
+    const { root } = parseJsonTree(`[${Array.from({ length: 100_000 }, (_, i) => i).join(',')}]`);
+    const page = childrenOf(root, '$', TREE_CHILD_PAGE);
+    expect(page.total).toBe(100_000);
+    expect(page.children).toHaveLength(TREE_CHILD_PAGE);
+    expect(MAX_TREE_INPUT).toBeLessThan(MAX_CALCULATION_INPUT);
   });
 });

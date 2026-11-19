@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 
 /**
  * 外部への通信・CSP 違反・実行時エラーの監視（e2e/fixtures.ts の test が、すべてのケースで使う）。
@@ -33,10 +33,18 @@ const WEBKIT_TERMINATED_WORKER = /^pageerror: (?:Cannot load )?(?:blob:)?(h?ttps
  */
 const FIREFOX_TERMINATED_WORKER = /^console: \[JavaScript Error: "NS_BINDING_ABORTED: " \{file: "chrome:\/\/juggler\/content\/[^"]*" line: \d+\}\]$/;
 
-/** コンソールエラー・CSP違反・外部への通信を記録する */
-export async function watch(page: Page, origin: string) {
+/**
+ * コンソールエラー・CSP違反・外部への通信を記録する。
+ *
+ * @remarks
+ * コンテキストを渡すと、その中のすべてのタブ（テストの途中で context.newPage() で開いたタブや、リンクで開いたタブを含む）を監視する。
+ * ページを渡すと、そのページだけを監視する（監視そのものを確かめるテストなど）。
+ */
+export async function watch(target: Page | BrowserContext, origin: string) {
   const problems: string[] = [];
-  const browserName = page.context().browser()?.browserType().name();
+  const isPage = (t: Page | BrowserContext): t is Page => 'mainFrame' in t;
+  const context = isPage(target) ? target.context() : target;
+  const browserName = context.browser()?.browserType().name();
   const isWebKit = browserName === 'webkit';
   const push = (problem: string) => {
     if (isWebKit) {
@@ -46,16 +54,25 @@ export async function watch(page: Page, origin: string) {
     if (browserName === 'firefox' && FIREFOX_TERMINATED_WORKER.test(problem)) return;
     problems.push(problem);
   };
-  page.on('console', (m) => {
+  const onConsole = (m: { type(): string; text(): string }) => {
     if (m.type() === 'error') push(`console: ${m.text()}`);
-  });
-  page.on('pageerror', (e) => push(`pageerror: ${e.message}`));
-  page.on('request', (r) => {
+  };
+  const onRequest = (r: { url(): string }) => {
     const url = new URL(r.url());
     /** blob: の Worker も、URL の origin は作成元のオリジンになる。 */
     if (url.origin !== origin) problems.push(`外部への通信: ${r.url()}`);
-  });
-  await page.addInitScript(() => {
+  };
+  if (isPage(target)) {
+    target.on('console', onConsole);
+    target.on('pageerror', (e) => push(`pageerror: ${e.message}`));
+    target.on('request', onRequest);
+  } else {
+    /** コンテキストのイベントは、すべてのタブ（後から開いたタブを含む）のものが届く */
+    target.on('console', onConsole);
+    target.on('weberror', (e) => push(`pageerror: ${e.error().message}`));
+    target.on('request', onRequest);
+  }
+  await target.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (e) => {
       console.error(`CSP違反: ${e.violatedDirective} ${e.blockedURI}`);
     });

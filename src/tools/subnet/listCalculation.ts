@@ -1,14 +1,24 @@
 import { errorMessage } from '../../lib/errors';
 import { detailPreview, limitMessage } from '../../lib/text/textPreview';
-import { aggregate, formatIpv4, parseCidrList } from './ipv4';
+import { aggregate, formatIpv4, parseCidrList, parseNetwork, splitNetworkOutput, subnetInfo } from './ipv4';
 import { allocateVlsm, parseHostRequests } from './vlsm';
 import { findOverlaps, MAX_OVERLAPS, MAX_ROWS, type ListError } from './ranges';
-import { aggregate6, onlyLines, parseCidrList6 } from './ipv6';
+import { aggregate6, isIpv6Text, onlyLines, parseCidrList6, parseNetwork6, splitNetworkOutput6, subnetInfo6 } from './ipv6';
 import { formatNumber } from '../../lib/number';
 
 export const MAX_MESSAGES = 20;
 export const MAX_AGGREGATE_OUTPUT = 32_000_000;
 export const MAX_VLSM_OUTPUT = 10_000_000;
+
+/** 表示の件数制限と独立した均等分割の全件出力。大きな文字列の生成は Worker 内で行う。 */
+export function calculateSplit(input: string, newPrefix: number): { output: string } {
+  if (isIpv6Text(input)) {
+    const { ip, prefix } = parseNetwork6(input);
+    return { output: splitNetworkOutput6(subnetInfo6(ip, prefix).network, prefix, newPrefix) };
+  }
+  const { ip, prefix } = parseNetwork(input);
+  return { output: splitNetworkOutput(subnetInfo(ip, prefix).network, prefix, newPrefix) };
+}
 /**
  * 入力の値（名前・ラベル）は、長い1行を結果として描画しないよう detailPreview で抜粋にする。
  * 診断文は、作る側で入力を抜粋にしてあるため、文言の上限（limitMessage）だけをかける。

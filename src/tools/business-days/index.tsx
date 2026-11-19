@@ -2,6 +2,7 @@
  * 営業日計算のファイルの分担。この画面はタブと、タブ間で共有する暦の設定（週末・祝日・独自休日）を担当する。
  * - `logic.ts`：営業日の判定・数え上げと期間の集計
  * - `holidays.ts`：日本の祝日の計算
+ * - `numericInput.ts`：用途ごとの整数入力と範囲の検証
  * - `RangeTab.tsx`・`AddTab.tsx`・`MonthTab.tsx`・`HolidaysTab.tsx`：各タブの画面（`tabFields.tsx` はタブで共通の入力欄）
  */
 import { LargeTextInput } from '../../components/LargeTextInput';

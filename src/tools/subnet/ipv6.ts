@@ -1,3 +1,4 @@
+import { splitAddressRange } from './addressRange';
 /**
  * IPv6 のアドレス・プレフィックスの計算。アドレスは 128ビットなので BigInt で持つ。
  * IPv4 との違い：ブロードキャストアドレスがなく、サブネットのすべてのアドレスを使える。
@@ -9,7 +10,7 @@ import { detailPreview } from '../../lib/text/textPreview';
 import { splitLines } from '../../lib/text/lines';
 import { formatNumber } from '../../lib/number';
 import { formatIpv6Groups } from '../../lib/ipv6';
-import { aggregateIn, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, type Family, type RangeBlock } from './ranges';
+import { aggregateIn, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Family, type RangeBlock } from './ranges';
 
 const BITS = 128n;
 const MAX6 = (1n << BITS) - 1n;
@@ -28,16 +29,21 @@ export const onlyLines = (text: string, v6: boolean): string =>
 
 /**
  * IPv6 アドレスを読む。:: による省略、末尾の IPv4 表記（::ffff:192.0.2.1）、[ ] で囲んだ表記に対応する。
- * ゾーンID（fe80::1%eth0）は計算に使わないので取り除く
+ * ゾーンID（fe80::1%eth0）は空・区切り・空白を検証してから取り除く。単独アドレスではプレフィックスを受け付けない。
  */
 export function parseIpv6(input: string): bigint {
   let s = input.trim();
   const shown = s;
   if (s.startsWith('[') && s.endsWith(']')) s = s.slice(1, -1);
-  if (s.includes('%')) s = s.slice(0, s.indexOf('%'));
   const fail = (why: string): never => {
     throw new Error(`「${detailPreview(shown)}」は IPv6 アドレスとして読めません（${why}）`);
   };
+  if (s.includes('/')) fail('アドレスだけを指定してください');
+  const zone = s.indexOf('%');
+  if (zone >= 0) {
+    if (!/^[\p{L}\p{N}_.~-]+$/u.test(s.slice(zone + 1))) fail('ゾーンIDが不正です');
+    s = s.slice(0, zone);
+  }
   if (!s.includes(':')) fail(': がありません');
 
   /** 末尾の IPv4 表記を16進数の2グループに置き換える */
@@ -80,6 +86,7 @@ const maskOf6 = (prefix: number): bigint => (prefix === 0 ? 0n : (MAX6 << BigInt
 export function parseNetwork6(input: string): { ip: bigint; prefix: number; notation: 'cidr' | 'host' } {
   const s = input.trim();
   const m = /^(.+?)\s*\/\s*(\d{1,3})$/.exec(s);
+  if (s.includes('/') && (!m || m[1]?.includes('/'))) throw new Error('IPv6 のプレフィックス長は / の後に 0〜128 の整数で指定してください');
   if (!m) return { ip: parseIpv6(s), prefix: 128, notation: 'host' };
   const prefix = Number(m[2]);
   if (prefix > 128) throw new Error('IPv6 のプレフィックス長は 0〜128 で指定してください');
@@ -201,6 +208,10 @@ export const parseCidrList6 = (text: string): { blocks: Block6[]; errors: ListEr
 export const splitNetwork6 = (network: bigint, prefix: number, newPrefix: number): { count: bigint; subnets: bigint[] } =>
   splitNetworkIn(IPV6, network, prefix, newPrefix, MAX_ROWS);
 
+/** IPv6 の均等分割の全件コピー・保存用のテキスト。膨大な列挙は共通の件数上限で拒否する。 */
+export const splitNetworkOutput6 = (network: bigint, prefix: number, newPrefix: number): string =>
+  splitNetworkOutputIn(IPV6, network, prefix, newPrefix);
+
 /** 開始〜終了の範囲を、それをちょうど覆う最小個数の CIDR にする */
 export const rangeToCidrs6 = (start: bigint, end: bigint): { network: bigint; prefix: number }[] => rangeToCidrsIn(IPV6, start, end);
 
@@ -223,8 +234,7 @@ const IPV6: Family<bigint> = {
     return { ip, prefix, first: info.network, last: info.last };
   },
   format: formatIpv6,
-  /** 範囲の区切りの - は、アドレスの中には出てこない */
-  rangePattern: /^(\S+)\s*(?:-|–|〜|~)\s*(\S+)$/,
+  splitRange: (text) => splitAddressRange(text, true),
   accepts: isIpv6Text,
   cidrExample: '2001:db8::/32',
   notAlignedWarning: (cidr, normalized) => `${cidr} はプレフィックスの先頭ではないため、${normalized} として扱いました`,

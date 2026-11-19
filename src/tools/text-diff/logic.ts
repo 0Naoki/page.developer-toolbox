@@ -1,4 +1,4 @@
-import { splitLines } from '../../lib/text/lines';
+import { eachLineRange, splitLines } from '../../lib/text/lines';
 import { diffSequencesWithStatus, type DiffLimit } from './myers';
 
 export type Segment = { text: string; changed: boolean };
@@ -35,16 +35,10 @@ export const diffLines = (text: string) => (text === '' ? [] : splitLines(text))
 export function crlfFlags(text: string): boolean[] {
   if (text === '') return [];
   const flags: boolean[] = [];
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    if (c === 13) {
-      const crlf = text.charCodeAt(i + 1) === 10;
-      flags.push(crlf);
-      if (crlf) i++;
-    } else if (c === 10) flags.push(false);
-  }
-  /** 最後の行（改行で終わらない、または改行の後ろの空の行）には改行がない */
-  flags.push(false);
+  /** 最後の行（改行で終わらない、または改行の後ろの空の行）には改行がない（breakLength が 0） */
+  eachLineRange(text, (_start, _end, breakLength) => {
+    flags.push(breakLength === 2);
+  });
   return flags;
 }
 

@@ -2,20 +2,86 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - サブネット：集約10万件の表示上限と全文コピー、VLSMの表示上限と入力順の全文コピー、CR・LF・CRLF混在の一覧の重複と行番号、壊れた分割設定からの復旧。IPv6 のグループや VLSM の名前が長くても、
- *   エラーの文言を抜粋にして、末尾の理由を表示の上限で切らないこと（あわせて `src/tools/subnet/ipv4.test.ts`）
- * - クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件：5アドレスの計算とサービスごとの案内を分け、範囲の両端と刻みの対象外を検証する（あわせて `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`）
+ * - [R037] サブネット：集約10万件の表示上限と全文コピー、VLSMの表示上限と入力順の全文コピー、CR・LF・CRLF混在の一覧の重複と行番号、壊れた分割設定からの復旧。IPv6 のグループや VLSM の名前が長くても、
+ *   エラーの文言を抜粋にして、末尾の理由を表示の上限で切らないこと。IPv6 の範囲の区切りの記号が多く並んだ長い行でも、入力長の2乗の時間をかけないこと（あわせて `src/tools/subnet/ipv4.test.ts`・`src/tools/subnet/ipv6.test.ts`）
+ *   均等分割は表示が1,024件でもIPv4・IPv6の全件をコピー・保存でき、入力変更や出力上限超過で古い全文を使わないこと。ゾーンID付きIPv6の不正なプレフィックスも拒否すること。包含判定でも接尾辞を読み飛ばさず、修正すれば正常な判定に戻ること
+ *   ゾーンIDに -・~ があるIPv6は、単独アドレス・CIDR・範囲・集約で同じように扱うこと。
+ * - [R046] クラウドの予約数 × IPv4・IPv6 × AWS・Azure のサイズ条件：5アドレスの計算とサービスごとの案内を分け、範囲の両端と刻みの対象外を検証する（あわせて `src/tools/subnet/cloudPolicy.test.ts`・`src/tools/subnet/ipv6.test.ts`）
  */
 import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';
 import { pasteLargeInput } from './paste';
 import { captureClipboard, copiedText, copiedLines, copiedLength } from './clipboard';
 import { CROSS_BROWSER } from './tags';
+import { downloadedText } from './files';
 
 
 /** 計算結果の表で、見出しが label の行 */
 const row = (page: Page, label: string) => page.locator('tr', { has: page.locator('th', { hasText: new RegExp(`^${label}$`) }) });
 const selectTab = (page: Page, name: string) => page.getByRole('group', { name: '機能' }).getByRole('button', { name, exact: true }).click();
+
+test('サブネット：ゾーンIDの記号を単独アドレス・CIDR・範囲で同じように扱う', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/subnet');
+  const address = page.getByLabel('アドレスとプレフィックス長、またはマスク', { exact: true });
+  await address.fill('fe80::1%eth0-1/64');
+  await expect(row(page, 'プレフィックス')).toContainText('fe80::/64');
+  await selectTab(page, '集約・範囲変換');
+  const input = page.getByLabel('CIDR・アドレスの範囲・アドレスの一覧（1行に1つ）');
+  await input.fill('fe80::1%eth0-1\nfe80::2%eth0~1');
+  await expect(page.getByLabel('集約結果')).toHaveText('fe80::1/128\nfe80::2/128');
+  await input.fill('fe80::1%eth0-1 - fe80::2%eth0~1');
+  await expect(page.getByLabel('集約結果')).toHaveText('fe80::1/128\nfe80::2/128');
+});
+
+test('サブネット：包含判定でもゾーンIDの後の不正な接尾辞を拒否する', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/subnet');
+  await page.getByLabel('アドレスとプレフィックス長、またはマスク', { exact: true }).fill('fe80::/64');
+  const check = page.getByLabel('判定するアドレス', { exact: true });
+  for (const input of ['fe80::1%eth0/129', 'fe80::1%eth0/64x']) {
+    await check.fill(input);
+    await expect(page.getByText('fe80::/64 に含まれます', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('アドレスだけを指定してください', { exact: false })).toBeVisible();
+  }
+  await check.fill('fe80::1%eth0');
+  await expect(page.getByText('fe80::/64 に含まれます', { exact: true })).toBeVisible();
+});
+
+for (const [input, prefix, count, last] of [
+  ['10.0.0.0/16', '28', 4096, '10.0.255.240/28'],
+  ['2001:db8::/48', '64', 65536, '2001:db8:0:ffff::/64'],
+] as const) {
+  test(`サブネット：${input} の均等分割を全件コピー・保存する`, CROSS_BROWSER, async ({ page }) => {
+    await captureClipboard(page);
+    await page.goto('./#/subnet');
+    await selectTab(page, '分割');
+    await page.getByRole('textbox', { name: '分割するネットワーク', exact: true }).fill(input);
+    await page.getByLabel('分割後').selectOption(prefix);
+    await expect(page.locator('.data-table tbody tr')).toHaveCount(1024);
+    const copy = page.getByRole('button', { name: '全件をコピー', exact: true });
+    await expect(copy).toBeEnabled();
+    await copy.click();
+    await expect.poll(() => copiedLines(page)).toBe(count);
+    await page.getByRole('button', { name: '先頭1,024件をコピー', exact: true }).click();
+    await expect.poll(() => copiedLines(page)).toBe(1024);
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: '全件を保存', exact: true }).click();
+    const saved = await downloadedText(await download);
+    expect(saved.split('\n')).toHaveLength(count);
+    expect(saved.split('\n').at(-1)).toBe(last);
+    await page.getByRole('textbox', { name: '分割するネットワーク', exact: true }).fill('::/0');
+    await page.getByLabel('分割後').selectOption('128');
+    await expect(page.getByText(/分割結果の全件出力は100,000件まで/)).toBeVisible();
+    await expect(copy).toBeDisabled();
+    await expect(page.getByRole('button', { name: '全件を保存', exact: true })).toBeDisabled();
+  });
+}
+
+test('サブネット：ゾーンID付きIPv6の不正なプレフィックスを拒否する', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/subnet');
+  await page.getByLabel('アドレスとプレフィックス長、またはマスク', { exact: true }).fill('fe80::1%eth0/64x');
+  await expect(page.getByText('IPv6 のプレフィックス長は / の後に 0〜128 の整数で指定してください', { exact: true })).toBeVisible();
+  await expect(row(page, 'プレフィックス')).toHaveCount(0);
+});
 
 test('サブネット：クラウドの予約数とサービスごとのIPv6サイズを案内する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/subnet');

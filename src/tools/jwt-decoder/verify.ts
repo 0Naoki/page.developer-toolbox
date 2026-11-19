@@ -10,7 +10,7 @@ import { algSpec, neededKey, type AlgSpec, type KeyType } from './alg';
 import { keyTypeOf, type PublicKey } from './keys';
 import { errorMessage } from '../../lib/errors';
 import { detailPreview } from '../../lib/text/textPreview';
-import type { SignatureVerification } from '../../lib/crypto/signature';
+import { SIGNATURE_MISMATCH, verifyWithPublicKey, type PublicKeyData, type SignatureVerification } from '../../lib/crypto/signature';
 
 /** 検証 */
 
@@ -22,7 +22,7 @@ function cleanJwk(jwk: Record<string, unknown>): JsonWebKey {
 
 export type VerifyKey = { kind: 'secret'; bytes: Uint8Array<ArrayBuffer> } | { kind: 'public'; key: PublicKey };
 
-const INVALID = '署名が一致しません（内容が書き換えられているか、別の鍵で署名されています）';
+const INVALID = SIGNATURE_MISMATCH;
 
 /**
  * JWS の Base64URL（RFC 7515）を読む。base64ToBytes は緩いため、空白・パディング・標準の Base64 の記号や、
@@ -167,22 +167,7 @@ export async function verifyJwt(
       break;
   }
 
-  let cryptoKey: CryptoKey;
-  try {
-    cryptoKey =
-      pub.format === 'jwk'
-        ? await subtle.importKey('jwk', cleanJwk(pub.jwk), importAlg, false, ['verify'])
-        : await subtle.importKey('spki', pub.der, importAlg, false, ['verify']);
-  } catch (e) {
-    if (spec.family === 'eddsa' && (e as Error).name === 'NotSupportedError') {
-      return { status: 'unsupported', message: 'このブラウザは Ed25519 の署名の検証に対応していません' };
-    }
-    return { status: 'invalid', message: `公開鍵を読み込めません（${(e as Error).name}）` };
-  }
-  try {
-    const ok = await subtle.verify(verifyAlg, cryptoKey, sig, data);
-    return ok ? { status: 'valid', message: '署名は正しく、この公開鍵と対になる秘密鍵で署名されています' } : { status: 'invalid', message: INVALID };
-  } catch {
-    return { status: 'invalid', message: '署名の形式が正しくありません' };
-  }
+  /** 公開鍵を読み込めないときは、署名が一致しないとは言えないため「検証できない」にする（証明書デコーダーと同じ扱い） */
+  const keyData: PublicKeyData = pub.format === 'jwk' ? { format: 'jwk', jwk: cleanJwk(pub.jwk) } : { format: 'spki', der: pub.der };
+  return verifyWithPublicKey(keyData, importAlg, verifyAlg, sig, data, '公開鍵', subtle);
 }

@@ -203,6 +203,14 @@ kbd {
   align-self: flex-start;
 }
 
+/** サイドバーの末尾の版の表示（文字の色は .privacy-note と同じ組み合わせ） */
+.app-version {
+  margin: 0;
+  padding: 10px 6px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .link-btn.danger {
   color: var(--bad);
   font-weight: 600;

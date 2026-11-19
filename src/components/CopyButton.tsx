@@ -2,8 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorText } from './ErrorMessage';
 import { useLatest } from '../hooks/useLatest';
 
-/** コピーの状態を対象と操作に対応させ、古い完了やタイマーを新しい値に反映しない。 */
-export function CopyButton({ text, label = 'コピー' }: { text: string; label?: string }) {
+/**
+ * コピーの状態を対象と操作に対応させ、古い完了やタイマーを新しい値に反映しない。
+ * @param text - 本文、または操作時だけ本文を作る同期関数。関数は useCallback などで対象ごとに参照を固定する。
+ * @remarks 本文の生成も失敗表示・再試行の対象に含める。非同期の準備を挟まず、利用者の操作中に書き込む。
+ */
+export function CopyButton({ text, label = 'コピー' }: { text: string | (() => string); label?: string }) {
   const target = useMemo(() => ({ text }), [text]);
   const latestTarget = useLatest(target);
   const version = useRef(0);
@@ -24,7 +28,7 @@ export function CopyButton({ text, label = 'コピー' }: { text: string; label?
     const current = () => version.current === request && latestTarget.current === target;
     setState({ target, phase: 'pending' });
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(typeof text === 'function' ? text() : text);
       if (!current()) return;
       setState({ target, phase: 'copied' });
       timer.current = setTimeout(() => { if (current()) setState(null); }, 1200);

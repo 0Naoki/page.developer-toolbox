@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - 保存失敗・編集：容量超過時の退避・再保存、CRLFと選択範囲、Undo/Redo、画像貼り付け時の入力保持
+ * - [R014] 保存失敗・編集：容量超過時の退避・再保存、CRLFと選択範囲、Undo/Redo、画像貼り付け時の入力保持。CR の改行と LF の改行の間の文字の削除や、CR の改行の直後への改行で始まる貼り付けで、2つの改行が1つの CRLF に結合しないこと（あわせて `src/lib/text/textEdit.test.ts`）
  */
 import { expect, test } from './fixtures';
 import { paste } from './paste';

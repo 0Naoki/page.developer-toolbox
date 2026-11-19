@@ -3,10 +3,17 @@
  * - `pem.ts`：入力（PEM・DER・Base64 の本文）の読み取り。秘密鍵は解析せずに拒否する
  * - `name.ts`：名前（発行者・主体）の読み取りと比較
  * - `extensions.ts`：拡張と別名（SAN など）の読み取り
- * - `logic.ts`：証明書と CSR の全体の解析・有効期限・チェーン
+ * - `logic.ts`：証明書と CSR の全体の解析
+ * - `validity.ts`：現在時刻に対する有効期間の評価
+ * - `chain.ts`：名前と鍵識別子によるチェーンの評価
+ * - `fingerprints.ts`：フィンガープリントの計算
  * - `diagnostics.ts`：読み込んだ各ブロックの解析結果を、表示用にまとめる
- * - `verify.ts`：署名の検証（Web Crypto API を使う非同期処理）
+ * - `verify.ts`：発行者候補の検証と結果の調整
+ * - `signatureScheme.ts`：署名アルゴリズムのパラメーターの解析
+ * - `issuerCandidates.ts`：名前と鍵識別子による発行者候補の選択
+ * - `verifySigned.ts`：指定した公開鍵での署名検証（Web Crypto API）
  * - `CertView.tsx`：内容と検証結果・チェーンの表示
+ * - `sample.ts`：「サンプル」のボタンで入れる証明書
  * DER の解析などの共通の部品は src/lib/crypto/ にある。
  */
 import { useMemo, useState } from 'react';
@@ -16,6 +23,7 @@ import { LargeTextInput } from '../../components/LargeTextInput';
 import { ToolShell } from '../../components/ToolShell';
 import { useFileLoader } from '../../hooks/useFileLoader';
 import { diagnoseItems } from './diagnostics';
+import { SAMPLE_CERTIFICATE } from './sample';
 import { containsPrivateKey } from '../../lib/crypto/privateKey';
 import { MAX_INPUT, readFileBytes, readPem, type DerItem } from './pem';
 import { CertView, ChainView, CsrView } from './CertView';
@@ -55,8 +63,11 @@ export default function CertTool() {
     <ToolShell
       description="PEM・DER の SSL/TLS 証明書と CSR の中身（有効期限・SAN・鍵など）を表示します。署名は、一緒に貼り付けた発行者の証明書（自己署名なら自分）の公開鍵で検証します。失効（OCSP・CRL）と、信頼するルート証明書までたどれるかは確認しません。入力内容は保存しません。"
     >
+      <div className="toolbar">
+        <button type="button" className="btn btn-ghost" onClick={() => replaceText(SAMPLE_CERTIFICATE)}>サンプル</button>
+      </div>
       {/** 長い入力を普通の textarea で描画すると画面が止まるため、表示を先頭までにする（入力内容は保存しない） */}
-      <LargeTextInput
+      <LargeTextInput limit={MAX_INPUT}
         label="証明書または CSR（PEM）"
         className="code code-mid"
         value={text}
@@ -79,7 +90,7 @@ export default function CertTool() {
       )}
       {result && !result.ok && <ErrorText message={result.error} />}
 
-      {result?.ok && result.certs.length >= 2 && <ChainView certs={result.certs} />}
+      {result?.ok && result.certs.length >= 2 && <ChainView certs={result.certs} positions={result.certPositions} unreadable={result.unreadable} />}
 
       {result?.ok &&
         result.cards.map((p) => (

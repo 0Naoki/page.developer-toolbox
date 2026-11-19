@@ -199,20 +199,36 @@ function latin1(v: Uint8Array): string {
   return s;
 }
 
+/**
+ * 文字列の値を読む。欠けた文字の切り捨てや、不正なUTF-8の置換は行わない。
+ * @throws `Asn1Error` UTF8String・BMPString・UniversalString の符号化が不正な場合。
+ */
 export function readString(n: Node): string {
   const v = valueOf(n);
   switch (n.tag) {
     case TAG.UTF8_STRING:
-      return new TextDecoder('utf-8').decode(v);
+      try {
+        return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(v);
+      } catch {
+        throw new Asn1Error('UTF8String に不正な文字があります');
+      }
     case TAG.BMP_STRING: {
+      if (v.length % 2 !== 0) throw new Asn1Error('BMPString の文字が欠けています');
       let s = '';
-      for (let i = 0; i + 1 < v.length; i += 2) s += String.fromCharCode(((v[i] ?? 0) << 8) | (v[i + 1] ?? 0));
+      for (let i = 0; i < v.length; i += 2) {
+        const code = ((v[i] ?? 0) << 8) | (v[i + 1] ?? 0);
+        if (code >= 0xd800 && code <= 0xdfff) throw new Asn1Error('BMPString にサロゲートがあります');
+        s += String.fromCharCode(code);
+      }
       return s;
     }
     case TAG.UNIVERSAL_STRING: {
+      if (v.length % 4 !== 0) throw new Asn1Error('UniversalString の文字が欠けています');
       let s = '';
       for (let i = 0; i + 3 < v.length; i += 4) {
-        s += String.fromCodePoint((((v[i] ?? 0) << 24) | ((v[i + 1] ?? 0) << 16) | ((v[i + 2] ?? 0) << 8) | (v[i + 3] ?? 0)) >>> 0);
+        const code = (((v[i] ?? 0) << 24) | ((v[i + 1] ?? 0) << 16) | ((v[i + 2] ?? 0) << 8) | (v[i + 3] ?? 0)) >>> 0;
+        if (code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) throw new Asn1Error('UniversalString に不正な文字があります');
+        s += String.fromCodePoint(code);
       }
       return s;
     }

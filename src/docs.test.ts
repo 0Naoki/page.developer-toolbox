@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { INPUT_TOOLS } from './lib/storage';
 import { toolCatalog as tools } from './toolCatalog';
 import { markdown, testSources, toolScreens, toolFiles } from './documentSources.testing';
-import { sectionOf } from './documentMarkdown.testing';
+import { markedSection, sectionOf } from './documentMarkdown.testing';
 
 describe('ドキュメントとコードの対応', () => {
   it('README の収録ツールの件数と一覧が、ツールの一覧と同じ表記・順番になっている', () => {
@@ -27,9 +27,9 @@ describe('ドキュメントとコードの対応', () => {
     const unsaved = tools.filter((t) => !saved.has(t.id)).map((t) => t.name);
     expect(unsaved.length).toBeGreaterThan(0);
     for (const file of ['/docs/USAGE.md', '/SECURITY.md']) {
-      const sentence = (markdown[file] ?? '').split('\n').find((line) => line.includes('sessionStorage にも保存しません'));
-      expect(sentence, `${file} に「sessionStorage にも保存しません」の文がありません`).toBeDefined();
-      expect(unsaved.filter((name) => !sentence!.includes(name)), file).toEqual([]);
+      const section = markedSection(markdown[file] ?? '', 'unsaved-inputs');
+      expect(section).toContain('sessionStorage にも保存しません');
+      expect(unsaved.filter((name) => !section.includes(name)), file).toEqual([]);
     }
   });
 
@@ -48,12 +48,16 @@ describe('ドキュメントとコードの対応', () => {
     const regression = sectionOf(markdown['/docs/TESTING.md'] ?? '', '## 既知不具合を守るテスト');
     const rows = regression.split('\n').filter((line) => line.startsWith('| ') && !line.startsWith('| 検査対象') && !line.startsWith('| 条件'));
     expect(rows.length).toBeGreaterThan(40);
+    const ids = rows.map((row) => /<!-- regression:(R\d+) -->/.exec(row)?.[1]);
+    expect(ids.every(Boolean)).toBe(true);
+    expect(new Set(ids).size).toBe(rows.length);
     const missing = rows.flatMap((row) => {
       const [, target = '', files = ''] = row.split('|').map((cell) => cell.trim());
       const paths = [...files.matchAll(/`([^`]+\.tsx?)`/g)].map(([, path]) => path ?? '');
       const owner = paths.find((path) => /^e2e\/.*\.spec\.ts$/.test(path)) ?? paths[0] ?? '';
       const header = /^\/\*\*[\s\S]*?\*\//.exec(testSources[`/${owner}`] ?? '')?.[0] ?? '';
-      return header.includes('回帰テストとして残す検証') && header.includes(`- ${target}：`) ? [] : [`${owner} の先頭に「${target}」がありません`];
+      const id = /<!-- regression:(R\d+) -->/.exec(target)?.[1];
+      return header.includes('回帰テストとして残す検証') && id && header.includes(`[${id}]`) ? [] : [`${owner} の先頭に「${id ?? target}」がありません`];
     });
     expect(missing).toEqual([]);
   });

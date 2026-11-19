@@ -1,5 +1,5 @@
 import { WEEKDAYS_JA, dayOfWeek, daysInMonth } from '../../lib/time/date';
-import { formatInZone } from '../../lib/time/dateTimeFormat';
+import { formatInZone, formatWithOffset } from '../../lib/time/dateTimeFormat';
 import { DateRangeError, NonexistentTimeError, wallOf, zonedToUtc, type Wall, type Zone } from '../../lib/time/timezone';
 import { fieldOf, isDayOrWeekday, type CronExpression, type CronField, type FieldName } from './parse';
 
@@ -95,8 +95,15 @@ export function nextRuns(cron: CronExpression, zone: Zone, from: number, count: 
   return runs;
 }
 
-/** 実行日時の表示。「2026-10-05 09:00:00（月）」の形で、曜日は zone の現地の日付で決める */
-export function formatRun(ms: number, zone: Zone): string {
+/**
+ * 実行日時の表示。「2026-10-05 09:00:00（月）」の形で、曜日は zone の現地の日付で決める。
+ *
+ * @remarks
+ * 基準日時の欄（日本時間として読む）に貼り戻しても同じ時刻になるよう、日本時間以外の表示には withOffset で
+ * UTC からのずれを付ける（「2026-10-04 20:00:00 -04:00（日）」）。曜日の添え書きは、日時の入力（parseDateTime）が読み飛ばす。
+ */
+export function formatRun(ms: number, zone: Zone, withOffset = false): string {
   const { y, mo, d } = wallOf(ms, zone);
-  return `${formatInZone(new Date(ms), zone)}（${WEEKDAYS_JA[dayOfWeek({ y, m: mo, d })]}）`;
+  const date = new Date(ms);
+  return `${withOffset ? formatWithOffset(date, zone) : formatInZone(date, zone)}（${WEEKDAYS_JA[dayOfWeek({ y, m: mo, d })]}）`;
 }

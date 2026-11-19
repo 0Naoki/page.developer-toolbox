@@ -4,6 +4,7 @@ import { detailPreview } from '../../lib/text/textPreview';
 import { checkCells, isDelimiter, MAX_CSV_OUTPUT, maxColumns, type Delimiter } from './csvFormat';
 import { errorMessage } from '../../lib/errors';
 import { describeAt, findLoneSurrogate } from '../../lib/text/surrogate';
+import { assertUniqueObjectKeys } from './validateJson';
 
 export type JsonToCsvOptions = {
   delimiter: Delimiter;
@@ -40,7 +41,7 @@ function setUnique(out: JsonRecord, key: string, value: JsonNode) {
   /** 黙って上書きすると片方の値が消えるため、エラーにする */
   if (out.has(key)) {
     throw new Error(
-      `項目名「${detailPreview(key)}」が重複しています（同じキーが2回あるか、ドットを含むキーと入れ子の項目が同じ名前になっています）`,
+      `項目名「${detailPreview(key)}」が重複しています（ドットを含むキーと入れ子の項目が、展開後に同じ列名になっています）`,
     );
   }
   out.set(key, value);
@@ -106,6 +107,7 @@ export function jsonToCsv(input: string, o: JsonToCsvOptions): JsonToCsvResult {
   }
   const data = root.kind === 'object' ? [root] : root.kind === 'array' ? root.items : null;
   if (data === null) throw new Error('JSONは配列（またはオブジェクト）である必要があります');
+  assertUniqueObjectKeys(root);
 
   const lines: string[] = [];
   let outputLength = 0;

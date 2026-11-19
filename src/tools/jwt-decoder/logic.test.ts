@@ -12,6 +12,15 @@ const token = `${header}.${payload}.signature`;
 /** 任意のペイロード（JSON の文字列）を持つトークン */
 const tokenWith = (json: string) => `${header}.${base64Url(json)}.signature`;
 
+describe('JWTの表示用Base64', () => {
+  it('正常なパディングは表示用に許容し、不正な個数は補正しない', () => {
+    const body = base64Url('{"a":1}');
+    const padded = body + '='.repeat((4 - body.length % 4) % 4);
+    expect(parseJwt(`${header}.${padded}.signature`).payload).toEqual({ a: 1 });
+    expect(() => parseJwt(`${header}.${padded}=.signature`)).toThrow('ペイロードをデコードできません');
+  });
+});
+
 describe('整形結果の大きさ', () => {
   it('深い入れ子で整形結果が膨らむペイロードは、整形せずに元のテキストで表示し、警告する', () => {
     /** 200段の配列の中に10万個の 0（約20万単位）。整形すると、インデントで約4,000万単位になる */
