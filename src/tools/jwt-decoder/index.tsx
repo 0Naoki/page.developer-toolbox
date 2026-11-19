@@ -72,6 +72,7 @@ export default function JwtDecoder() {
           <Notice tone="warn">
             JWE（暗号化されたトークン）です。中身（ペイロード）は暗号化されているため、復号の鍵がないと表示できません。読めるのはヘッダだけです。
           </Notice>
+          <HandoffHint />
           <div className="split">
             <JsonPane title="ヘッダ" text={result.jwe.headerJson} />
           </div>
@@ -160,8 +161,7 @@ function Decoded({ parsed }: { parsed: ParsedJwt }) {
 
       <VerifyPanel data={data} verification={verification} />
 
-      {/** トークンはどこにも保存しないが、JSON整形は入力をこのタブに保存する。渡す前に分かるようにする */}
-      <p className="hint">「JSON整形で開く」と、その内容は JSON整形の入力として、このタブを閉じるまで残ります（全消去でも消せます）。</p>
+      <HandoffHint />
       <div className="split">
         <JsonPane title="ヘッダ" text={data.headerJson} />
         <JsonPane title="ペイロード" text={data.payloadJson} />
@@ -253,6 +253,14 @@ function VerifyPanel({ data, verification: v }: { data: DecodedJwt; verification
       )}
     </section>
   );
+}
+
+/**
+ * トークンはどこにも保存しないが、JSON整形は入力をこのタブに保存する。渡す前に分かるよう、
+ * 「JSON整形で開く」（JsonPane）を出す画面（JWS・JWE の両方）に添える
+ */
+function HandoffHint() {
+  return <p className="hint">「JSON整形で開く」と、その内容は JSON整形の入力として、このタブを閉じるまで残ります（全消去でも消せます）。</p>;
 }
 
 function JsonPane({ title, text }: { title: string; text: string }) {
