@@ -298,9 +298,8 @@ test('全消去の一部に失敗した場合はツールを閉じ、再試行�
       remove.call(this, key);
     };
   });
-  const clear = page.getByRole('button', { name: '保存データをすべて消去', exact: true });
-  await clear.click();
-  await page.getByRole('button', { name: 'もう一度押すと消去します' }).click();
+  /** 2回押しは共通の手順で行う（Playwright の操作として2回押すと、負荷で2回目が遅れたときに確認の表示が戻って押し損ねる） */
+  await clickClearAll(page);
   await expect(page.getByRole('alert').filter({ hasText: '一部を消去できませんでした' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: '入力', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => [localStorage.getItem('dev-toolbox:pref:recent'), sessionStorage.getItem('dev-toolbox:input:base64')])).toEqual([null, null]);
