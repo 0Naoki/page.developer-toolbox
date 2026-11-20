@@ -49,13 +49,26 @@ function normalize(line: string, o: DiffOptions): string {
   return s;
 }
 
+/** 文字単位で比べる行の大きさの上限（両側の文字数（コードポイント数）の積）。超える行は行全体を変更扱いにする */
+const MAX_CHAR_DIFF = 4_000_000;
+
+/** 文字単位の差分の結果。common は両側で共通の文字数、leftLength・rightLength は両側の文字数（いずれもコードポイント数） */
+export type CharDiff = { left: Segment[]; right: Segment[]; common: number; leftLength: number; rightLength: number };
+
 /** 文字単位の差分（行内のどこが変わったかの強調表示用） */
-export function diffChars(a: string, b: string, limit: DiffLimit = {}): { left: Segment[]; right: Segment[] } {
+export function diffChars(a: string, b: string, limit: DiffLimit = {}): CharDiff {
+  /**
+   * 文字数（コードポイント数）は UTF-16 の長さの半分（切り上げ）以上なので、その積が上限を超えるなら、文字の配列を作らずに打ち切る
+   * （改行のない長い行どうしで、捨てるだけの配列を作らないように）。判定そのものは、下の文字数の積で行う
+   */
+  if (Math.ceil(a.length / 2) * Math.ceil(b.length / 2) > MAX_CHAR_DIFF) {
+    return { ...wholeLineOf(a, b), common: 0, leftLength: codePointCount(a), rightLength: codePointCount(b) };
+  }
   const ac = Array.from(a);
   const bc = Array.from(b);
-  const wholeLine = { left: [{ text: a, changed: true }], right: [{ text: b, changed: true }] };
+  const wholeLine = { ...wholeLineOf(a, b), common: 0, leftLength: ac.length, rightLength: bc.length };
   /** 長すぎる行は計算量が大きいので、行全体を変更扱いにする */
-  if (ac.length * bc.length > 4_000_000) return wholeLine;
+  if (ac.length * bc.length > MAX_CHAR_DIFF) return wholeLine;
   const { ops, timedOut } = diffSequencesWithStatus(ac, bc, limit);
   /** 打ち切った結果は最短ではなく強調が読みにくいため、行全体を変更扱いにする */
   if (timedOut) return wholeLine;
@@ -66,15 +79,36 @@ export function diffChars(a: string, b: string, limit: DiffLimit = {}): { left: 
     if (last && last.changed === changed) last.text += text;
     else list.push({ text, changed });
   };
+  let common = 0;
   for (const op of ops) {
     if (op.type === 'equal') {
       /** 編集手順の位置は、どれも文字の配列の範囲内 */
       push(left, ac[op.a]!, false);
       push(right, bc[op.b]!, false);
+      common++;
     } else if (op.type === 'delete') push(left, ac[op.a]!, true);
     else push(right, bc[op.b]!, true);
   }
-  return { left, right };
+  return { left, right, common, leftLength: ac.length, rightLength: bc.length };
+}
+
+/** 行全体を変更扱いにした文字単位の差分 */
+const wholeLineOf = (a: string, b: string) => ({ left: [{ text: a, changed: true }], right: [{ text: b, changed: true }] });
+
+/** 文字数（コードポイント数）。配列を作らずに数える */
+function codePointCount(s: string): number {
+  let count = s.length;
+  for (let i = 0; i < s.length - 1; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = s.charCodeAt(i + 1);
+      if (d >= 0xdc00 && d <= 0xdfff) {
+        count--;
+        i++;
+      }
+    }
+  }
+  return count;
 }
 
 /** 2つのテキストを行単位で比較し、左右に並べられる形で返す */
@@ -115,9 +149,8 @@ export function diffText(before: string, after: string, o: DiffOptions): DiffRes
       if (left && right && remaining > 0) {
         const segs = diffChars(left.text, right.text, { timeoutMs: remaining });
         /** 半分以上が共通する「似た行」のときだけ文字単位で強調する（無関係な行同士だと読みにくいため） */
-        const common = segs.left.filter((x) => !x.changed).reduce((n, x) => n + Array.from(x.text).length, 0);
-        const total = Array.from(left.text).length + Array.from(right.text).length;
-        if (total > 0 && (common * 2) / total >= 0.5) {
+        const total = segs.leftLength + segs.rightLength;
+        if (total > 0 && (segs.common * 2) / total >= 0.5) {
           left.segments = segs.left;
           right.segments = segs.right;
         }

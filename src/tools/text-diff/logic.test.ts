@@ -229,6 +229,9 @@ describe('diffChars', () => {
         { text: '総', changed: true },
         { text: '金額', changed: false },
       ],
+      common: 4,
+      leftLength: 4,
+      rightLength: 5,
     });
   });
 
@@ -236,7 +239,26 @@ describe('diffChars', () => {
     expect(diffChars('abcdef', 'fedcba', { timeoutMs: -1 })).toEqual({
       left: [{ text: 'abcdef', changed: true }],
       right: [{ text: 'fedcba', changed: true }],
+      common: 0,
+      leftLength: 6,
+      rightLength: 6,
     });
+  });
+
+  it('上限の判定は文字数（コードポイント数）の積で行い、UTF-16 の長さでは判定しない', () => {
+    /** 絵文字1,500個どうしは、文字数の積が225万で上限（400万）以内なので文字単位で比べる（UTF-16 の長さの積は900万） */
+    const result = diffChars('😀'.repeat(1500), `${'😀'.repeat(1499)}x`);
+    expect(result).toMatchObject({ common: 1499, leftLength: 1500, rightLength: 1500 });
+    expect(result.left).toEqual([{ text: '😀'.repeat(1499), changed: false }, { text: '😀', changed: true }]);
+    /** 文字数の積が上限を超える行は、行全体を変更扱いにする */
+    expect(diffChars('a'.repeat(2001), 'b'.repeat(2000))).toMatchObject({ common: 0, leftLength: 2001, rightLength: 2000 });
+  });
+
+  it('改行のない長い行どうしは、文字の配列を作らずに行全体を変更扱いにする', () => {
+    const a = 'a'.repeat(4_000_000);
+    const b = `${'😀'.repeat(1_000_000)}b`;
+    const result = diffChars(a, b);
+    expect(result).toEqual({ left: [{ text: a, changed: true }], right: [{ text: b, changed: true }], common: 0, leftLength: 4_000_000, rightLength: 1_000_001 });
   });
 });
 
