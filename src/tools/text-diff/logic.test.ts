@@ -1,4 +1,4 @@
-/** 検査の対象：logic.ts・myers.ts・unified.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
+/** 検査の対象：logic.ts・myers.ts・unified.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する）。大量行の検査は、参照実装（rowReference.testing.ts）と本番の preview.ts の両方に向ける */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DIFF_TIMEOUT_MS, crlfFlags, diffChars, diffText, diffLines } from './logic';
 import { diffSequencesWithStatus, type DiffOp } from './myers';
@@ -6,6 +6,8 @@ import { foldRows, unifiedDisplayRows, visibleRows } from './rowReference.testin
 import type { UnifiedDisplayRow } from './rows';
 import { LINE_BREAK_CASES } from '../../lib/text/lines.fixtures';
 import { toUnified } from './unified';
+import { packRows } from './packed';
+import { unifiedPreview } from './preview';
 
 const NO_OPTS = { ignoreWhitespace: false, ignoreCase: false };
 const diffSequences = <T>(a: T[], b: T[]) => diffSequencesWithStatus(a, b).ops;
@@ -320,6 +322,13 @@ describe('unifiedDisplayRows', () => {
     const unified = unifiedDisplayRows(rows);
     expect(unified).toHaveLength(rows.length);
     expect(unified.filter((r) => r.kind === 'del')).toHaveLength(count);
+    /** 画面が使う本番の経路（packRows → unifiedPreview）でも、同じ大量行で全件を数え、先頭だけを返す */
+    const before = Array<string>(count).fill('a').join('\n');
+    const packed = packRows(diffText(before, '', NO_OPTS).rows, before, '');
+    const preview = unifiedPreview(packed, { onlyChanges: true, context: 3, expanded: [], limit: 1000 });
+    expect(preview.total).toBe(count);
+    expect(preview.shown).toHaveLength(1000);
+    expect(preview.shown.every((r) => r.kind === 'del')).toBe(true);
   });
 });
 
