@@ -53,7 +53,7 @@ CSVの具体的な入力例は [利用ガイド](USAGE.md#csv変換) を参照�
 | `src/components/` | 入力・出力・画面操作の共通部品 |
 | `src/hooks/` | 保存・計算・時刻更新の共通の React フック |
 | `src/lib/` | ツールに依存しない共通処理（ツール間でそろえる処理は「[共通の処理と決まり](#共通の処理と決まり)」）。関心ごとに `time/`（日時）・`text/`（テキスト）・`worker/`（Worker の起動と待機）・`storage/`（保存。[STORAGE.md](STORAGE.md)）・`crypto/`（証明書・JWT で共通の暗号の部品）に分ける |
-| `src/calculation/` | 大容量計算の Worker（通信型・振り分け・入口・起動）。ツールを読み込んでよい、`src/tools/` の外の唯一の場所 |
+| `src/calculation/` | 大容量計算の Worker（通信型・振り分け・入口・起動）。ツールを `import` で読み込んでよい、`src/tools/` の外の唯一の場所（静的検査あり）。例外として `src/registry.ts` は、`import.meta.glob` でツールの画面を遅延読み込みする |
 | `csp.config.ts`・`src/trustedTypes.ts` | CSP と Worker 用 Trusted Types ポリシー |
 | `src/styles.css`・`src/styles/` | CSSの層（cascade layers）と、テーマ・レイアウト・共通部品・ツール別スタイル |
 | `e2e/` | 本番ビルドのブラウザテスト |

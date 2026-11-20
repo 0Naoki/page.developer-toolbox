@@ -338,6 +338,25 @@ export const IMPORT_RULES: ImportRule[] = [
     ],
   },
   {
+    name: 'ツールを読み込んでよいのは、src/tools/ の中と、計算 Worker（src/calculation/）だけ',
+    fix: '共通で使う処理は src/lib/ に、共通の部品は src/components/ に移す。画面の一覧は src/registry.ts の遅延読み込み（import.meta.glob）で読み込む',
+    /**
+     * 共通の部品・フックがツールに依存すると、ツールを1つ消したり変えたりしたときに、ほかのツールの画面まで壊れるため（docs/ARCHITECTURE.md の配置の表）。
+     * src/registry.ts は import.meta.glob でツールの画面を遅延読み込みするが、glob はこの検査（静的な import）の対象外
+     */
+    forbids: ({ file, target }) => target.startsWith('/src/tools/') && !file.startsWith('/src/tools/') && !file.startsWith('/src/calculation/'),
+    detects: [
+      { file: '/src/hooks/useCalculation.ts', target: '/src/tools/csv-json/logic' },
+      { file: '/src/components/KvRow.tsx', target: '/src/tools/cert/logic.ts' },
+      { file: '/src/app/ToolPage.tsx', target: '/src/tools/json-formatter/index' },
+    ],
+    ignores: [
+      { file: '/src/tools/cert/index.tsx', target: '/src/tools/cert/logic' },
+      { file: '/src/calculation/handlers.ts', target: '/src/tools/csv-json/calculation' },
+      { file: '/src/hooks/useCalculation.ts', target: '/src/calculation/protocol' },
+    ],
+  },
+  {
     name: '計算の振り分け（src/calculation/handlers.ts）は、計算 Worker の入口だけが読み込む',
     fix: '画面・フックからは src/calculation/protocol.ts の型と src/lib/worker/calculationLimits.ts の上限だけを使い、計算は useCalculation で Worker に任せる',
     /** 振り分けは全ツールの計算処理を読み込むため、画面から読み込むと、計算処理が最初に読み込むファイルに入り、Worker で計算する意味もなくなる */
