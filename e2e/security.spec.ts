@@ -6,7 +6,9 @@
  *   必須文字種と大きな記号集合を使っても強度を過大表示せず、生成した値を保存しないこと。
  * - [R012] 表示設定の保存：生成できない途中のパスワード設定を保存せず、再読み込みで直前の有効な設定に戻すこと。別タブで変えた設定を、無関係な操作や再描画で古い値に書き戻さないこと。最近使ったツールの更新で、別タブで開いたツールを消さないこと
  */
-import { expect, test } from '@playwright/test';
+/** opener のケースは検証用の別オリジン（opener.test）を開くため、標準の test（probeTest）で期待する状態をケース内で検証する。ほかは監視付きの test を使う。 */
+import { test as probeTest } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { DEFAULT_OPTIONS } from '../src/tools/password-generator/logic';
 
@@ -157,7 +159,7 @@ test('回帰：最近使ったツールを、別タブで開いたツールを�
   await expect.poll(recent).toEqual(['base64', 'json']);
 });
 
-test('openerがあるタブでは入力せず、参照のない新しいタブで開き直せる', CROSS_BROWSER, async ({ page, context, baseURL }) => {
+probeTest('openerがあるタブでは入力せず、参照のない新しいタブで開き直せる', CROSS_BROWSER, async ({ page, context, baseURL }) => {
   await context.route('http://opener.test/**', (route) => route.fulfill({ contentType: 'text/html', body: '<p>検証用ページ</p>' }));
   await page.goto('http://opener.test/');
   const opened = page.waitForEvent('popup');
