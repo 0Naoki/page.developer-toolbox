@@ -41,7 +41,11 @@ test('UUID：v6 の時刻・時刻なし・解析未対応を区別し、不完�
   await expect(page.locator('.error-text')).toBeVisible();
   await input.fill('1EC9414C-232A-6B00-B3C8-9F6BDECED846');
   const time = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '生成日時', exact: true }) });
-  await expect(time).toContainText('1645557742000');
+  /** 日時と、エポックミリ秒（1645557742000）は別の行で、それぞれコピーできる */
+  await expect(time).toContainText('2022-02-23 04:22:22 JST');
+  const millis = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '生成日時（エポックミリ秒）', exact: true }) });
+  await expect(millis).toContainText('1645557742000');
+  await expect(millis.getByRole('button')).toHaveCount(1);
   await input.fill('550e8400-e29b-41d4-a716-446655440000');
   await expect(time).toContainText('このバージョンは時刻を含みません');
   await input.fill('550e8400-e29b-81d4-a716-446655440000');
