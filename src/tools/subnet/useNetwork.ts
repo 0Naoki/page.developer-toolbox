@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { parseNetwork, subnetInfo, type ParsedNetwork, type SubnetInfo } from './ipv4';
-import { isIpv6Text, parseNetwork6, subnetInfo6, type SubnetInfo6 } from './ipv6';
+import { parseNetwork6, subnetInfo6, type SubnetInfo6 } from './ipv6';
+import { isIpv6Text } from './addressRange';
 import { attempt, type Attempt } from '../../lib/errors';
 
 type Parsed4 = { parsed: ParsedNetwork; info: SubnetInfo };

@@ -1,4 +1,4 @@
-import { readName, sameBytes, sameName, type ParsedName } from './name';
+import { keyIdsCompatible, readName, sameBytes, sameName, type ParsedName } from './name';
 import { type DerItem } from './pem';
 import { oidName, readExtensions, type ExtensionSummary } from './extensions';
 import { errorMessage } from '../../lib/errors';
@@ -193,8 +193,7 @@ export function parseCertificate(der: Uint8Array): Certificate {
     notAfter: time(validity.children[1]),
     publicKey,
     selfIssued:
-      sameName(issuer, subject) &&
-      !(extensions.authorityKeyId && extensions.subjectKeyId && extensions.authorityKeyId !== extensions.subjectKeyId),
+      sameName(issuer, subject) && keyIdsCompatible(extensions.authorityKeyId, extensions.subjectKeyId),
     ...extensions,
   };
 }

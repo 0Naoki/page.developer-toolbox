@@ -1,8 +1,8 @@
-import { splitAddressRange } from './addressRange';
 /**
  * IPv4 のアドレス・サブネットの計算。
  * アドレスは 0 〜 2^32-1 の数（Number）で持つ。ビット演算は32ビットの符号付きになるため、結果は \>\>\> 0 で符号なしに戻す。
  */
+import { isIpv6Text, splitAddressRange } from './addressRange';
 import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
 import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList, type RangeBlock } from './ranges';
@@ -253,7 +253,8 @@ const IPV4: Family<number> = {
   },
   format: formatIpv4,
   splitRange: (text) => splitAddressRange(text, false),
-  accepts: () => true,
+  /** IPv6 の行（先頭の値に : がある行）は ipv6.ts が読むので、それ以外の行を読む */
+  accepts: (line) => !isIpv6Text(line),
   cidrExample: '10.0.0.0/16',
   notAlignedWarning: (cidr, normalized) => `${cidr} はネットワークアドレスではないため、${normalized} として扱いました`,
 };

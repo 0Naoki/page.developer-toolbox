@@ -34,6 +34,18 @@ export function describeIssue(char: string, value: IssueCount, kind: IssueKind):
   return { char, ...value, codePoint: codePointOf(char), reason: issueReason(char, kind) };
 }
 
+/**
+ * 1文字が診断の対象か。対象なら理由、対象でなければ null。
+ *
+ * @remarks
+ * 文字数・バイト数の計算（count.ts）と、全件の集約（aggregateIssues）の両方がこれで判定する（判定が食い違わないように）。
+ * バイト数は呼び出し側が求めたもの（変換できない文字は null）を渡す。
+ */
+export function issueReasonOf(char: string, kind: IssueKind, sjisBytes: number | null, eucBytes: number | null): string | null {
+  if (kind === 'vendor') return sjisBytes === 2 ? vendorKindOf(char) : null;
+  return (kind === 'unsupportedEuc' ? eucBytes : sjisBytes) === null ? reasonOf(char) : null;
+}
+
 /** 集約で診断対象と確定した文字の理由。予算の確認では詳細オブジェクトを作らずに使う。 */
 export function issueReason(char: string, kind: IssueKind): string {
   return kind === 'vendor' ? vendorKindOf(char) ?? '' : reasonOf(char);
@@ -50,8 +62,7 @@ export function aggregateIssues(input: string, kind: IssueKind, reserve?: (char:
   for (const ch of input.replace(/\r\n?/g, '\n')) {
     if (ch === '\n') { line++; column = 0; continue; }
     column++;
-    const bytes = kind === 'unsupportedEuc' ? eucjpBytesOf(ch) : sjisBytesOf(ch);
-    const reason = kind === 'vendor' ? (bytes === 2 ? vendorKindOf(ch) : null) : bytes === null ? reasonOf(ch) : null;
+    const reason = kind === 'unsupportedEuc' ? issueReasonOf(ch, kind, null, eucjpBytesOf(ch)) : issueReasonOf(ch, kind, sjisBytesOf(ch), null);
     if (reason !== null) {
       const found = issues.get(ch);
       if (found) found.count++;

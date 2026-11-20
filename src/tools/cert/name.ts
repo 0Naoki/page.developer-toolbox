@@ -72,6 +72,16 @@ export const attributeKey = (oid: string, tag: number | null, value: string, raw
  * 文字列の値が符号化（PrintableString と UTF8String など）・大文字小文字・空白の違いを除いて同じなら、同じとする。
  * 複数の属性を持つ RDN は集合なので、キーの個数を数えて比べる（属性の数に比例する時間で済む）
  */
+/**
+ * 発行者の鍵識別子（AKI）と、発行者とみなす証明書の鍵識別子（SKI）が食い違わないか。どちらかがなければ食い違わないとする。
+ *
+ * @remarks
+ * 「発行者とみなせるか」（名前の一致と、この判定）は、自己発行の判定（logic.ts）・つながりの評価（chain.ts）・
+ * 署名の検証に使う発行者の候補（issuerCandidates.ts）で同じにする（表示と検証で判定が食い違わないように）。
+ */
+export const keyIdsCompatible = (authorityKeyId: string | null, subjectKeyId: string | null): boolean =>
+  !authorityKeyId || !subjectKeyId || authorityKeyId === subjectKeyId;
+
 export function sameName(a: ParsedName, b: ParsedName): boolean {
   if (sameBytes(a.raw, b.raw)) return true;
   if (a.rdns.length !== b.rdns.length) return false;

@@ -1,30 +1,17 @@
-import { splitAddressRange } from './addressRange';
 /**
  * IPv6 のアドレス・プレフィックスの計算。アドレスは 128ビットなので BigInt で持つ。
  * IPv4 との違い：ブロードキャストアドレスがなく、サブネットのすべてのアドレスを使える。
  */
+import { isIpv6Text, splitAddressRange } from './addressRange';
 import { readIpv4 } from './ipv4';
 import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
-import { splitLines } from '../../lib/text/lines';
 import { formatNumber } from '../../lib/number';
 import { formatIpv6Groups } from '../../lib/ipv6';
 import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList, type RangeBlock } from './ranges';
 
 const BITS = 128n;
 const MAX6 = (1n << BITS) - 1n;
-
-/**
- * 行が IPv6 か。IPv4 と IPv6 が混ざった一覧を振り分けるのに使う。
- * 先頭の値（アドレスや CIDR）だけを見る（「10.0.0.0/16 本番: 東京」のように、名前に : があっても IPv4）
- */
-export const isIpv6Text = (line: string): boolean => (line.replace(/#.*/, '').trim().split(/\s+/)[0] ?? '').includes(':');
-
-/** IPv4 と IPv6 が混ざった一覧から、片方の行だけを残す（行番号を保つため、もう片方は空行にする） */
-export const onlyLines = (text: string, v6: boolean): string =>
-  splitLines(text)
-    .map((l) => (isIpv6Text(l) === v6 ? l : ''))
-    .join('\n');
 
 /**
  * IPv6 アドレスを読む。:: による省略、末尾の IPv4 表記（::ffff:192.0.2.1）、[ ] で囲んだ表記に対応する。

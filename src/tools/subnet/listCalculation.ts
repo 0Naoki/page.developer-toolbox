@@ -3,7 +3,8 @@ import { detailPreview, limitMessage } from '../../lib/text/textPreview';
 import { aggregate, formatIpv4, parseCidrList, parseNetwork, splitNetworkOutput, subnetInfo } from './ipv4';
 import { allocateVlsm, parseHostRequests } from './vlsm';
 import { findOverlaps, MAX_LIST_MESSAGES, MAX_OVERLAPS, MAX_ROWS, type ListError } from './ranges';
-import { aggregate6, isIpv6Text, onlyLines, parseCidrList6, parseNetwork6, splitNetworkOutput6, subnetInfo6 } from './ipv6';
+import { aggregate6, parseCidrList6, parseNetwork6, splitNetworkOutput6, subnetInfo6 } from './ipv6';
+import { isIpv6Text } from './addressRange';
 import { formatNumber } from '../../lib/number';
 
 export const MAX_MESSAGES = MAX_LIST_MESSAGES;
@@ -70,7 +71,7 @@ export function aggregateList(text: string) {
    * 出力（改行でつないだ全文）が MAX_AGGREGATE_OUTPUT を超えるかを、CIDR の文字列を作りながら確かめる（全件を作ってから確かめない）。
    * 各 CIDR の文字数＋改行1つの合計は、全文の長さより1多いので、上限に1を足して渡す。IPv6 には IPv4 が使った残りを渡す
    */
-  const v4 = aggregate(onlyLines(text, false), MAX_AGGREGATE_OUTPUT + 1);
+  const v4 = aggregate(text, MAX_AGGREGATE_OUTPUT + 1);
   if (v4.exceeded) throw tooLarge();
   const used = v4.cidrs.reduce((length, cidr) => length + cidr.length + 1, 0);
   const v6 = aggregate6(text, MAX_AGGREGATE_OUTPUT + 1 - used);
@@ -92,7 +93,7 @@ function overlapEntry({ text, label, line }: { text: string; label: string; line
 
 /** IPv4 と IPv6 を別々に検査し、件数と表示に必要な項目だけを返す。 */
 export function checkOverlapList(text: string) {
-  const v4 = parseCidrList(onlyLines(text, false));
+  const v4 = parseCidrList(text);
   const v6 = parseCidrList6(text);
   const o4 = findOverlaps(v4.blocks);
   const o6 = findOverlaps(v6.blocks);
