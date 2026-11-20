@@ -24,15 +24,24 @@ snapshot(resolve('package-lock.json'));
 const provenance = {};
 /** 変更前後で同じ箇所に観測を入れる。観測用の生成コードだけを加工し、アプリのソースは変更しない。 */
 function instrument(source, file) {
-  if (file === entry && source.includes('collectIssues(input, kind)')) return source
-    .replace('collectIssues(input, kind)', 'globalThis.__reportHeap(collectIssues(input, kind))')
-    .replace('parts.push(text);', 'parts.push(text); if (parts.length % 1024 === 0) globalThis.__reportHeap();')
-    .replace("return parts.join('');", "const complete = parts.join(''); globalThis.__reportHeap(); return complete;");
-  if (file === entry) return source.replace('for (const [char, value] of counts)', 'globalThis.__reportHeap(); for (const [char, value] of counts)');
-  if (file.endsWith('/reportText.ts')) return source
-    .replace("this.chunks.push(this.pending.join(''));", "this.chunks.push(this.pending.join('')); globalThis.__reportHeap();")
-    .replace("return this.chunks.join('');", "const complete = this.chunks.join(''); globalThis.__reportHeap(); return complete;")
-    .replace('if (length > this.limit) throw', 'if (length > this.limit) globalThis.__reportHeap(); if (length > this.limit) throw');
+  /**
+   * 観測を差し込む箇所が見つからなければ止める（対象の行を書き換えたときに、観測なしで「増分 0」の記録を残さないため）
+   */
+  const replaced = (text, from, to) => {
+    if (!text.includes(from)) throw new Error(`${file} に観測を差し込む箇所「${from}」が見つかりません。scripts/measure-report-memory.mjs の instrument を直してください`);
+    return text.replace(from, to);
+  };
+  if (file === entry && source.includes('collectIssues(input, kind)')) {
+    let out = replaced(source, 'collectIssues(input, kind)', 'globalThis.__reportHeap(collectIssues(input, kind))');
+    out = replaced(out, 'parts.push(text);', 'parts.push(text); if (parts.length % 1024 === 0) globalThis.__reportHeap();');
+    return replaced(out, "return parts.join('');", "const complete = parts.join(''); globalThis.__reportHeap(); return complete;");
+  }
+  if (file === entry) return replaced(source, 'for (const [char, value] of counts)', 'globalThis.__reportHeap(); for (const [char, value] of counts)');
+  if (file.endsWith('/reportText.ts')) {
+    let out = replaced(source, "this.chunks.push(this.pending.join(''));", "this.chunks.push(this.pending.join('')); globalThis.__reportHeap();");
+    out = replaced(out, "return this.chunks.join('');", "const complete = this.chunks.join(''); globalThis.__reportHeap(); return complete;");
+    return replaced(out, 'if (length > this.limit) throw', 'if (length > this.limit) globalThis.__reportHeap(); if (length > this.limit) throw');
+  }
   return source;
 }
 async function load(name) {
