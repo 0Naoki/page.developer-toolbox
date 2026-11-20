@@ -50,7 +50,7 @@ npm run e2e:run -- e2e/storage.spec.ts --project=webkit --workers=2
 | `src/sourceScan.test.ts` | 静的検査が使う解析（コメントの除去・通信の API の参照・ローカル依存の抽出）が、紛らわしい書き方を誤らないこと | `src/sourceScan.testing.ts` を直す |
 | `src/docs.test.ts` | README の一覧・件数、入力保存対象と説明、ツールのファイルの分担、回帰IDと担当コメントがコードと一致すること | README・USAGE・TESTING や担当ファイルの説明を直す |
 | `src/documentLinks.test.ts` | Markdown の相対リンク・見出しリンク、コード表記のファイルパス、コードのコメントや文言に書いたファイルのパスが存在すること（運用記録の過去のパスと書き方の例を除く） | リンク先・見出し・パスを直す |
-| `src/styles.classes.test.ts` | CSS のクラスが、使う画面の範囲に合ったファイルにあること（ツール別の CSS のクラスをほかの画面で使わない。部品の層の CSS に1つの画面だけのクラスを置かない。ツール別の CSS のファイル名がツールのフォルダ名と同じ）。`src/styles/` のどのファイルも入口（`src/styles.css`）で1回だけ、見出しの番号に合った層（`layer(...)`）に入れて読み込むこと（読み込み忘れたファイルの規則は本番でまったく効かず、層に入れない規則はどの層よりも優先されるため）。クラスと画面の対応の読み方は `src/cssClasses.testing.ts` | クラスを、使う画面の範囲に合った CSS に移す（例外は、理由を書いてテストの `ALLOWED` に足す）。読み込みは `src/styles.css` の該当する層に足す |
+| `src/styles.classes.test.ts` | CSS のクラスが、使う画面の範囲に合ったファイルにあること（ツール別の CSS のクラスをほかの画面で使わない。部品の層の CSS に1つの画面だけのクラスを置かない。ツール別の CSS のファイル名がツールのフォルダ名と同じ。どの画面・部品も使わないクラスを残さない）。`src/styles/` のどのファイルも入口（`src/styles.css`）で1回だけ、見出しの番号に合った層（`layer(...)`）に入れて読み込むこと（読み込み忘れたファイルの規則は本番でまったく効かず、層に入れない規則はどの層よりも優先されるため）。クラスと画面の対応の読み方は `src/cssClasses.testing.ts` | クラスを、使う画面の範囲に合った CSS に移す（例外は、理由を書いてテストの `ALLOWED` に足す）。読み込みは `src/styles.css` の該当する層に足す |
 | `src/scripts.test.ts` | 計測スクリプト（`scripts/*.mjs`）の構文・import・ファイルのパス・計算処理の関数と定数を確認する。Nodeテスト内の一時ファイルのパスは、実在するソースとして検査しない | スクリプトの import・パス・使う関数の名前を直す |
 | `src/documentLimits.test.ts` | [USAGE.md](USAGE.md) の上限・表示量・打ち切りが実装の定数と一致し、クラウドの参照元と確認日が載っていること | USAGE の制約を、実装の定数と照合して直す |
 | `src/styles.contrast.test.ts` | 色の変数（`src/styles/theme.css`・`theme-status.css`）の主な「文字と背景」の組み合わせが、ライト・ダークとも 4.5:1 以上であること。色を変数で書いていること | 色の変数を直す。新しい組み合わせはテストの `PAIRS` に足す |
