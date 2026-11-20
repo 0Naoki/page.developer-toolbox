@@ -9,7 +9,7 @@
   justify-content: center;
   align-items: flex-start;
   padding: 12vh 16px 16px;
-  background: rgb(0 0 0 / 0.35);
+  background: var(--overlay);
 }
 
 .palette {
@@ -17,7 +17,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 20px 50px rgb(0 0 0 / 0.25);
+  box-shadow: 0 20px 50px var(--shadow-strong);
   overflow: hidden;
 }
 

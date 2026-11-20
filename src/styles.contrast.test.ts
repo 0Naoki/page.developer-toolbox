@@ -85,6 +85,10 @@ const PAIRS: [string, string, string][] = [
   ['warn', 'warn-soft', '注意のお知らせ'],
   ['add', 'add-soft', '差分の追加行'],
   ['del', 'del-soft', '差分の削除行'],
+  ['text', 'add-strong', '差分の文字単位の強調（追加）'],
+  ['text', 'del-strong', '差分の文字単位の強調（削除）'],
+  ['muted', 'good-soft', 'ハッシュの表で、照合が一致した行の補足'],
+  ['muted', 'accent-soft', 'コマンドパレットの選択中の候補の説明'],
   ['caution', 'bg', 'パスワードの強度「普通」'],
   ['caution', 'surface', 'パスワードの強度「普通」'],
   ['symbol', 'surface', 'パスワードの記号の色分け'],
@@ -111,9 +115,10 @@ describe('文字と背景のコントラスト（4.5:1 以上）', () => {
 
   it('色は変数（--名前: #xxxxxx;）でだけ定義し、個別の指定に直接書かない（このテストで検査できるように）', () => {
     const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    /** #xxxxxx のほか、rgb()・hsl() などの関数で書いた色も直書きとして見つける */
     const direct = text
       .split('\n')
-      .filter((line) => /#[0-9a-fA-F]{3,8}\b/.test(line) && !/^\s*--[\w-]+:/.test(line))
+      .filter((line) => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/i.test(line) && !/^\s*--[\w-]+:/.test(line))
       .map((line) => line.trim());
     expect(direct).toEqual([]);
   });
