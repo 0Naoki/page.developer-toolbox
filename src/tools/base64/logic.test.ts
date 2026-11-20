@@ -105,6 +105,41 @@ describe('decodeInput', () => {
     expect(d.variant).toBe('data: URI（Base64）');
   });
 
+  it('data: URI のパーセント復号は、1文字ずつ UTF-8 にする実装と同じバイト列になる', () => {
+    /** 以前の実装（1文字ずつ TextEncoder に渡す）。結果を変えずに速くしたことを確かめる正解として使う */
+    const reference = (s: string) => {
+      const out: number[] = [];
+      const encoder = new TextEncoder();
+      for (let i = 0; i < s.length; i++) {
+        if (s[i] === '%' && /^[0-9a-fA-F]{2}$/.test(s.slice(i + 1, i + 3))) {
+          out.push(parseInt(s.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          const ch = String.fromCodePoint(s.codePointAt(i)!);
+          for (const b of encoder.encode(ch)) out.push(b);
+          i += ch.length - 1;
+        }
+      }
+      return out;
+    };
+    const bodies = [
+      '', 'Hello', 'あいう', '𠮷😀', '\ud83d', 'a\ude00b', '\ud83d%41\ude00', '%E3%81%82', '%e3%81%82x',
+      '%G1', '%', 'a%', '%4', '%%41', '100%', '%41%42%43', 'あ%20い%2', '😀%F0%9F%98%80\ud800%zz', '%%%', 'x%2541',
+    ];
+    for (const body of bodies) expect(Array.from(decodeInput(`data:,${body}`).bytes), JSON.stringify(body)).toEqual(reference(body));
+  });
+
+  it('入力上限に近い大きな data: URI も、まとめて変換して全体を復号する', () => {
+    /** まとめて変換する区間の境目（「%XX」の前後）が多い約800万文字。処理時間はテストでは確かめない（並行実行で変わるため） */
+    const { bytes } = decodeInput(`data:,${'aあ%41'.repeat(1_600_000)}`);
+    expect(bytes.length).toBe(8_000_000);
+    expect(Array.from(bytes.subarray(0, 10))).toEqual([0x61, 0xe3, 0x81, 0x82, 0x41, 0x61, 0xe3, 0x81, 0x82, 0x41]);
+    expect(Array.from(bytes.subarray(-5))).toEqual([0x61, 0xe3, 0x81, 0x82, 0x41]);
+    const base64 = decodeInput(`data:;base64,${'QUJD'.repeat(1_000_000)}`);
+    expect(base64.bytes.length).toBe(3_000_000);
+    expect(new TextDecoder().decode(base64.bytes.subarray(-3))).toBe('ABC');
+  }, 30_000);
+
   it('data: URI（パーセントエンコード）を読む。MIME タイプを省略すると text/plain', () => {
     const d = decodeInput('data:,Hello%2C%20%E3%81%82𠮷');
     expect(text(d.bytes)).toBe('Hello, あ𠮷');

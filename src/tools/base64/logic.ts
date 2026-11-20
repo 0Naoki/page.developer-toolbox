@@ -1,4 +1,4 @@
-import { base64ToBytes, bytesToBase64 } from '../../lib/bytes';
+import { base64ToBytes, bytesToBase64, bytesToBinaryString } from '../../lib/bytes';
 import { describeAt, findLoneSurrogate, replacementWarning } from '../../lib/text/surrogate';
 import { errorMessage } from '../../lib/errors';
 
@@ -34,22 +34,35 @@ export function bytesToText(bytes: Uint8Array, charset: Charset): string | null 
 /** タブ・改行以外の制御文字（NUL など）を含む。テキストとして読めても、バイナリの可能性が高い */
 export const looksBinary = (text: string) => /[\x00-\x08\x0b\x0e-\x1f\x7f]/.test(text);
 
-/** 「%E3%81%82」のようなパーセントエンコードをバイト列に戻す（% 以外の文字は UTF-8 にする） */
+const HEX2 = /^[0-9a-fA-F]{2}$/;
+
+/**
+ * 「%E3%81%82」のようなパーセントエンコードをバイト列に戻す（% 以外の文字は UTF-8 にする）。
+ *
+ * @remarks
+ * 正しい「%XX」の間の文字は、まとめて UTF-8 にする（1文字ずつ TextEncoder に渡すと、800万文字で数秒かかるため）。
+ * 「%XX」は ASCII なので、サロゲートペアを分けることはない。孤立したサロゲートは、1文字ずつ変換したときと同じく U+FFFD になる。
+ * 不正な「%」（「%G1」・末尾の「%」）は、そのまま文字として残す。
+ */
 function percentToBytes(s: string): Uint8Array<ArrayBuffer> {
-  const out: number[] = [];
   const encoder = new TextEncoder();
-  for (let i = 0; i < s.length; i++) {
-    if (s[i] === '%' && /^[0-9a-fA-F]{2}$/.test(s.slice(i + 1, i + 3))) {
-      out.push(parseInt(s.slice(i + 1, i + 3), 16));
-      i += 2;
-    } else {
-      /** サロゲートペアは2つで1文字なので、まとめて変換する */
-      const ch = String.fromCodePoint(s.codePointAt(i)!);
-      for (const b of encoder.encode(ch)) out.push(b);
-      i += ch.length - 1;
-    }
+  /** UTF-16 の1単位は UTF-8 で3バイト以下、「%XX」は1バイトになるので、この大きさで足りる */
+  const out = new Uint8Array(s.length * 3);
+  let written = 0;
+  let literal = 0;
+  const flush = (end: number) => {
+    if (end > literal) written += encoder.encodeInto(s.slice(literal, end), out.subarray(written)).written;
+  };
+  for (let i = s.indexOf('%'); i >= 0; i = s.indexOf('%', i + 1)) {
+    const hex = s.slice(i + 1, i + 3);
+    if (!HEX2.test(hex)) continue;
+    flush(i);
+    out[written++] = parseInt(hex, 16);
+    literal = i + 3;
+    i += 2;
   }
-  return Uint8Array.from(out);
+  flush(s.length);
+  return out.slice(0, written);
 }
 
 export type Decoded = {
@@ -90,9 +103,7 @@ export function decodeInput(input: string): Decoded {
   const data = percentToBytes(hash < 0 ? uri.slice(m[0].length) : uri.slice(m[0].length, hash));
   if (!isBase64) return { bytes: data, mime, variant: 'data: URI（パーセントエンコード）' };
   /** パーセント復号したバイトを1バイト1文字として Base64 の文字列に戻す（Base64 以外のバイトはそこでエラーになる） */
-  let text = '';
-  for (const b of data) text += String.fromCharCode(b);
-  return { bytes: base64ToBytes(text), mime, variant: 'data: URI（Base64）' };
+  return { bytes: base64ToBytes(bytesToBinaryString(data)), mime, variant: 'data: URI（Base64）' };
 }
 
 /** バイト列を data: URI にする */

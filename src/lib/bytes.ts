@@ -3,11 +3,16 @@
 /** 一度に String.fromCharCode へ渡すバイト数（引数が多すぎると RangeError になるため分ける） */
 const CHUNK = 0x8000;
 
-/** バイト列を Base64 にする。wrap は MIME（RFC 2045）と同じく76文字ごとに改行する */
-export function bytesToBase64(bytes: Uint8Array, o: { urlSafe?: boolean; wrap?: boolean } = {}): string {
+/** バイト列を、1バイトを1文字（U+0000〜U+00FF）にした文字列にする（btoa・atob の形）。大きなバイト列も分けて変換する */
+export function bytesToBinaryString(bytes: Uint8Array): string {
   const parts: string[] = [];
   for (let i = 0; i < bytes.length; i += CHUNK) parts.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
-  const out = btoa(parts.join(''));
+  return parts.join('');
+}
+
+/** バイト列を Base64 にする。wrap は MIME（RFC 2045）と同じく76文字ごとに改行する */
+export function bytesToBase64(bytes: Uint8Array, o: { urlSafe?: boolean; wrap?: boolean } = {}): string {
+  const out = btoa(bytesToBinaryString(bytes));
   if (o.urlSafe) return out.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return o.wrap ? out.replace(/(.{76})(?=.)/g, '$1\n') : out;
 }
