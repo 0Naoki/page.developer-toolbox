@@ -53,6 +53,12 @@ npm run e2e:run -- e2e/storage.spec.ts --project=webkit --workers=2
 | `src/styles.classes.test.ts` | CSS のクラスが、使う画面の範囲に合ったファイルにあること（ツール別の CSS のクラスをほかの画面で使わない。部品の層の CSS に1つの画面だけのクラスを置かない。ツール別の CSS のファイル名がツールのフォルダ名と同じ）。`src/styles/` のどのファイルも入口（`src/styles.css`）で1回だけ、見出しの番号に合った層（`layer(...)`）に入れて読み込むこと（読み込み忘れたファイルの規則は本番でまったく効かず、層に入れない規則はどの層よりも優先されるため）。クラスと画面の対応の読み方は `src/cssClasses.testing.ts` | クラスを、使う画面の範囲に合った CSS に移す（例外は、理由を書いてテストの `ALLOWED` に足す）。読み込みは `src/styles.css` の該当する層に足す |
 | `src/scripts.test.ts` | 計測スクリプト（`scripts/*.mjs`）の構文・import・ファイルのパス・計算処理の関数と定数を確認する。Nodeテスト内の一時ファイルのパスは、実在するソースとして検査しない | スクリプトの import・パス・使う関数の名前を直す |
 | `src/documentLimits.test.ts` | [USAGE.md](USAGE.md) の上限・表示量・打ち切りが実装の定数と一致し、クラウドの参照元と確認日が載っていること | USAGE の制約を、実装の定数と照合して直す |
+| `src/styles.contrast.test.ts` | 色の変数（`src/styles/theme.css`・`theme-status.css`）の主な「文字と背景」の組み合わせが、ライト・ダークとも 4.5:1 以上であること。色を変数で書いていること | 色の変数を直す。新しい組み合わせはテストの `PAIRS` に足す |
+| `src/csp.test.ts` | CSP の指定の一覧が、期待した値と完全に一致すること（許可を足すと失敗する） | `csp.config.ts` を直す。緩めるときは理由を書き、期待値も直す |
+| `src/registry.test.ts` | ツールの一覧（`src/toolCatalog.ts`）と `src/tools/` のフォルダ・不具合報告のテンプレートが対応し、ツール ID が保存キーと重ならないこと | ツールの一覧・フォルダ・テンプレートをそろえる |
+| `src/indexHtml.test.ts` | `index.html` の公開先の指定（canonical・OGP）が、[SECURITY.md](../SECURITY.md) の「正式な公開先」と一致し、説明のツールの数が一覧と一致すること | `index.html` を直す |
+| `src/buildInfo.test.ts` | 画面の版に `package.json` の version とビルドしたコミットを埋め込み、不具合報告のテンプレートに版の欄があること | `vite.config.ts` の版の埋め込みか、テンプレートを直す |
+| `src/startScript.test.ts` | 起動スクリプト（`start.ps1`）が、`package.json`・`.nvmrc`・CI・文書と同じ Node の版と準備のコマンドを使うこと（Windows でしか動かないため、実行せずに確かめる） | `start.ps1` か、食い違った側を直す |
 
 文書の収集は `src/documentSources.testing.ts`、見出しアンカー・固定マーカー・数値と単位の照合は `src/documentMarkdown.testing.ts` に分けています。
 上限の固定IDと期待値は `src/documentLimitsCatalog.testing.ts` にあります。IDはツール・列・値・単位と対応させます。

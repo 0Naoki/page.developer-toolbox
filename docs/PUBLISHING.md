@@ -151,7 +151,7 @@ git -c push.followTags=false push -u origin develop
 
 **トップページの About（右の歯車）**
 
-- [ ] **Description** に、例として「ブラウザ内で完結する開発者向けツール集（17ツール）。入力は外部送信しません。」を書く
+- [ ] **Description** に、例として「ブラウザ内で完結する開発者向けツール集。入力は外部送信しません。」を書く（ツールの数は書かない。ここは検査できず、ツールを足したときに古い数のまま残るため）
 - [ ] **Packages** の表示を外し、**Deployments** は表示したままにする（公開先の URL を確かめやすくするため）
 
 **Settings → General**
