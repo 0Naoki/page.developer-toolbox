@@ -103,6 +103,15 @@ test.describe('読み上げ', () => {
     await expect(page.locator('.error-text')).toHaveCount(0);
   });
 
+  test('進数変換：未入力の初期表示ではエラーを出さず、不正な値のエラーをビット演算で重ねない', async ({ page }) => {
+    await page.goto('./#/radix');
+    await page.getByRole('textbox', { name: '10進数', exact: true }).fill('');
+    await expect(page.getByText('上の欄に値を入力すると、ここで計算します。')).toBeVisible();
+    await expect(page.locator('.error-text')).toHaveCount(0);
+    await page.getByRole('textbox', { name: '10進数', exact: true }).fill('12x');
+    await expect(page.locator('.error-text')).toHaveCount(1);
+  });
+
   test('判定の結果（含まれるか）を読み上げる', async ({ page }) => {
     await page.goto('./#/subnet');
     await page.getByRole('button', { name: 'サンプル', exact: true }).click();
