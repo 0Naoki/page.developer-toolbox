@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { JST_ZONE } from './timezone';
-import { formatInZone, formatJst, formatJstLabeled, formatOffset, formatWithOffset, hasWrittenFraction, relativeFrom, showsMillis } from './dateTimeFormat';
+import { formatInZone, formatJst, formatJstLabeled, formatOffset, formatWithOffset, hasWrittenFraction, jstZoneLabel, relativeFrom, showsMillis } from './dateTimeFormat';
+import { parseDateTime } from './dateTimeInput';
 
 /** 日時の表示（dateTimeFormat.ts）のテスト。表示を解析で読み戻せること（往復）は dateTimeInput.test.ts で確かめる */
 
@@ -60,5 +61,18 @@ describe('日本時間の表示', () => {
   it('withMillis のときはミリ秒も付ける（UUID v7 の生成日時など）', () => {
     expect(formatJstLabeled(new Date('2026-01-01T00:00:00.120Z'), true)).toBe('2026-01-01 09:00:00.120 JST');
     expect(formatJstLabeled(new Date('1969-12-31T23:59:59.999Z'), true)).toBe('1970-01-01 08:59:59.999 JST');
+  });
+
+  it('回帰：1888年より前の日時は「JST」ではなくオフセットを付け、日時入力に貼り戻すと同じ時刻になる', () => {
+    /** 1888年より前の東京は地方平均時（+09:18:59）。「JST」と付けると、日時入力が +09:00 として読み、18分59秒ずれていた */
+    const uuidV1Origin = new Date('1582-10-15T00:00:00Z');
+    expect(formatJstLabeled(uuidV1Origin)).toBe('1582-10-15 09:18:59 +09:18:59');
+    expect(jstZoneLabel(uuidV1Origin)).toBe('+09:18:59');
+    for (const iso of ['1582-10-15T00:00:00Z', '1887-12-31T14:59:59.500Z', '1887-12-31T15:00:00Z', '2026-01-01T00:00:00Z']) {
+      const date = new Date(iso);
+      const shown = formatJstLabeled(date, showsMillis(date));
+      expect(parseDateTime(shown, JST_ZONE).getTime(), shown).toBe(date.getTime());
+    }
+    expect(formatJstLabeled(new Date('1887-12-31T15:00:00Z'))).toBe('1888-01-01 00:00:00 JST');
   });
 });

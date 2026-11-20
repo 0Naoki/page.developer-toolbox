@@ -130,9 +130,18 @@ describe('decodeJwt', () => {
     expect(r.warnings).toEqual(['ペイロード：キー「role」が重複しています（1行目）']);
   });
 
+  it('1888年より前の時刻クレームは、JST ではなくオフセット（+09:18:59）を付ける', () => {
+    /** iat が -3000000000（1874年）。東京の当時のずれは +09:18:59 で、「JST」（+09:00）と書くと貼り戻したときにずれる */
+    const r = decodeJwt(tokenWith('{"iat":-3000000000,"exp":1700000000}'), 0);
+    expect(r.timeClaims.map(({ name, jst, zone }) => ({ name, jst, zone }))).toEqual([
+      { name: 'iat', jst: '1874-12-08 03:58:59', zone: '+09:18:59' },
+      { name: 'exp', jst: '2023-11-15 07:13:20', zone: 'JST' },
+    ]);
+  });
+
   it('日時にできない時刻クレームがあっても、ほかの部分はデコードする', () => {
     const r = decodeJwt(tokenWith('{"sub":"1","exp":9999999999999}'), 0);
-    expect(r.timeClaims).toEqual([{ name: 'exp', label: '有効期限 (exp)', epoch: 9999999999999, epochText: '9999999999999', jst: null, relative: null }]);
+    expect(r.timeClaims).toEqual([{ name: 'exp', label: '有効期限 (exp)', epoch: 9999999999999, epochText: '9999999999999', jst: null, zone: null, relative: null }]);
     expect(r.payload.sub).toBe('1');
     expect(r.expired).toBe(false);
     /** Infinity になる値は NumericDate として使えないため、不正とする（ほかの部分はデコードする） */

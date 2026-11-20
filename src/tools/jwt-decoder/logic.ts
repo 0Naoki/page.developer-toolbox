@@ -1,7 +1,7 @@
 import { base64ToBytes } from '../../lib/bytes';
 import { parseJsonSource, serializeJsonTree, stringifyNode, type JsonNode } from '../../lib/jsonTree';
 import { MAX_DATE_MS } from '../../lib/time/timezone';
-import { formatJst, relativeFrom } from '../../lib/time/dateTimeFormat';
+import { formatJst, jstZoneLabel, relativeFrom } from '../../lib/time/dateTimeFormat';
 import { TIME_CLAIMS, headerWarnings, isNumericDate, millisWarning, timeClaimTypeWarnings, type HeaderWarning } from './diagnostics';
 import { errorMessage } from '../../lib/errors';
 
@@ -13,6 +13,8 @@ export type TimeClaim = {
   epochText: string;
   /** 日時として表せない値（ミリ秒で書かれた巨大な値など）は null */
   jst: string | null;
+  /** jst の後ろに付けるタイムゾーンの表記。通常は「JST」、1888年より前は「+09:18:59」（貼り戻しても同じ時刻になるように）。jst が null なら null */
+  zone: string | null;
   /** 現在からの差（「3時間後」など） */
   relative: string | null;
 };
@@ -188,8 +190,8 @@ export function parseJwt(token: string): ParsedJwt {
       const epochText = node?.kind === 'scalar' ? node.raw : String(epoch);
       const ms = epoch * 1000;
       /** 範囲外の値で日時の書式が例外を投げると、ほかの部分も表示できなくなるため、この項目だけ日時を出さない */
-      if (!Number.isFinite(ms) || Math.abs(ms) > MAX_DATE_MS) return { name: k, label: LABELS[k], epoch, epochText, jst: null, ms: null };
-      return { name: k, label: LABELS[k], epoch, epochText, jst: formatJst(new Date(ms)), ms };
+      if (!Number.isFinite(ms) || Math.abs(ms) > MAX_DATE_MS) return { name: k, label: LABELS[k], epoch, epochText, jst: null, zone: null, ms: null };
+      return { name: k, label: LABELS[k], epoch, epochText, jst: formatJst(new Date(ms)), zone: jstZoneLabel(new Date(ms)), ms };
     });
 
   return {

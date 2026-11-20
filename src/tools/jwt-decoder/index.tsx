@@ -124,7 +124,7 @@ function Decoded({ parsed }: { parsed: ParsedJwt }) {
                     <span className="muted">日時に変換できない値です</span>
                   ) : (
                     <>
-                      <span className="mono">{c.jst}</span> <span className="muted">JST（{c.relative}）</span>
+                      <span className="mono">{c.jst}</span> <span className="muted">{c.zone}（{c.relative}）</span>
                     </>
                   )}
                 </td>
