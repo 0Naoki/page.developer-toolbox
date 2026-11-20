@@ -213,6 +213,7 @@ Workerの実行管理は `src/lib/worker/runWorker.test.ts` でも、待機中�
 | 文字診断の全件取得 × 抜粋・総数・位置・入力変更 <!-- regression:R055 --> | `src/tools/text-count/reports.test.ts`・`e2e/text-count.spec.ts` |
 | 入力の表示上限 × IME確定・取消・保存・履歴 <!-- regression:R056 --> | `e2e/input-composition.spec.ts` |
 | cron の夏時間で飛ばされる区間 × 区間の長さ × 全候補が飛ばされる式 <!-- regression:R057 --> | `src/tools/cron/logic.test.ts` |
+| サブネットの集約・重複チェック × 読めない行が大量 × IPv4・IPv6 の混在 <!-- regression:R058 --> | `src/tools/subnet/ipv4.test.ts` |
 
 ### 実装との比較だけでは見つからない条件
 

@@ -3,14 +3,13 @@ import { splitAddressRange } from './addressRange';
  * IPv6 のアドレス・プレフィックスの計算。アドレスは 128ビットなので BigInt で持つ。
  * IPv4 との違い：ブロードキャストアドレスがなく、サブネットのすべてのアドレスを使える。
  */
-import { MAX_ROWS, type ListError } from './ranges';
-import { parseIpv4 } from './ipv4';
+import { readIpv4 } from './ipv4';
 import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
 import { splitLines } from '../../lib/text/lines';
 import { formatNumber } from '../../lib/number';
 import { formatIpv6Groups } from '../../lib/ipv6';
-import { aggregateIn, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Family, type RangeBlock } from './ranges';
+import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList, type RangeBlock } from './ranges';
 
 const BITS = 128n;
 const MAX6 = (1n << BITS) - 1n;
@@ -32,41 +31,48 @@ export const onlyLines = (text: string, v6: boolean): string =>
  * ゾーンID（fe80::1%eth0）は空・区切り・空白を検証してから取り除く。単独アドレスではプレフィックスを受け付けない。
  */
 export function parseIpv6(input: string): bigint {
+  const result = readIpv6(input);
+  return isFailure(result) ? result() : result;
+}
+
+/** 例外を投げずに parseIpv6 と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
+export function readIpv6(input: string): bigint | Failure {
   let s = input.trim();
   const shown = s;
   if (s.startsWith('[') && s.endsWith(']')) s = s.slice(1, -1);
-  const fail = (why: string): never => {
+  const fail = (why: string): Failure => () => {
     throw new Error(`「${detailPreview(shown)}」は IPv6 アドレスとして読めません（${why}）`);
   };
-  if (s.includes('/')) fail('アドレスだけを指定してください');
+  if (s.includes('/')) return fail('アドレスだけを指定してください');
   const zone = s.indexOf('%');
   if (zone >= 0) {
-    if (!/^[\p{L}\p{N}_.~-]+$/u.test(s.slice(zone + 1))) fail('ゾーンIDが不正です');
+    if (!/^[\p{L}\p{N}_.~-]+$/u.test(s.slice(zone + 1))) return fail('ゾーンIDが不正です');
     s = s.slice(0, zone);
   }
-  if (!s.includes(':')) fail(': がありません');
+  if (!s.includes(':')) return fail(': がありません');
 
   /** 末尾の IPv4 表記を16進数の2グループに置き換える */
   const lastColon = s.lastIndexOf(':');
   const tail = s.slice(lastColon + 1);
   if (tail.includes('.')) {
-    const v4 = parseIpv4(tail);
+    const v4 = readIpv4(tail);
+    if (isFailure(v4)) return v4;
     s = `${s.slice(0, lastColon + 1)}${(v4 >>> 16).toString(16)}:${(v4 & 0xffff).toString(16)}`;
   }
 
   const halves = s.split('::');
-  if (halves.length > 2) fail(':: は1か所にしか使えません');
+  if (halves.length > 2) return fail(':: は1か所にしか使えません');
   const split = (part: string) => (part === '' ? [] : part.split(':'));
   const [first = '', second] = halves;
   const head = split(first);
   const rest = second === undefined ? [] : split(second);
   /** 省略を展開する前に確かめる（多すぎると、埋める0の数が負になって配列を作れないため） */
-  if (halves.length === 2 && head.length + rest.length > 7) fail('グループが多すぎます');
+  if (halves.length === 2 && head.length + rest.length > 7) return fail('グループが多すぎます');
   const groups = halves.length === 2 ? [...head, ...Array(8 - head.length - rest.length).fill('0'), ...rest] : head;
-  if (groups.length !== 8) fail('グループは8つ必要です（省略するときは :: を使います）');
+  if (groups.length !== 8) return fail('グループは8つ必要です（省略するときは :: を使います）');
   let value = 0n;
   for (const g of groups) {
-    if (!/^[0-9a-f]{1,4}$/i.test(g)) fail(`「${detailPreview(g)}」は16進数4桁までのグループではありません`);
+    if (!/^[0-9a-f]{1,4}$/i.test(g)) return fail(`「${detailPreview(g)}」は16進数4桁までのグループではありません`);
     value = (value << 16n) | BigInt(parseInt(g, 16));
   }
   return value;
@@ -83,14 +89,26 @@ export const formatIpv6 = (n: bigint): string => formatIpv6Groups(groupsOf(n));
 const maskOf6 = (prefix: number): bigint => (prefix === 0 ? 0n : (MAX6 << BigInt(128 - prefix)) & MAX6);
 
 /** 「2001:db8::/32」、またはアドレスだけ（/128）を読む */
-export function parseNetwork6(input: string): { ip: bigint; prefix: number; notation: 'cidr' | 'host' } {
+export function parseNetwork6(input: string): ParsedNetwork6 {
+  const result = readNetwork6(input);
+  return isFailure(result) ? result() : result;
+}
+
+type ParsedNetwork6 = { ip: bigint; prefix: number; notation: 'cidr' | 'host' };
+
+/** 例外を投げずに parseNetwork6 と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
+export function readNetwork6(input: string): ParsedNetwork6 | Failure {
   const s = input.trim();
   const m = /^(.+?)\s*\/\s*(\d{1,3})$/.exec(s);
-  if (s.includes('/') && (!m || m[1]?.includes('/'))) throw new Error('IPv6 のプレフィックス長は / の後に 0〜128 の整数で指定してください');
-  if (!m) return { ip: parseIpv6(s), prefix: 128, notation: 'host' };
+  if (s.includes('/') && (!m || m[1]?.includes('/'))) return () => { throw new Error('IPv6 のプレフィックス長は / の後に 0〜128 の整数で指定してください'); };
+  if (!m) {
+    const ip = readIpv6(s);
+    return isFailure(ip) ? ip : { ip, prefix: 128, notation: 'host' };
+  }
   const prefix = Number(m[2]);
-  if (prefix > 128) throw new Error('IPv6 のプレフィックス長は 0〜128 で指定してください');
-  return { ip: parseIpv6(m[1] ?? ''), prefix, notation: 'cidr' };
+  if (prefix > 128) return () => { throw new Error('IPv6 のプレフィックス長は 0〜128 で指定してください'); };
+  const ip = readIpv6(m[1] ?? '');
+  return isFailure(ip) ? ip : { ip, prefix, notation: 'cidr' };
 }
 
 export type SubnetInfo6 = {
@@ -202,7 +220,7 @@ export function kindOf6(start: bigint, end: bigint = start): { kinds: { label: s
 export type Block6 = RangeBlock<bigint>;
 
 /** IPv6 の CIDR を1行ずつ読む（IPv4 の行は読み飛ばす）。行の残りは名前、# の後ろはコメント */
-export const parseCidrList6 = (text: string): { blocks: Block6[]; errors: ListError[]; warnings: ListError[] } => parseCidrListIn(IPV6, text);
+export const parseCidrList6 = (text: string): ParsedCidrList<bigint> => parseCidrListIn(IPV6, text);
 
 /** newPrefix の大きさに均等に分ける（先頭から MAX_ROWS 件まで） */
 export const splitNetwork6 = (network: bigint, prefix: number, newPrefix: number): { count: bigint; subnets: bigint[] } =>
@@ -216,7 +234,7 @@ export const splitNetworkOutput6 = (network: bigint, prefix: number, newPrefix: 
 export const rangeToCidrs6 = (start: bigint, end: bigint): { network: bigint; prefix: number }[] => rangeToCidrsIn(IPV6, start, end);
 
 /** IPv6 の CIDR・範囲・アドレスの一覧（IPv4 の行は読み飛ばす）を、最小個数の CIDR にまとめる */
-export const aggregate6 = (text: string): { cidrs: string[]; addresses: bigint; errors: ListError[] } => aggregateIn(IPV6, text);
+export const aggregate6 = (text: string, outputBudget?: number): Aggregated<bigint> => aggregateIn(IPV6, text, outputBudget);
 
 /** IPv6 のアドレスの種類としての違い（範囲と CIDR の共通の計算 ranges.ts に渡す） */
 const IPV6: Family<bigint> = {
@@ -227,9 +245,11 @@ const IPV6: Family<bigint> = {
   sub: (a, b) => a - b,
   pow2: (n) => 1n << BigInt(n),
   aligned: (a, n) => a % (1n << BigInt(n)) === 0n,
-  parseAddress: parseIpv6,
-  parseRange: (text) => {
-    const { ip, prefix } = parseNetwork6(text);
+  readAddress: readIpv6,
+  readRange: (text) => {
+    const parsed = readNetwork6(text);
+    if (isFailure(parsed)) return parsed;
+    const { ip, prefix } = parsed;
     const info = subnetInfo6(ip, prefix);
     return { ip, prefix, first: info.network, last: info.last };
   },

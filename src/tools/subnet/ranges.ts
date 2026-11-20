@@ -24,10 +24,10 @@ export type Family<A extends number | bigint> = {
   pow2: (n: number) => A;
   /** a が 2 の n 乗の倍数か（n ビットの大きさの CIDR の先頭にできるか） */
   aligned: (a: A, n: number) => boolean;
-  /** 1つのアドレスを読む */
-  parseAddress: (text: string) => A;
-  /** CIDR（種類によってはマスク表記やアドレスだけも）を読み、範囲の先頭と末尾を返す */
-  parseRange: (text: string) => { ip: A; prefix: number; first: A; last: A };
+  /** 1つのアドレスを読む。読めなければ、理由の文言で例外を投げる関数（{@link Failure}）を返す */
+  readAddress: (text: string) => A | Failure;
+  /** CIDR（種類によってはマスク表記やアドレスだけも）を読み、範囲の先頭と末尾を返す。読めなければ {@link Failure} を返す */
+  readRange: (text: string) => { ip: A; prefix: number; first: A; last: A } | Failure;
   format: (a: A) => string;
   /** 「先頭 - 末尾」の字句を、ゾーンID内の記号と区別して分ける。例外で候補を探索しない。 */
   splitRange: (text: string) => readonly [string, string] | null;
@@ -38,6 +38,46 @@ export type Family<A extends number | bigint> = {
   /** 範囲の先頭でない CIDR を、先頭に直して読んだときの警告 */
   notAlignedWarning: (cidr: string, normalized: string) => string;
 };
+
+/**
+ * 読めなかったときに、理由の文言で例外を投げる関数。
+ *
+ * @remarks
+ * 一覧を読む処理は、読めない行ごとに例外を作らず（例外は重く、100万行で10秒を超えて Worker が時間切れになる）、
+ * これを受け取って件数だけを数える。文言が要る先頭の数件だけ、呼んで文言を取り出す（{@link reasonOf}）。
+ * 文言は、例外を投げる側の関数（parseIpv4 など）と同じものになる。
+ */
+export type Failure = () => never;
+
+/** 読み取りの結果が失敗か（アドレスは number・bigint、範囲はオブジェクトなので、関数なら失敗） */
+export const isFailure = (value: unknown): value is Failure => typeof value === 'function';
+
+/** 失敗の理由の文言 */
+export function reasonOf(failure: Failure): string {
+  try {
+    return failure();
+  } catch (e) {
+    return errorMessage(e);
+  }
+}
+
+/** 一覧の読み取りの誤り・警告で、文言を作って持つ件数（画面に出す件数。それより後ろは件数だけを数える） */
+export const MAX_LIST_MESSAGES = 20;
+
+/** 一覧の誤り・警告の、行の順で先頭 MAX_LIST_MESSAGES 件の文言と、総数 */
+function messageList() {
+  const items: ListError[] = [];
+  let total = 0;
+  return {
+    items,
+    total: () => total,
+    /** message は、先頭 MAX_LIST_MESSAGES 件に入るときだけ呼ぶ */
+    add: (line: number, message: () => string) => {
+      total++;
+      if (items.length < MAX_LIST_MESSAGES) items.push({ line, message: message() });
+    },
+  };
+}
 
 /** 一覧の1行の CIDR */
 export type RangeBlock<A extends number | bigint> = { line: number; text: string; label: string; start: A; end: A; prefix: number };
@@ -70,27 +110,44 @@ export function rangeToCidrsIn<A extends number | bigint>(f: Family<A>, start: A
   return out;
 }
 
+/** 集約の結果。errors は行の順で先頭 MAX_LIST_MESSAGES 件、errorTotal は読めない行の総数 */
+export type Aggregated<A extends number | bigint> = {
+  cidrs: string[];
+  addresses: A;
+  errors: ListError[];
+  errorTotal: number;
+  /** 出力（各 CIDR の文字数＋改行1つの合計）が outputBudget を超えたため、cidrs を作るのを途中でやめた */
+  exceeded: boolean;
+};
+
+const REVERSED_RANGE = '開始アドレスが終了アドレスより後ろにあります';
+
 /**
  * CIDR・アドレスの範囲（「10.0.0.0 - 10.0.0.255」）・アドレスを1行ずつ書いた一覧を、
- * 重なりや隣り合う範囲をまとめた最小個数の CIDR にする
+ * 重なりや隣り合う範囲をまとめた最小個数の CIDR にする。
+ * 出力の文字数（各 CIDR の文字数＋改行1つの合計）が outputBudget を超えたら、全件の文字列を作る前にやめて exceeded にする
  */
-export function aggregateIn<A extends number | bigint>(f: Family<A>, text: string): { cidrs: string[]; addresses: A; errors: ListError[] } {
+export function aggregateIn<A extends number | bigint>(f: Family<A>, text: string, outputBudget = Infinity): Aggregated<A> {
   const ranges: [A, A][] = [];
-  const errors: ListError[] = [];
+  const errors = messageList();
   for (const { line, body } of linesOf(f, text)) {
     try {
       const range = f.splitRange(body);
       if (range) {
-        const a = f.parseAddress(range[0]);
-        const b = f.parseAddress(range[1]);
-        if (a > b) throw new Error('開始アドレスが終了アドレスより後ろにあります');
+        const a = f.readAddress(range[0]);
+        if (isFailure(a)) { errors.add(line, () => reasonOf(a)); continue; }
+        const b = f.readAddress(range[1]);
+        if (isFailure(b)) { errors.add(line, () => reasonOf(b)); continue; }
+        if (a > b) { errors.add(line, () => REVERSED_RANGE); continue; }
         ranges.push([a, b]);
       } else {
-        const { first, last } = f.parseRange(body);
-        ranges.push([first, last]);
+        const parsed = f.readRange(body);
+        if (isFailure(parsed)) { errors.add(line, () => reasonOf(parsed)); continue; }
+        ranges.push([parsed.first, parsed.last]);
       }
     } catch (e) {
-      errors.push({ line, message: errorMessage(e) });
+      /** 読み取りの誤りは上で例外を作らずに扱う。ここに来るのは想定していない例外だけ */
+      errors.add(line, () => errorMessage(e));
     }
   }
 
@@ -101,32 +158,63 @@ export function aggregateIn<A extends number | bigint>(f: Family<A>, text: strin
     if (last && s <= f.add(last[1], f.one)) last[1] = last[1] > e ? last[1] : e;
     else merged.push([s, e]);
   }
-  const cidrs = merged.flatMap(([s, e]) => rangeToCidrsIn(f, s, e)).map((c) => `${f.format(c.network)}/${c.prefix}`);
+  const cidrs: string[] = [];
+  let used = 0;
+  let exceeded = false;
+  build: for (const [s, e] of merged) {
+    for (const c of rangeToCidrsIn(f, s, e)) {
+      const cidr = `${f.format(c.network)}/${c.prefix}`;
+      used += cidr.length + 1;
+      if (used > outputBudget) {
+        exceeded = true;
+        break build;
+      }
+      cidrs.push(cidr);
+    }
+  }
   const addresses = merged.reduce((n, [s, e]) => f.add(n, f.add(f.sub(e, s), f.one)), f.zero);
-  return { cidrs, addresses, errors };
+  return { cidrs, addresses, errors: errors.items, errorTotal: errors.total(), exceeded };
 }
+
+/** CIDR の一覧の読み取りの結果。errors・warnings は行の順で先頭 MAX_LIST_MESSAGES 件、errorTotal・warningTotal は総数 */
+export type ParsedCidrList<A extends number | bigint> = {
+  blocks: RangeBlock<A>[];
+  errors: ListError[];
+  errorTotal: number;
+  warnings: ListError[];
+  warningTotal: number;
+};
 
 /**
  * 1行に1つずつ書いた CIDR を読む。行の残りは名前（「10.0.0.0/16 本番VPC」）、# の後ろはコメント。
  * 範囲の先頭でない値（192.168.1.5/24）は、先頭（192.168.1.0/24）に直して読み、warnings に入れる
  */
-export function parseCidrListIn<A extends number | bigint>(f: Family<A>, text: string): { blocks: RangeBlock<A>[]; errors: ListError[]; warnings: ListError[] } {
+export function parseCidrListIn<A extends number | bigint>(f: Family<A>, text: string): ParsedCidrList<A> {
   const blocks: RangeBlock<A>[] = [];
-  const errors: ListError[] = [];
-  const warnings: ListError[] = [];
+  const errors = messageList();
+  const warnings = messageList();
   for (const { line, body } of linesOf(f, text)) {
     const [cidr = '', ...rest] = body.split(/\s+/);
     try {
-      if (!cidr.includes('/')) throw new Error(`「${detailPreview(cidr)}」は CIDR（${f.cidrExample} など）の形式ではありません`);
-      const { ip, prefix, first, last } = f.parseRange(cidr);
+      if (!cidr.includes('/')) {
+        errors.add(line, () => `「${detailPreview(cidr)}」は CIDR（${f.cidrExample} など）の形式ではありません`);
+        continue;
+      }
+      const parsed = f.readRange(cidr);
+      if (isFailure(parsed)) {
+        errors.add(line, () => reasonOf(parsed));
+        continue;
+      }
+      const { ip, prefix, first, last } = parsed;
       const normalized = `${f.format(first)}/${prefix}`;
-      if (first !== ip) warnings.push({ line, message: f.notAlignedWarning(cidr, normalized) });
+      if (first !== ip) warnings.add(line, () => f.notAlignedWarning(cidr, normalized));
       blocks.push({ line, text: normalized, label: rest.join(' '), start: first, end: last, prefix });
     } catch (e) {
-      errors.push({ line, message: errorMessage(e) });
+      /** 読み取りの誤りは上で例外を作らずに扱う。ここに来るのは想定していない例外だけ */
+      errors.add(line, () => errorMessage(e));
     }
   }
-  return { blocks, errors, warnings };
+  return { blocks, errors: errors.items, errorTotal: errors.total(), warnings: warnings.items, warningTotal: warnings.total() };
 }
 
 /** ネットワークを newPrefix の大きさに均等に分ける（先頭から limit 件まで） */
