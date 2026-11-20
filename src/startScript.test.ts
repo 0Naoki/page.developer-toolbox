@@ -18,7 +18,7 @@ const checksWorkflow = raw(import.meta.glob<string>('/.github/workflows/checks.y
 const setupDocs = import.meta.glob<string>(['/README.md', '/docs/LOCAL_CHECK.md', '/docs/TESTING.md'], { query: '?raw', import: 'default', eager: true });
 
 it('start.ps1 は BOM 付きで保存する（Windows PowerShell 5.1 が日本語を読めるように）', () => {
-  expect(script.startsWith('﻿')).toBe(true);
+  expect(script.startsWith('\uFEFF')).toBe(true);
 });
 
 describe('Node.js の版', () => {

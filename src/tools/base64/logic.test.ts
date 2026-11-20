@@ -258,13 +258,13 @@ describe('URLエンコード', () => {
 
 describe('先頭の U+FEFF', () => {
   it('UTF-8 の往復で消えない', () => {
-    expect(encodeBase64('﻿abc')).toBe('77u/YWJj');
-    expect(decodeBase64('77u/YWJj')).toBe('﻿abc');
-    expect(decodeBase64(encodeBase64('﻿﻿a'))).toBe('﻿﻿a');
+    expect(encodeBase64('\uFEFFabc')).toBe('77u/YWJj');
+    expect(decodeBase64('77u/YWJj')).toBe('\uFEFFabc');
+    expect(decodeBase64(encodeBase64('\uFEFF\uFEFFa'))).toBe('\uFEFF\uFEFFa');
   });
 
   it('UTF-16LE の BOM も取り除かない', () => {
-    expect(bytesToText(Uint8Array.from([0xff, 0xfe, 0x61, 0x00]), 'utf-16le')).toBe('﻿a');
+    expect(bytesToText(Uint8Array.from([0xff, 0xfe, 0x61, 0x00]), 'utf-16le')).toBe('\uFEFFa');
   });
 });
 

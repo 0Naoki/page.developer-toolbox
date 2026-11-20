@@ -234,7 +234,7 @@ export function lineColumn(text: string, pos: number): { line: number; column: n
  * 構文エラーは「○行○列目：理由」のメッセージで投げる。重複キーなどは warnings に入る
  */
 export function parseJsonTree(input: string): { root: JsonNode; warnings: string[] } {
-  const text = input.replace(/^﻿/, '');
+  const text = input.replace(/^\uFEFF/, '');
   const warnings: string[] = [];
   try {
     return { root: parseJsonSource(text, warnings), warnings };

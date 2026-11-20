@@ -1,7 +1,7 @@
 import { formatNumber } from './number';
 /** テキストをファイルとして保存させる */
 export function downloadText(filename: string, text: string, mime: string, withBom = false) {
-  downloadBlob(filename, new Blob([withBom ? '﻿' : '', text], { type: `${mime};charset=utf-8` }));
+  downloadBlob(filename, new Blob([withBom ? '\uFEFF' : '', text], { type: `${mime};charset=utf-8` }));
 }
 
 /** バイト列をファイルとして保存させる */

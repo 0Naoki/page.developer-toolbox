@@ -23,7 +23,7 @@ export const MAX_OUTPUT = 20_000_000;
 
 /** JSON文字列を整形（または圧縮）する。値の表記は変えない */
 export function formatJson(input: string, indent: JsonIndent = 2, sortKeys = false): JsonResult {
-  const text = input.replace(/^﻿/, '');
+  const text = input.replace(/^\uFEFF/, '');
   if (text.trim() === '') return { ok: true, output: '', warnings: [] };
   const warnings: string[] = [];
   try {

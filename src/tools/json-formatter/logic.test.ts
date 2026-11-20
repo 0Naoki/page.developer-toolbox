@@ -75,7 +75,7 @@ describe('formatJson：値を変えない', () => {
   });
 
   it('BOM付きでも読める', () => {
-    expect(out('﻿{"a":1}', 'minify')).toBe('{"a":1}');
+    expect(out('\uFEFF{"a":1}', 'minify')).toBe('{"a":1}');
   });
 });
 

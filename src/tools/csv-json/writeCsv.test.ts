@@ -121,7 +121,7 @@ describe('JSON→CSV で数値の表記を保つ', () => {
   it('構文エラーは位置を示す', () => {
     expect(() => jsonToCsv('[{"a":1,}]', opts)).toThrow(/1行9列目/);
     /** BOM は位置に数えない */
-    expect(() => jsonToCsv('﻿[{"a":1,}]', opts)).toThrow(/1行9列目/);
+    expect(() => jsonToCsv('\uFEFF[{"a":1,}]', opts)).toThrow(/1行9列目/);
     expect(() => jsonToCsv('[\n  {"a":1,}\n]', opts)).toThrow(/2行10列目/);
   });
 });
