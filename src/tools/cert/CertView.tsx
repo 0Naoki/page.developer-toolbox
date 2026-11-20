@@ -266,7 +266,7 @@ export function ChainView({ certs, positions, unreadable }: { certs: Certificate
   const result = useMemo(() => checkChain(certs, { positions, unreadable }), [certs, positions, unreadable]);
   const last = certs.at(-1);
   return (
-    <section className="cert-chain stack">
+    <section className="stack">
       <h2 className="section-title">証明書チェーン</h2>
       {result.messages.map((m, i) => (
         <Notice key={i} tone={m.level} message={m.text} />

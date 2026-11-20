@@ -14,7 +14,6 @@
     "test:scripts": "node --test scripts/*.test.mjs",
     "test:watch": "vitest",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
     "preview:pages": "vite build && npm run serve:pages",
     "serve:pages": "vite preview --config pages-preview.config.ts",
     "check": "npm run typecheck && npm test && npm run test:scripts && vite build",
