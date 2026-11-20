@@ -1,6 +1,7 @@
+/**
+ * 差分のパッチの生成（unified 形式）。比較・画面の表示とは分け、元の行と改行（CRLF）の情報からコピー用のテキストを作る
+ */
 import type { DiffLine, DiffResult } from './logic';
-
-/** 差分のパッチの生成（unified 形式）。比較・画面の表示とは分け、元の行と改行（CRLF）の情報からコピー用のテキストを作る */
 
 export type UnifiedItem = { mark: ' ' | '-' | '+'; text: string; a?: DiffLine; b?: DiffLine };
 

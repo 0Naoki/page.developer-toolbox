@@ -7,8 +7,6 @@ export type Zone = string;
 /** 日本時間のタイムゾーン名。各ツールの既定の表示と、cron の基準日時に使う。ツールでは直書きせずにこれを使う（静的検査あり） */
 export const JST_ZONE: Zone = 'Asia/Tokyo';
 
-/** タイムゾーン */
-
 /** タイムゾーンの一覧を取れない古いブラウザ向けの、よく使うもの */
 const FALLBACK_ZONES = [JST_ZONE, 'UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Shanghai', 'Asia/Singapore', 'Australia/Sydney'];
 

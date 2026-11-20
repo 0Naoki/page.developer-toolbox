@@ -8,8 +8,6 @@ export function formatOffset(minutes: number): string {
   return `${sign}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`;
 }
 
-/** 表示 */
-
 const displayFormatters = new Map<string, Intl.DateTimeFormat>();
 
 /** これより前の日時は、下の書式では年が4桁にならず、紀元前も正の年になる（タイムゾーンの差を見込んで2日の余裕をとる） */

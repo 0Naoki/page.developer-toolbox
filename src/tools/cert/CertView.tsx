@@ -1,3 +1,10 @@
+/**
+ * 証明書・CSR の内容、署名の検証結果、チェーンの表示。
+ *
+ * @remarks
+ * 一覧（SAN・拡張・拡張の値・属性）は先頭 LIST_PREVIEW_LIMIT 件を、1つの値は VALUE_PREVIEW_LIMIT 単位までを表示する。
+ * 件数の超過は ListRest、1つの値の長さの超過は ClippedText で示し、どちらも全件・全文をコピーで取り出せる
+ */
 import { useCallback, useMemo } from 'react';
 import { CopyButton } from '../../components/CopyButton';
 import { toUpperHex } from '../../lib/crypto/asn1';
@@ -17,14 +24,6 @@ import { validityOf } from './validity';
 import { type Certificate, type Csr } from './logic';
 import { verifyInList, type ItemVerification } from './verify';
 import type { Extension } from './extensions';
-
-/** 証明書・CSR の内容、署名の検証結果、チェーンの表示 */
-
-/**
- * 一覧（SAN・拡張・拡張の値・属性）は先頭 LIST_PREVIEW_LIMIT 件を、1つの値は VALUE_PREVIEW_LIMIT 単位までを表示する。
- * 件数の超過は ListRest、1つの値の長さの超過は ClippedText で示し、どちらも全件・全文をコピーで取り出せる
- */
-
 
 function useFingerprints(der: Uint8Array) {
   /** カードは作り直されないため、どの証明書の結果かを組で持ち、内容を変えた直後の描画でも前の値を表示しない */

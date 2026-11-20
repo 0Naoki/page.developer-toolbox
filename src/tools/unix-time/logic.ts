@@ -23,8 +23,6 @@ export function toView(date: Date, now: number = Date.now()): TimeView {
   };
 }
 
-/** 差と、期間の足し引き */
-
 export type Difference = {
   /** b − a（ミリ秒） */
   ms: number;

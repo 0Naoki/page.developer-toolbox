@@ -1,8 +1,7 @@
+/** UNIX時間の各パネルで共通の部品（タイムゾーンの選択・結果の表） */
 import { KvRow } from '../../components/KvRow';
 import { type Zone } from '../../lib/time/timezone';
 import { formatWithOffset } from '../../lib/time/dateTimeFormat';
-
-/** UNIX時間の各パネルで共通の部品（タイムゾーンの選択・結果の表） */
 
 export type ZoneProps = { now: number; zones: Zone[]; inputZone: Zone; inputZones: Zone[]; setZone: (z: Zone) => void };
 

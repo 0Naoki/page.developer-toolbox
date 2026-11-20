@@ -1,6 +1,5 @@
-import { formatNumber } from '../../lib/number';
 /** IEEE754 の丸め・四則演算・内部表現。整数の進数変換とは独立して扱う。 */
-
+import { formatNumber } from '../../lib/number';
 
 /** ビット列の組み立てで使う2の整数乗。 */
 const pow2 = (n: number) => 1n << BigInt(n);

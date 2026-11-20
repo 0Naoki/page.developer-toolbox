@@ -29,8 +29,6 @@ import {
 /** RSA の公開指数の長さの上限（通常は 65537 の3バイト。表示するだけなので、4096ビットの鍵と同じ長さまで読む） */
 const MAX_EXPONENT_BYTES = 512;
 
-/** 名前の対応表 */
-
 const SIGNATURE_ALGORITHMS: Record<string, string> = {
   '1.2.840.113549.1.1.4': 'MD5 + RSA（危険）',
   '1.2.840.113549.1.1.5': 'SHA-1 + RSA（非推奨）',

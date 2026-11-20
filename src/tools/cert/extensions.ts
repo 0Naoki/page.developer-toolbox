@@ -7,8 +7,6 @@ import { formatIpv6Groups } from '../../lib/ipv6';
  * 証明書と CSR の全体の解析は logic.ts で行う。
  */
 
-/** 拡張の値の名前の対応表 */
-
 const KEY_USAGES = [
   'デジタル署名（digitalSignature）',
   '否認防止（nonRepudiation）',
