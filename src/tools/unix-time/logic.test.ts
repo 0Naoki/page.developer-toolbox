@@ -257,8 +257,6 @@ describe('convertEpochsInText', () => {
     expect(shown('-62198755200')).toEqual(['-000001-01-01 00:00:00', '-000001-01-01T00:00:00.000Z']);
     expect(shown('-62135596801')).toEqual(['0000-12-31 23:59:59', '0000-12-31T23:59:59.000Z']);
     expect(shown('-62135596800')).toEqual(['0001-01-01 00:00:00', '0001-01-01T00:00:00.000Z']);
-    expect(formatInZone(new Date(Date.UTC(1000, 0, 2, 12)), 'UTC')).toBe('1000-01-02 12:00:00');
-    expect(formatInZone(new Date(Date.UTC(1000, 0, 4)), 'UTC')).toBe('1000-01-04 00:00:00');
   });
 
   it('負のエポック時間を符号ごと変換する', () => {

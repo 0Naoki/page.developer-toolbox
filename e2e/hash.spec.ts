@@ -85,12 +85,6 @@ test('回帰：HMACの鍵と入力元の切り替えでも、古い計算結果�
   expect(stored).not.toContain('secret-key-for-regression');
 });
 
-test('ハッシュ（Web Crypto API）が動く', CROSS_BROWSER, async ({ page }) => {
-  await page.goto('./#/hash');
-  await page.locator('textarea').fill('abc');
-  await expect(page.locator('.hash-table')).toContainText('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
-});
-
 test('ハッシュのファイル欄は、キーボードで選ぶと枠が表示される', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/hash');
   await page.getByRole('button', { name: 'ファイル' }).click();

@@ -388,6 +388,7 @@ describe('cronWarnings', () => {
     expect(cronWarnings(parseCron('0 0 31 * *', 'unix'))).toEqual(['31日がない月には実行されません']);
     expect(cronWarnings(parseCron('0 0 0 31W * ?', 'quartz'))).toEqual(['31日がない月には実行されません']);
     expect(cronWarnings(parseCron('0 0 0 28W * ?', 'quartz'))).toEqual([]);
+    expect(cronWarnings(parseCron('0 0 28 * *', 'unix'))).toEqual([]);
     expect(cronWarnings(parseCron('0 0 0 L * ?', 'quartz'))).toEqual([]);
     expect(cronWarnings(parseCron('0 0 0 ? * 2', 'quartz'))).toEqual([]);
   });
@@ -406,10 +407,6 @@ describe('cronWarnings', () => {
     expect(cronWarnings(parseCron('0 */5 * * *', 'unix'))[0]).toContain('20時の次は0時');
   });
 
-  it('月によっては存在しない日を注意する', () => {
-    expect(cronWarnings(parseCron('0 0 31 * *', 'unix'))).toEqual(['31日がない月には実行されません']);
-    expect(cronWarnings(parseCron('0 0 28 * *', 'unix'))).toEqual([]);
-  });
 });
 
 describe('Date の上限の近くの探索', () => {

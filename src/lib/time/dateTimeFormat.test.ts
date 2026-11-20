@@ -50,6 +50,14 @@ describe('表示の精度', () => {
   });
 });
 
+describe('formatInZone', () => {
+  it('表示の書式を切り替える境目（1000年の始め）の前後も、年を4桁で表示する', () => {
+    /** unix-time のテストから移した。境目（1000-01-03）より前は自前の書式、後は Intl の書式で、どちらも同じ形になる */
+    expect(formatInZone(new Date(Date.UTC(1000, 0, 2, 12)), 'UTC')).toBe('1000-01-02 12:00:00');
+    expect(formatInZone(new Date(Date.UTC(1000, 0, 4)), 'UTC')).toBe('1000-01-04 00:00:00');
+  });
+});
+
 describe('日本時間の表示', () => {
   it('JST_ZONE で表示し、ラベル付きのときだけ末尾に JST を付ける', () => {
     const date = new Date('2026-01-01T00:00:00Z');
