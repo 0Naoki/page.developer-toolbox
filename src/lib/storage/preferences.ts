@@ -20,7 +20,7 @@ export function readStoredSetting<T>(storage: Pick<Storage, 'getItem'> | null, k
 /** 別タブの保存値を更新の基準にする。読み取れない場合や未保存の変更がある場合は現在値を使う。 */
 export function storedSettingUpdateBase<T>(storage: Pick<Storage, 'getItem'> | null, key: string, current: T, initial: T, validate: SettingValidator<T>, keepCurrent: boolean): T {
   if (!storage || keepCurrent) return current;
-  return safe(() => settingUpdateBase(current, storage.getItem(key), initial, validate, false), current);
+  return safe(() => settingUpdateBase(current, storage.getItem(key), initial, validate), current);
 }
 
 /** 値を保存する。初期値へ戻す場合はキーを消す。検証に通らない途中の値では保存領域に触れない。 */

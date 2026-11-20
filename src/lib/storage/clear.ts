@@ -112,7 +112,7 @@ export function subscribeClearData(listener: ClearListener): () => void {
 
 /**
  * 保存データをすべて消し、結果を画面へ通知する。
- * 通常の保存解除通知は送らず、別タブへ専用の消去通知を送る。
+ * 別タブへは専用の消去通知を送る。
  * 再読み込みまでの非同期入力更新による書き戻しも、消去中フラグで防ぐ。
  */
 export function clearAllData(): void {
@@ -144,7 +144,7 @@ function clearAndNotify(): void {
 
 /**
  * 結果を通知する。失敗したときの再試行は、失敗した処理だけをやり直す。
- * 全消去をやり直すと、消去の後に別タブが保存した入力や設定まで消してしまうため
+ * 全消去をやり直すと、消去の後に別タブが保存した表示設定まで消してしまうため（入力は各タブの sessionStorage にだけ保存するので、共有の領域で守るのは表示設定）
  */
 function finishClear(state: ClearState): void {
   const sharedPending = state.local === 'unknown' || state.local.size > 0 || !state.recorded;

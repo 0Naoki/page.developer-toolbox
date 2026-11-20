@@ -50,8 +50,11 @@ export function isValidSetting<T>(raw: string, validate: SettingValidator<T>): b
   }
 }
 
-/** 更新の基準を選ぶ。未保存・消去中・編集中の不正な値は、そのタブの値を優先する。 */
-export function settingUpdateBase<T>(current: T, raw: string | null, initial: T, validate: SettingValidator<T>, keepCurrent: boolean): T {
-  if (keepCurrent || !isValidSetting(JSON.stringify(current), validate)) return current;
+/**
+ * 更新の基準を選ぶ。編集中の不正な値は、そのタブの値を優先する。
+ * 未保存・消去中のときにそのタブの値を優先するのは、呼び出し元（storedSettingUpdateBase）で行う。
+ */
+export function settingUpdateBase<T>(current: T, raw: string | null, initial: T, validate: SettingValidator<T>): T {
+  if (!isValidSetting(JSON.stringify(current), validate)) return current;
   return raw === null ? initial : readSetting(raw, current, validate);
 }

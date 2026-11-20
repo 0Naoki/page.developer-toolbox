@@ -30,11 +30,10 @@ export const keysOf = (s: StorageLike, prefix: string): string[] => {
   return keys;
 };
 
-/** このアプリの保存データを消す。keepKey（共有の消去世代）は残す。 */
-export function clearAppData(storage: StorageLike, keepKey?: string): boolean {
+/** このアプリの保存データを消す。 */
+export function clearAppData(storage: StorageLike): boolean {
   let success = true;
   for (const key of keysOf(storage, APP_PREFIX)) {
-    if (key === keepKey) continue;
     if (!safe(() => { storage.removeItem(key); return true; }, false)) success = false;
   }
   return success;
