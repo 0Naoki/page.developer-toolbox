@@ -49,13 +49,14 @@ export default function HashTool() {
   const hasInput = input !== null;
   /**
    * 結果と進捗は input と組にして持ち、入力・鍵・方式・ファイルが変わった描画から、古い結果を照合やコピーへ渡さない。
-   * テキストは打ち終わるまで少し待ってから計算する
+   * テキストと HMAC の鍵は、打ち終わるまで少し待ってから計算する
+   * （ファイルの HMAC では、計算のたびにファイル全体（最大 MAX_FILE）を読み直すため、鍵の1文字ごとに読み込みを重ねない）
    */
   const evaluation = useAsyncFor<HashInput, HashResult, number>(
     input,
     computeHashes,
     (e) => ({ rows: [], error: errorMessage(e) }),
-    { delay: source === 'text' ? 150 : 0 },
+    { delay: source === 'text' || useHmac ? 150 : 0 },
   );
   const rows = evaluation.ready ? evaluation.value.rows : [];
   const busy = hasInput && !evaluation.ready;
