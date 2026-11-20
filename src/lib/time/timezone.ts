@@ -146,6 +146,34 @@ export function zonedToUtc(w: Wall, zone: Zone, strict = true): number {
 }
 
 /**
+ * 夏時間への切り替えで飛ばされる壁時計 w について、飛ばされる区間の終わり（切り替えの後の最初の壁時計の日時）を返す。
+ *
+ * @remarks
+ * 区間の長さはゾーンによって違う（Australia/Lord_Howe は30分、Pacific/Apia の 2011-12-30 は丸1日）ため、
+ * 切り替えの時刻を二分探索で求める。前後1日のずれが切り替え1回分の形でないとき（w が存在する時刻のときなど）は、w をそのまま返す。
+ * 次の候補を順に試す探索（cron の次回実行など）が、区間の中の候補ごとに変換を試さずに済むようにするためのもの。
+ */
+export function nonexistentGapEnd(w: Wall, zone: Zone): Wall {
+  const guess = utcOf(w);
+  const near = (t: number) => Math.min(MAX_DATE_MS, Math.max(-MAX_DATE_MS, t));
+  const before = offsetMs(near(guess - 86400000), zone);
+  const after = offsetMs(near(guess + 86400000), zone);
+  /** w は「切り替え前のずれ」で読むと切り替えの後、「切り替え後のずれ」で読むと切り替えの前の時刻になる */
+  let lo = guess - after;
+  let hi = guess - before;
+  if (!(lo < hi) || Math.abs(lo) > MAX_DATE_MS || Math.abs(hi) > MAX_DATE_MS) return w;
+  const loOffset = offsetMs(lo, zone);
+  if (loOffset !== before || offsetMs(hi, zone) !== after) return w;
+  /** lo は切り替えの前、hi は切り替えの後の時刻のまま、間を1ミリ秒まで詰める */
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (offsetMs(mid, zone) === loOffset) lo = mid;
+    else hi = mid;
+  }
+  return wallOf(hi, zone);
+}
+
+/**
  * 暦で求めた壁時計を時刻に戻し、経過ミリ秒を足してから Date の範囲を確認する。
  * 時刻と経過ミリ秒の相殺は BigInt で終えてから範囲を確かめる（安全な整数を超える中間の値でも端数を丸めない）。
  * 範囲外の中間時刻のオフセットは、Date で参照できる最寄りの境界の値を使う。
