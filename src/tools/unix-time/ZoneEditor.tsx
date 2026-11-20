@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { availableZones, canonicalZone, isValidZone, type Zone } from '../../lib/time/timezone';
+import { availableZones, canonicalZone, type Zone } from '../../lib/time/timezone';
 import { ErrorText } from '../../components/ErrorMessage';
 import { detailPreview } from '../../lib/text/textPreview';
 import { isImeComposing } from '../../lib/keyboard';
@@ -10,8 +10,10 @@ export function ZoneEditor({ zones, setZones }: { zones: Zone[]; setZones: (z: Z
   const [draft, setDraft] = useState('');
   const all = useMemo(availableZones, []);
   /** 「asia/tokyo」も受け付けるため、正式な表記（Asia/Tokyo）にそろえてから重複を確かめる */
-  const name = canonicalZone(draft) ?? draft.trim();
-  const error = name && !isValidZone(name) ? `タイムゾーン「${detailPreview(name)}」が見つかりません（例：America/New_York）` : '';
+  /** canonicalZone が null なら存在しない名前なので、isValidZone で試し直さない（打つたびに例外を2回作らないように） */
+  const canonical = canonicalZone(draft);
+  const name = canonical ?? draft.trim();
+  const error = name && canonical === null ? `タイムゾーン「${detailPreview(name)}」が見つかりません（例：America/New_York）` : '';
   const add = () => {
     if (!name || error) return;
     if (!zones.includes(name)) setZones([...zones, name]);

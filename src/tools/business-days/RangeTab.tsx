@@ -48,7 +48,7 @@ export function RangeTab({ cal, today }: { cal: Calendar; today: Ymd }) {
               <ListRest
                 rest={offDays.rest}
                 shown={offDays.shown.length}
-                copyText={offDays.rest > 0 ? r.offDays.map((o) => `${withDow(o.date)}\t${o.reason}`).join('\n') : undefined}
+                copyText={offDays.rest > 0 ? () => r.offDays.map((o) => `${withDow(o.date)}\t${o.reason}`).join('\n') : undefined}
                 copyLabel="すべての休みをコピー"
               />
             </>
