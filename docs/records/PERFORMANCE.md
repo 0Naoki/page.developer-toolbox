@@ -23,8 +23,8 @@
 | [performance-2026-11-18-diff.json](performance-2026-11-18-diff.json) | 連続範囲方式の差分入力から結果表示までと最大描画間隔。各3回 |
 | [diff-transfer-2026-11-18-expanded.json](diff-transfer-2026-11-18-expanded.json) | 差分の入力形状を増やし、計算・圧縮・複製・表示復元・データ量を分けた計測 |
 | [diff-transfer-2026-11-18.json](diff-transfer-2026-11-18.json) | 差分の応答を連続範囲にまとめる前後。Nodeの構造化複製を各3回計測 |
-| [performance-undated-before.json](performance-undated-before.json) | SQL 整形を提供していた時点の、改善前の生データ（測定日・コミットは未記録） |
-| [performance-undated-after.json](performance-undated-after.json) | 同じ時点の、改善後の生データ（測定日・コミットは未記録） |
+| [performance-undated-before.json](performance-undated-before.json) | SQL 整形を提供していた時点の、改善前の生データ（SQL 整形のツールは削除済み。測定日・コミットは未記録のため、比較には使わず当時の記録として残す） |
+| [performance-undated-after.json](performance-undated-after.json) | 同じ時点の、改善後の生データ（SQL 整形のツールは削除済み。測定日・コミットは未記録） |
 | [performance-2026-11-09-before.json](performance-2026-11-09-before.json) | ハッシュ・JWT・証明書・正規表現の入力欄を LargeTextInput にする前（10万行で、最大の描画間隔の中央値がハッシュ 1,333ms・正規表現 1,967ms・JWT 49,865ms） |
 | [performance-2026-11-09-after.json](performance-2026-11-09-after.json) | 同じ変更の後（10万行で、ハッシュ 150ms・正規表現 183ms・JWT 233ms）。計測の対象は9ツール、各ケース3回 |
 | [performance-2026-11-09-subnet.json](performance-2026-11-09-subnet.json) | サブネットの集約・重複チェックを Worker へ移す前後の10万件（各3回） |
