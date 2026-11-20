@@ -61,10 +61,14 @@ export const SOURCE_RULES: SourceRule[] = [
   {
     name: 'Worker は ?worker-source と createTrustedWorker で起動する',
     fix: '?worker-source で読み込んだコードを createTrustedWorker で起動する',
-    /** URL から読み込んだ Worker にはページの CSP が適用されないため、?worker・?worker&url は使わない */
-    pattern: /\?worker(?:&url)?['"]/,
-    detects: ["import W from './worker?worker'", "import url from './worker?worker&url'"],
-    ignores: ["import source from './worker?worker-source'", "const label = 'worker';"],
+    /**
+     * URL から読み込んだ Worker にはページの CSP が適用されないため、?worker・?worker&url は使わない。
+     * new Worker(new URL(…)) で直接起動する書き方も、Trusted Types のポリシーを通らないため止める（本番では CSP の worker-src blob: でも止まる）
+     */
+    pattern: /\?worker(?:&url)?['"]|\bnew\s+Worker\s*\(/,
+    allowed: { '/src/lib/worker/createTrustedWorker.ts': 'Worker を起動する共通の処理そのもの' },
+    detects: ["import W from './worker?worker'", "import url from './worker?worker&url'", "const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });"],
+    ignores: ["import source from './worker?worker-source'", "const label = 'worker';", 'const worker = createTrustedWorker(policy, source);'],
   },
   {
     name: 'エラー表示は ErrorText・ErrorBox を通し、文言の長さを表示の側でも制限する',
@@ -80,33 +84,33 @@ export const SOURCE_RULES: SourceRule[] = [
     name: '案内・警告は Notice を通し、文言の長さを表示の側でも制限する',
     fix: 'Notice を使う（入力を含み得る文言は message で渡す）',
     /** 警告の文言にも入力が入ることがあるため、エラーと同じく、クラス名を直接書かせずに表示の側の上限を通す */
-    pattern: /['"`]notice(?=[\s'"`])/,
+    pattern: /['"`](?:[\w-]+\s+)*notice(?=[\s'"`])/,
     appliesTo: (file) => file.endsWith('.tsx'),
     allowed: { '/src/components/Notice.tsx': '共通の部品そのもの' },
-    detects: ['<div className="notice warn">{w}</div>', "<div className={ok ? 'notice good' : 'notice bad'} />", '<div className={`notice ${tone}`} />'],
+    detects: ['<div className="notice warn">{w}</div>', "<div className={ok ? 'notice good' : 'notice bad'} />", '<div className={`notice ${tone}`} />', '<div className="stack notice warn">{w}</div>'],
     ignores: ['<Notice tone="warn" message={w} />', '<div className="notice-list" />', '<Notice tone="warn" className="diff-notice" />'],
   },
   {
     name: 'バッジは Badge を通す',
     fix: 'Badge を使う（色は tone、小さいバッジは small）',
     /** 色の組み合わせ（tone）を部品の側でそろえ、コントラストの検査をした組み合わせだけを使うため */
-    pattern: /['"`]badge(?=[\s'"`-])/,
+    pattern: /['"`](?:[\w-]+\s+)*badge(?=[\s'"`-])/,
     appliesTo: (file) => file.endsWith('.tsx'),
     allowed: { '/src/components/Badge.tsx': '共通の部品そのもの' },
-    detects: ['<span className="badge">{n} 件</span>', "<span className={ok ? 'badge badge-good' : 'badge badge-bad'} />", '<span className="badge-small">重要</span>'],
+    detects: ['<span className="badge">{n} 件</span>', "<span className={ok ? 'badge badge-good' : 'badge badge-bad'} />", '<span className="badge-small">重要</span>', '<span className="mono badge">{alg}</span>'],
     ignores: ['<Badge tone="good">有効</Badge>', '<span className="status-badge" />', "import { Badge } from '../../components/Badge';"],
   },
   {
     name: '見出し付きの入力・出力の欄は Pane を通す',
     fix: 'Pane を使う（見出しは title、操作は actions）',
     /** 見出しと操作の並び（.pane-head・.pane-actions）と、欄の中の余白（gap）を画面ごとに書き分けないため */
-    pattern: /['"`]pane(?:-head)?(?=[\s'"`])/,
+    pattern: /['"`](?:[\w-]+\s+)*pane(?:-head)?(?=[\s'"`])/,
     appliesTo: (file) => file.endsWith('.tsx'),
     allowed: {
       '/src/components/Pane.tsx': '共通の部品そのもの',
       '/src/components/FormattedOutput.tsx': '見出しのない Pane の中に置く、整形結果の見出し（保存・コピー・折り返しの操作）',
     },
-    detects: ['<div className="pane"><div className="pane-head">入力</div></div>', '<span className="pane-head">置換文字列</span>'],
+    detects: ['<div className="pane"><div className="pane-head">入力</div></div>', '<span className="pane-head">置換文字列</span>', '<div className="stack pane">{children}</div>'],
     ignores: ['<Pane title="入力" actions={<CopyButton text={text} />}>{children}</Pane>', '<span className="muted pane-sub">{summary}</span>', '<div className="panel" />'],
   },
   {
@@ -145,11 +149,11 @@ export const SOURCE_RULES: SourceRule[] = [
     name: 'テキストの行の分割は src/lib/text/lines.ts を通す',
     fix: 'src/lib/text/lines.ts の splitLines を使う',
     /** 処理ごとに書くと、CR だけの改行や混在した改行の扱いと行番号が処理によって食い違うため */
-    pattern: /\.split\(\s*(?:\/[^/\n]*\\[rn]|'\\n'|"\\n")/,
+    pattern: /\.split\(\s*(?:\/[^/\n]*\\[rn]|(['"`])(?:\\r\\n|\\r|\\n)\1)/,
     allowed: {
       '/src/tools/text-count/count.ts': '書記素を数えるための分割で、行番号を扱わない',
     },
-    detects: ['text.split(/\\r?\\n/)', "text.split('\\n')", 'text.split(/\\r\\n|\\r|\\n/, 10)'],
+    detects: ['text.split(/\\r?\\n/)', "text.split('\\n')", 'text.split(/\\r\\n|\\r|\\n/, 10)', "text.split('\\r\\n')", 'text.split(`\\n`)'],
     ignores: ['splitLines(text)', 'body.split(LINE_BREAK)', 'line.split(/\\s+/)', "line.split(',')"],
   },
   {
@@ -222,18 +226,20 @@ export const SOURCE_RULES: SourceRule[] = [
      * 食い違いをテストでは見つけられない。そのため、書き方の段階で止める。
      * 複数の引数を渡す new Date(年, 月, …) も、現地時刻として読むため対象にする（new Date(Date.UTC(…)) は除く）
      */
-    pattern: /\.(?:get|set)(?:FullYear|Month|Date|Day|Hours|Minutes|Seconds|Milliseconds|Year)\s*\(|\.getTimezoneOffset\s*\(|\.toLocale(?:Date|Time)String\s*\(|\bnew Date\((?!\s*Date\.UTC\b)[^()]*,/,
+    pattern: /\.(?:get|set)(?:FullYear|Month|Date|Day|Hours|Minutes|Seconds|Milliseconds|Year)\s*\(|\.getTimezoneOffset\s*\(|\.toLocale(?:Date|Time)String\s*\(|\bnew Date\((?!\s*Date\.UTC\b)(?:[^(),]|\([^()]*\))*,/,
     detects: [
       'const h = date.getHours();',
       'd.setDate(d.getDate() + 1);',
       'const offset = new Date().getTimezoneOffset();',
       "const s = date.toLocaleDateString('ja-JP');",
       'const d = new Date(2026, 0, 1);',
+      'const d = new Date(Number(y), m - 1, 1);',
     ],
     ignores: [
       'const h = date.getUTCHours();',
       'const d = new Date(Date.UTC(2026, 0, 1));',
       'const d = new Date(ms);',
+      'const d = new Date(Number(ms));',
       'const { y, mo, d } = wallOf(ms, zone);',
       'const [date, setDate] = useState(today);',
     ],
@@ -258,11 +264,11 @@ export const SOURCE_RULES: SourceRule[] = [
      * 読み取り専用の出力欄は、表示を先頭までにしてから渡すので対象外。例外に足すのは、maxLength などで貼り付けられる量そのものが
      * 小さいと決まっている欄だけ（読み込むときの検査の上限は、欄に入る量を制限しないため、例外の理由にならない）
      */
-    pattern: /<textarea\b[\s\S]*?\/?>/,
+    pattern: /<textarea\b(?:=>|[^>])*>/,
     appliesTo: (file) => file.startsWith('/src/tools/') && file.endsWith('.tsx'),
     label: (tag) => (/\breadOnly\b/.test(tag) ? null : /aria-label="([^"]*)"/.exec(tag)?.[1] ?? '（名前なし）'),
     detects: ['<textarea aria-label="入力" value={text} onChange={onChange} />', '<textarea value={text} />'],
-    ignores: ['<LargeTextInput label="入力" value={text} onChange={setText} />', '<textarea readOnly aria-label="出力" value={preview} />'],
+    ignores: ['<LargeTextInput label="入力" value={text} onChange={setText} />', '<textarea readOnly aria-label="出力" value={preview} />', '<textarea onFocus={(e) => e.target.select()} readOnly aria-label="出力" value={preview} />'],
   },
 ];
 
