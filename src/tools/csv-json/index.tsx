@@ -5,7 +5,7 @@
  * - `validateJson.ts`：列へ展開する前に、JSONの各オブジェクトの重複キーを拒否
  * - `logic.ts`：CSV から JSON への変換
  * - `csvFormat.ts`：両方向で共通の形式（区切り文字・セル数と出力の上限）
- * - `fileOptions.ts`：ファイル名から変換の方向と区切り文字を選ぶ
+ * - `fileOptions.ts`：ファイル名や入れ替えから、変換の方向と区切り文字を選ぶ
  * - `calculation.ts`：計算 Worker で、要求の方向に変換して画面に返す形にする
  * - `useCsvJson.ts`：画面の状態（入力・変換の向きと設定・ファイルの読み込み）と計算の結果をまとめるフック
  * 画面・Worker・テストは、それぞれの定義元を直接読み込む。両方向を組み合わせる検査は `roundTrip.test.ts` にある。

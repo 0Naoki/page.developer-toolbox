@@ -8,7 +8,7 @@ import { isBoolean, oneOf } from '../../lib/settings';
 import { decodeText, FileInputError, type TextEncodingName } from '../../lib/file';
 import { DEFAULT_CSV_TO_JSON, isCsvToJsonOptions, isEmptyConversionInput, type CsvToJsonOptions } from './logic';
 import { DEFAULT_JSON_TO_CSV, isJsonToCsvOptions, type JsonToCsvOptions } from './writeCsv';
-import { optionsForFile, type Direction } from './fileOptions';
+import { optionsForFile, optionsForSwap, type Direction } from './fileOptions';
 
 /**
  * CSV ⇔ JSON の画面の状態（入力・変換の向きと設定・ファイルの読み込み）と、計算の結果。
@@ -68,11 +68,14 @@ export function useCsvJson() {
   /** 変換結果が逆方向の入力上限を超えるときは、入れ替えられない */
   const swapTooLarge = result !== null && result.output.length > MAX_CALCULATION_INPUT;
 
-  /** 出力を入力に移し、変換の向きを反転する */
+  /** 出力を入力に移し、変換の向きを反転する。元の向きの区切り文字を、移る先の向きの設定に引き継ぐ */
   const swap = () => {
     if (!result || swapTooLarge) return;
     resetInput(result.output);
-    setDirection(direction === 'csv2json' ? 'json2csv' : 'csv2json');
+    const next = optionsForSwap(direction, { csv2json: csvOptions.delimiter, json2csv: jsonOptions.delimiter });
+    setDirection(next.direction);
+    if (next.direction === 'csv2json' && next.delimiter !== csvOptions.delimiter) setCsvOptions({ ...csvOptions, delimiter: next.delimiter });
+    if (next.direction === 'json2csv' && next.delimiter !== jsonOptions.delimiter) setJsonOptions({ ...jsonOptions, delimiter: next.delimiter });
   };
 
   return {
