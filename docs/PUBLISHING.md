@@ -20,8 +20,7 @@
 ### 公開するアカウントと、同じオリジンのサイト
 
 公開先は、個人のアカウントでも、ほかの Pages サイトがある組織でもかまいません。
-GitHub Pages では、同じアカウント（または組織）で公開するサイトがすべて同じオリジン（`https://<組織名>.github.io`）になり、
-localStorage・sessionStorage や画面の中身を互いに読めます。そのため、次を守ってください。
+同じオリジンのほかのサイトがこのアプリの信頼範囲の内側になる理由は、[SECURITY.md](../SECURITY.md) の「同じオリジンのほかのサイト」にあります。そのため、次を守ってください。
 
 - [ ] 組織で公開する場合は、組織の **Settings → Authentication security** で **Require two-factor authentication** をオンにする
 - [ ] `<組織名>.github.io` という名前のリポジトリ（アカウント直下のサイト）を作らない。アカウント直下のサイトは、Service Worker で `/page.developer-toolbox/` を含む全体の通信を横取りできるため

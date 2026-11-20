@@ -249,13 +249,8 @@ IME変換の取消もDOM値へ反映し、確定時と同じ経路で取り込�
 
 ## 保存の流れ
 
-入力は `useInput`（sessionStorage だけ）、表示設定は `usePreference`（検証した値だけを localStorage）、トークン・鍵などの機密値は `useState`（メモリ内だけ）で持ちます。保存の処理は `src/lib/storage/` にまとめ、フォルダの外からは入口の `src/lib/storage/index.ts` だけを読み込みます（静的検査あり）。保存先・保存キー・全消去とタブ間の調整・起動時の古いキーの整理は [STORAGE.md](STORAGE.md) にあります。
+入力は `useInput`（sessionStorage だけ）、表示設定は `usePreference`（検証した値だけを localStorage）、トークン・鍵などの機密値は `useState`（メモリ内だけ）で持ちます。保存の処理の置き場所・保存先・保存キー・全消去とタブ間の調整・起動時の古いキーの整理は [STORAGE.md](STORAGE.md) にあります。
 
 ## 説明の置き場所
 
-- 操作・保存・制約：[USAGE.md](USAGE.md)
-- 保存先・全消去とタブ間の調整・起動時の古いキーの整理：[STORAGE.md](STORAGE.md)
-- 安全対策と脆弱性の報告：[SECURITY.md](../SECURITY.md)
-- コメントの書式と例：[COMMENTING.md](COMMENTING.md)
-- 検査対象と実行方法：[TESTING.md](TESTING.md)
-- 大容量処理の計測方法・過去の記録：[PERFORMANCE.md](PERFORMANCE.md)
+どの説明をどの文書に書くかは、[CONTRIBUTING.md の「ドキュメントの更新先」](../CONTRIBUTING.md#ドキュメントの更新先) にあります。

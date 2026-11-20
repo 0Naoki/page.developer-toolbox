@@ -30,7 +30,7 @@ Windowsでは、リポジトリ直下の `start.ps1` をPowerShellから実行�
 依存パッケージの準備が済んでいなければ `npm run setup` で準備し、毎回本番ビルドを作成して、CSPが有効な画面をブラウザで開きます。
 準備が済んだかは、署名の検証が通ったときに `node_modules/.dev-toolbox-verified` に書く `package-lock.json` のハッシュで判断します。取得や検証の途中で止めたときや、`git pull` などで `package-lock.json` が変わったときは、準備し直します。取得や検証に失敗したら、取得した依存パッケージを削除して止まります。
 表示先は `http://localhost:4173/dev-toolbox/`、停止は起動したウィンドウで `Ctrl+C` です。
-ポート4173が使用中の場合は、既存のサーバーを停止してから起動します。
+ポート4173が使用中で起動できないときは、「[うまくいかないとき](#うまくいかないとき)」を見てください。
 
 リポジトリのフォルダーで、次のコマンドを実行します。実行ポリシーの指定は、このPowerShellプロセスだけに適用されます。
 
@@ -90,7 +90,7 @@ npm run preview:pages
 
 http://localhost:4173/dev-toolbox/ を開きます（公開時の `https://<組織名>.github.io/page.developer-toolbox/` と同じく、サブパスで配信する構成）。
 
-手動起動・Windowsの起動スクリプト・E2Eは同じプレビュー設定（`pages-preview.config.ts`）を使います。ポート4173が使用中なら起動に失敗します。ビルド済みの `dist` を手動で配信する場合は `npm run serve:pages` を使います。
+手動起動・Windowsの起動スクリプト・E2Eは同じプレビュー設定（`pages-preview.config.ts`）とポート（4173）を使います。ビルド済みの `dist` を手動で配信する場合は `npm run serve:pages` を使います。
 
 - [ ] 開発者ツールの **Console** に赤いエラー（特に `Refused to ...` で始まる CSP 違反）が出ていないこと
 - [ ] **Network** タブで、ツールを操作しても `localhost` 以外への通信が出ないこと
