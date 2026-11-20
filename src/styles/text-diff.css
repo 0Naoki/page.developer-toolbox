@@ -32,16 +32,13 @@
   table-layout: fixed;
 }
 
-.diff-table td.ln {
-  width: 3.5em;
-}
-
 .diff-table td {
   padding: 0 8px;
   vertical-align: top;
 }
 
 .diff-table td.ln {
+  width: 3.5em;
   text-align: right;
   color: var(--muted);
   user-select: none;

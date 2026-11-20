@@ -10,7 +10,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { paste, pasteImageOverAll, pasteLargeInput } from './paste';
-import { pickFile } from './files';
+import { downloadedText, pickFile } from './files';
 import { captureClipboard, copiedText, copiedLines } from './clipboard';
 
 /** 文字数・不可視文字・桁あふれの表示を切り替える */
@@ -54,11 +54,7 @@ test('文字診断：省略した種類も全件コピー・保存し、入力�
   await expect(copy).toBeEnabled();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Shift_JIS診断の全件を保存', exact: true }).click();
-  const stream = await (await downloading).createReadStream();
-  if (!stream) throw new Error('ダウンロード結果を読み取れません');
-  const bytes: number[] = [];
-  for await (const chunk of stream) for (const byte of chunk) bytes.push(byte);
-  const saved = new TextDecoder().decode(new Uint8Array(bytes));
+  const saved = await downloadedText(await downloading);
   expect(saved.split('\n')).toHaveLength(202);
   expect(saved).toContain('U+100C8');
   await copy.click();
