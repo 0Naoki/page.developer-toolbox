@@ -15,13 +15,12 @@ import { arrayOf, integerBetween, isBoolean, oneOf } from '../../lib/settings';
 import { WEEKDAYS_JA } from '../../lib/time/date';
 import { useTodayJst } from '../../hooks/useTodayJst';
 import { HOLIDAY_MAX_YEAR, HOLIDAY_MIN_YEAR } from './holidays';
-import { DEFAULT_CALENDAR, parseExtraHolidays, type Calendar } from './logic';
+import { DEFAULT_CALENDAR, invalidHolidaysMessage, parseExtraHolidays, type Calendar } from './logic';
 import { RangeTab } from './RangeTab';
 import { AddTab } from './AddTab';
 import { MonthTab } from './MonthTab';
 import { HolidaysTab } from './HolidaysTab';
 import { ErrorText } from '../../components/ErrorMessage';
-import { formatNumber } from '../../lib/number';
 import { Check } from '../../components/Check';
 
 type Tab = 'range' | 'add' | 'month' | 'holidays';
@@ -72,9 +71,7 @@ export default function BusinessDays() {
             {extra.invalidCount > 0 && (
               <ErrorText
                 as="span"
-                message={`読み取れない日付：${extra.invalid.map((item) =>
-                  `${item.line}行目「${item.text}${item.text.length < item.length ? `…（全${formatNumber(item.length)}文字）` : ''}」`).join('、')}${
-                  extra.invalidCount > extra.invalid.length ? ` ほか ${formatNumber(extra.invalidCount - extra.invalid.length)} 件` : ''}`}
+                message={invalidHolidaysMessage(extra)}
               />
             )}
           </div>

@@ -2,6 +2,7 @@ import { addDays, compareYmd, dayOfWeek, daysInMonth, formatYmd, readYmd, toDayN
 import { HOLIDAY_MAX_YEAR, HOLIDAY_MIN_YEAR, holidayName } from './holidays';
 import { textPreview } from '../../lib/text/textPreview';
 import { splitLines } from '../../lib/text/lines';
+import { formatNumber } from '../../lib/number';
 
 export type Calendar = {
   /** 休みにする曜日（0=日〜6=土） */
@@ -74,6 +75,18 @@ export function parseExtraHolidays(text: string): { dates: string[]; invalid: In
     }
   }
   return { dates, invalid, invalidCount };
+}
+
+/**
+ * 読めない独自休日の文言。総件数を先頭に置き、続けて先頭の項目の行番号と抜粋を並べる。
+ *
+ * @remarks
+ * 表示（1,000単位）と読み上げ（256単位）は文言を後ろで切るため、総件数を末尾に置くと、項目が長い・多いときに件数が消える。
+ */
+export function invalidHolidaysMessage({ invalid, invalidCount }: { invalid: InvalidHoliday[]; invalidCount: number }): string {
+  const items = invalid.map((item) => `${item.line}行目「${item.text}${item.text.length < item.length ? `…（全${formatNumber(item.length)}文字）` : ''}」`);
+  const head = invalidCount > invalid.length ? `（先頭 ${formatNumber(invalid.length)} 件）` : '';
+  return `読み取れない日付が ${formatNumber(invalidCount)} 件あります${head}：${items.join('、')}`;
 }
 
 export function dayInfo(date: Ymd, cal: Calendar): DayInfo {

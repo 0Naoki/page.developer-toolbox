@@ -18,6 +18,7 @@ import {
   dayInfo,
   lastBusinessDayOfMonth,
   nthBusinessDayOfMonth,
+  invalidHolidaysMessage,
   parseExtraHolidays,
   MAX_INVALID_PREVIEW,
   MAX_INVALID_SHOWN,
@@ -144,6 +145,18 @@ describe('独自休日の入力', () => {
     expect(many.invalidCount).toBe(100_000);
     expect(many.invalid).toHaveLength(MAX_INVALID_SHOWN);
     expect(many.invalid.at(-1)).toEqual({ line: MAX_INVALID_SHOWN, text: `bad${MAX_INVALID_SHOWN - 1}`, length: `bad${MAX_INVALID_SHOWN - 1}`.length });
+  });
+
+  it('回帰：読めない項目の文言は総件数を先頭に置き、表示・読み上げで後ろを切っても件数が残る', () => {
+    /** 以前は末尾に「ほか N 件」を付けていたため、読み上げ（256単位）や表示（1,000単位）で切ると総件数が消えた */
+    const many = parseExtraHolidays(Array.from({ length: 25 }, () => '2026-13-01').join('\n'));
+    expect(invalidHolidaysMessage(many)).toMatch(/^読み取れない日付が 25 件あります（先頭 20 件）：1行目「2026-13-01」、2行目「2026-13-01」/);
+    /** 長い項目が多くても、件数は先頭（読み上げの256単位より前）にある */
+    const long = parseExtraHolidays(Array.from({ length: 1_200 }, (_, i) => `${'x'.repeat(200)}${i}`).join('\n'));
+    const longMessage = invalidHolidaysMessage(long);
+    expect(longMessage.slice(0, 256)).toContain('読み取れない日付が 1,200 件あります（先頭 20 件）：1行目「');
+    expect(longMessage).toContain('…（全201文字）」');
+    expect(invalidHolidaysMessage(parseExtraHolidays('明日'))).toBe('読み取れない日付が 1 件あります：1行目「明日」');
   });
 });
 
