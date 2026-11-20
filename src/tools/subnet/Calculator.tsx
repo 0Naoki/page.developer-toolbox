@@ -12,7 +12,7 @@ import { useNetwork } from './useNetwork';
 import { ErrorText } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
 
-/** 入力の形式の表示名。IPv4・IPv6 のどちらの形式も、表に名前がある */
+/** IPv4 の入力の形式の表示名（IPv6 は CIDR とアドレスだけなので、IPv6 の表で直接書く） */
 const NOTATION: Record<ParsedNetwork['notation'], string> = {
   cidr: 'CIDR',
   mask: 'サブネットマスク',

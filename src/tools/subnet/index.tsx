@@ -7,7 +7,7 @@
  * - `vlsm.ts`：必要なホスト数に合わせた割り当て（VLSM。IPv4 だけ）
  * - `listCalculation.ts`：Worker から呼ぶ一覧の計算と、出力の上限
  * - `cloudPolicy.ts`：クラウドの予約アドレス数と、作成できるサブネットサイズの案内
- * - `format.ts`：数値・CIDR の表示
+ * - `format.ts`：IPv4 の CIDR の表記
  * - `useNetwork.ts`：入力欄のネットワークを IPv4・IPv6 のどちらかとして解析するフック（判定は一覧のタブと同じ `isIpv6Text`）
  * - `Calculator.tsx`・`OverlapCheck.tsx`・`Splitter.tsx`・`Aggregator.tsx`：各タブの画面（`Errors.tsx` は一覧のエラー表示）
  */

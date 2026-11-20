@@ -2,7 +2,8 @@
  * JWT（JWS）の署名の検証（Web Crypto API）。
  * アルゴリズムはヘッダの alg で決めるが、鍵の種類が alg と合わなければ検証しない。
  * 「アルゴリズムの取り違え」（公開鍵を HMAC の鍵にして作った偽のトークン）を防ぐため、HMAC の鍵に
- * PEM・JWK の形の入力は受け付けない。PEM の本文だけを貼るなど、鍵の形に見えない入力は見分けられない。
+ * PEM・JWK の形の入力は受け付けない。鍵の形式を UTF-8 にしたときは、PEM の本文だけを貼るなど、鍵の形に見えない入力は見分けられない
+ * （Base64 を選んだときは、復号したバイト列が公開鍵の形なら keys.ts が断る）。
  */
 import { base64ToBytes, bytesToBase64 } from '../../lib/bytes';
 import { isRecord } from '../../lib/settings';

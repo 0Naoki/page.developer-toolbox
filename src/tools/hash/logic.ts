@@ -25,16 +25,16 @@ export async function digest(algorithm: Algorithm, data: Bytes): Promise<Bytes> 
   return new Uint8Array(await crypto.subtle.digest(algorithm, data));
 }
 
-/**
- * MD5 を大きなデータでも画面を止めずに計算する。
- * 4MB ずつ処理し、そのたびにブラウザへ制御を返す（その間に描画や操作ができる）。
- */
 /** ハッシュを計算するファイルの上限（バイト） */
 export const MAX_FILE = 256 * 1024 * 1024;
 
 /** MD5 を分けて処理する大きさ（バイト）。そのたびに画面へ制御を返す */
 export const MD5_CHUNK = 4 * 1024 * 1024;
 
+/**
+ * MD5 を大きなデータでも画面を止めずに計算する。
+ * 4 MiB（MD5_CHUNK）ずつ処理し、そのたびにブラウザへ制御を返す（その間に描画や操作ができる）。
+ */
 export async function md5Chunked(
   data: Uint8Array,
   onProgress?: (ratio: number) => void,

@@ -28,7 +28,7 @@ export async function computeHashes(input: HashInput, { isCancelled, report }: A
     if (isCancelled()) return CANCELLED;
     rows.push({ algorithm, hex: toHex(bytes), base64: bytesToBase64(bytes) });
   }
-  /** MD5 は自前実装なので、4MB ずつ処理して画面を止めない */
+  /** MD5 は自前実装なので、4 MiB ずつ処理して画面を止めない */
   if (!useHmac) {
     const bytes = await md5Chunked(data, data.length > PROGRESS_THRESHOLD ? report : undefined, isCancelled);
     if (!bytes) return CANCELLED;

@@ -10,7 +10,7 @@ const css = [...entry.matchAll(/@import '([^']+)'[^;]*;/g)].map((match) => {
 }).join('\n');
 
 /**
- * styles.css の色の変数から、ライト・ダークそれぞれの主な「文字と背景」の組み合わせが
+ * 色の変数（src/styles/theme.css・theme-status.css）から、ライト・ダークそれぞれの主な「文字と背景」の組み合わせが
  * コントラスト比 4.5:1 以上（WCAG AA の通常の文字の基準）を満たすことを確認する。
  */
 

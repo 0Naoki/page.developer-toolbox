@@ -103,9 +103,8 @@
   background: var(--add-strong);
 }
 
-/* 差分の枠の中の警告と「さらに表示」（.notice の余白と角の丸めを、枠に合わせて消す） */
+/* 差分の枠の中の警告と「さらに表示」（.notice の角の丸めを、枠に合わせて消す） */
 .diff-notice {
-  margin: 0;
   border-radius: 0;
 }
 

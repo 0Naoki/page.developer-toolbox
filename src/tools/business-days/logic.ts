@@ -105,7 +105,9 @@ export function dayInfo(date: Ymd, cal: Calendar): DayInfo {
 
 const isBusinessDay = (date: Ymd, cal: Calendar) => dayInfo(date, cal).business;
 
-/** 期間の上限（年） */
+/**
+ * 期間の上限（年）。判定は日数で行い、366日 × 30 = 10,980日まで（暦の30年より約3週間長い。うるう年の位置によらず、30年の期間を必ず受け付けるため）
+ */
 export const MAX_SPAN_YEARS = 30;
 /** n営業日後・前の上限 */
 export const MAX_BUSINESS_DAYS = 3000;

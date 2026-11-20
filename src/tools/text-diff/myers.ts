@@ -1,6 +1,6 @@
 /**
  * 列（行・文字）の差分の計算（Myers 法）。テキストに依存しない。
- * 行・文字の差分を作る処理は logic.ts、画面に並べる行の処理は rows.ts にある。
+ * 行・文字の差分を作る処理は logic.ts、画面に並べる行の処理は preview.ts（行の型は rows.ts）にある。
  */
 
 export type DiffOp =
