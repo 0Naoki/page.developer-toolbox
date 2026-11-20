@@ -226,7 +226,8 @@ test('証明書：表示したまま期限を過ぎると、期限切れの表�
   await page.clock.install({ time: new Date('2027-12-02T15:58:10Z') });
   await page.goto('./#/cert');
   await page.getByLabel('証明書または CSR（PEM）').fill(LEAF);
-  await expect(page.getByText('あと 0 日で期限切れ', { exact: true })).toBeVisible();
+  /** 残りが24時間未満は「あと 0 日」ではなく「24時間以内」 */
+  await expect(page.getByText('24時間以内に期限切れ', { exact: true })).toBeVisible();
   await page.clock.fastForward('02:00');
   /** 過ぎてから24時間未満は、暦の日付によらず「24時間以内」（日付が変わる直前に切れたものを翌日に開いても「本日」としない） */
   await expect(page.getByText('期限切れ（24時間以内）', { exact: true })).toBeVisible();

@@ -90,7 +90,8 @@ function ValidityBadge({ cert }: { cert: Certificate }) {
     case 'notYet':
       return <Badge tone="bad">まだ有効ではありません</Badge>;
     case 'soon':
-      return <Badge tone="bad">あと {v.daysLeft} 日で期限切れ</Badge>;
+      /** 残りが24時間未満のときは「あと 0 日」ではなく、期限切れの側と同じく「24時間以内」と示す */
+      return <Badge tone="bad">{v.daysLeft === 0 ? '24時間以内に期限切れ' : `あと ${v.daysLeft} 日で期限切れ`}</Badge>;
     default:
       return <Badge tone="good">有効（残り {v.daysLeft} 日）</Badge>;
   }
