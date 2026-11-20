@@ -284,6 +284,13 @@ export type ImportRule = {
   ignores: ImportEdge[];
 };
 
+/**
+ * import のパスから、末尾の拡張子（.ts・.tsx・.js など）を外す。
+ * moduleResolution が bundler のため、`.ts` と書いても `.js` と書いても同じ TypeScript のファイルを読める。
+ * 拡張子の有無や種類で規則を通り抜けないよう、パスで判定する規則はこれを通す
+ */
+const withoutExtension = (target: string) => target.replace(/\.[cm]?[jt]sx?$/, '');
+
 const toolOf = (path: string) => /^\/src\/tools\/([^/]+)\//.exec(path)?.[1];
 
 /** 計算の振り分け。ツールの計算処理をまとめて読み込むため、Worker の入口とテストだけが読み込む */
@@ -291,7 +298,7 @@ const CALCULATION_HANDLERS = '/src/calculation/handlers';
 
 /** 保存領域のフォルダ。外からは入口（index.ts）だけを読み込む */
 const STORAGE_DIR = '/src/lib/storage/';
-const STORAGE_ENTRY = new Set(['/src/lib/storage', '/src/lib/storage/index', '/src/lib/storage/index.ts']);
+const STORAGE_ENTRY = new Set(['/src/lib/storage', '/src/lib/storage/index']);
 
 export const IMPORT_RULES: ImportRule[] = [
   {
@@ -334,10 +341,11 @@ export const IMPORT_RULES: ImportRule[] = [
     name: '計算の振り分け（src/calculation/handlers.ts）は、計算 Worker の入口だけが読み込む',
     fix: '画面・フックからは src/calculation/protocol.ts の型と src/lib/worker/calculationLimits.ts の上限だけを使い、計算は useCalculation で Worker に任せる',
     /** 振り分けは全ツールの計算処理を読み込むため、画面から読み込むと、計算処理が最初に読み込むファイルに入り、Worker で計算する意味もなくなる */
-    forbids: ({ file, target }) => target.replace(/\.ts$/, '') === CALCULATION_HANDLERS && file !== '/src/calculation/worker.ts',
+    forbids: ({ file, target }) => withoutExtension(target) === CALCULATION_HANDLERS && file !== '/src/calculation/worker.ts',
     detects: [
       { file: '/src/hooks/useCalculation.ts', target: '/src/calculation/handlers' },
       { file: '/src/tools/text-diff/index.tsx', target: '/src/calculation/handlers.ts' },
+      { file: '/src/tools/text-diff/index.tsx', target: '/src/calculation/handlers.js' },
     ],
     ignores: [
       { file: '/src/calculation/worker.ts', target: '/src/calculation/handlers' },
@@ -348,7 +356,7 @@ export const IMPORT_RULES: ImportRule[] = [
     name: '保存領域は、フォルダの外からは入口（src/lib/storage/index.ts）だけを読み込む',
     fix: '入口（src/lib/storage/index.ts）の操作を使う（足りなければ、ロックの決まりを守った操作を入口に足す）',
     /** io.ts の clearAppData などはロックも消去世代の記録もしないため、画面やフックから直接呼ぶと全消去や別タブの保存と競合する */
-    forbids: ({ file, target }) => !file.startsWith(STORAGE_DIR) && target.startsWith(STORAGE_DIR) && !STORAGE_ENTRY.has(target),
+    forbids: ({ file, target }) => !file.startsWith(STORAGE_DIR) && target.startsWith(STORAGE_DIR) && !STORAGE_ENTRY.has(withoutExtension(target)),
     detects: [
       { file: '/src/hooks/useInput.ts', target: '/src/lib/storage/io' },
       { file: '/src/components/InputSaveNotice.tsx', target: '/src/lib/storage/inputSaveFailures' },
@@ -356,6 +364,8 @@ export const IMPORT_RULES: ImportRule[] = [
     ignores: [
       { file: '/src/hooks/useInput.ts', target: '/src/lib/storage' },
       { file: '/src/main.tsx', target: '/src/lib/storage/index' },
+      { file: '/src/main.tsx', target: '/src/lib/storage/index.ts' },
+      { file: '/src/main.tsx', target: '/src/lib/storage/index.js' },
       { file: '/src/lib/storage/index.ts', target: '/src/lib/storage/clear' },
       { file: '/src/lib/storage/preferences.ts', target: '/src/lib/settings' },
     ],
@@ -364,10 +374,13 @@ export const IMPORT_RULES: ImportRule[] = [
     name: 'アプリのソースは、テストからだけ読むファイル（*.fixtures.ts・*.testing.ts）を読み込まない',
     fix: 'アプリで使うなら名前を変えてアプリのソースにする（秘密鍵の見本などを本番に入れないよう、中身を確かめる）',
     /** テスト用のデータ（秘密鍵・トークンの見本など）や検査の補助を、本番のビルドに入れないため。テストのファイルはこの検査の対象外 */
-    forbids: ({ target }) => /\.(?:fixtures|testing)$/.test(target),
+    forbids: ({ target }) => /\.(?:fixtures|testing)$/.test(withoutExtension(target)),
     detects: [
       { file: '/src/tools/jwt-decoder/index.tsx', target: '/src/tools/jwt-decoder/tokens.fixtures' },
       { file: '/src/lib/text/lines.ts', target: '/src/sourceScan.testing' },
+      /** 拡張子付きの import（`./tokens.fixtures.ts`・`./tokens.fixtures.js`）も止める */
+      { file: '/src/tools/jwt-decoder/index.tsx', target: '/src/tools/jwt-decoder/tokens.fixtures.ts' },
+      { file: '/src/tools/jwt-decoder/index.tsx', target: '/src/tools/jwt-decoder/tokens.fixtures.js' },
     ],
     ignores: [
       { file: '/src/tools/jwt-decoder/index.tsx', target: '/src/tools/jwt-decoder/tokens' },
