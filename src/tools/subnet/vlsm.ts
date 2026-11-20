@@ -6,11 +6,11 @@ import { CLOUD_RESERVED } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
 import { splitLines } from '../../lib/text/lines';
 import { formatNumber } from '../../lib/number';
-import { formatIpv4, subnetInfo } from './ipv4';
+import { formatIpv4 } from './ipv4';
 import type { ListError } from './ranges';
 
 export type HostRequest = { line: number; name: string; hosts: number };
-export type Allocation = HostRequest & { network: number; prefix: number; usable: number };
+export type Allocation = HostRequest & { network: number; prefix: number };
 /** 大量の短い行でも、解析時に作る行と割り当ての数を制限する。 */
 export const MAX_VLSM_LINES = 250_000;
 
@@ -66,7 +66,7 @@ export function allocateVlsm(network: number, prefix: number, requests: HostRequ
     if (r.prefix < prefix || next + size > end) {
       throw new Error(`${formatIpv4(network)}/${prefix} に収まりません（「${detailPreview(r.name)}」の /${r.prefix} を割り当てられません）`);
     }
-    result.set(r.line, { ...r, network: next, usable: subnetInfo(next, r.prefix, cloud).usable });
+    result.set(r.line, { ...r, network: next });
     next += size;
   }
   return sized.map((r) => result.get(r.line)!);

@@ -317,7 +317,7 @@ describe('VLSM', () => {
   it('大きい順に割り当て、入力の順で返す', () => {
     const { requests } = parseHostRequests('営業 50\n開発 200\n管理 10');
     const r = allocateVlsm(ip('192.168.0.0'), 23, requests);
-    expect(r.map((a) => `${a.name} ${formatIpv4(a.network)}/${a.prefix} ${a.usable}`)).toEqual([
+    expect(r.map((a) => `${a.name} ${formatIpv4(a.network)}/${a.prefix} ${subnetInfo(a.network, a.prefix).usable}`)).toEqual([
       '営業 192.168.1.0/26 62',
       '開発 192.168.0.0/24 254',
       '管理 192.168.1.64/28 14',

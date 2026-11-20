@@ -8,13 +8,13 @@ import {
   decodeInput,
   encode,
   encodeBase64,
-  findLoneSurrogate,
   hexDump,
   looksBinary,
   sniffType,
   surrogateWarning,
   toDataUri,
 } from './logic';
+import { findLoneSurrogate } from '../../lib/text/surrogate';
 
 const text = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 

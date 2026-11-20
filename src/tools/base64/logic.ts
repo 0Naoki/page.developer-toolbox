@@ -2,7 +2,6 @@ import { base64ToBytes, bytesToBase64, bytesToBinaryString } from '../../lib/byt
 import { describeAt, findLoneSurrogate, replacementWarning } from '../../lib/text/surrogate';
 import { errorMessage } from '../../lib/errors';
 
-export { findLoneSurrogate };
 
 export type EncodeMode = 'base64' | 'base64url' | 'url';
 

@@ -7,9 +7,9 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as storageEntry from './index';
-import { APP_PREFIX, prepareStorage, readInput, saveInput } from './index';
+import { prepareStorage, readInput, saveInput } from './index';
 /** 入口（index.ts）では公開していない低水準の処理そのものを確かめるため、内部モジュールから直接読み込む */
-import { clearAppData, CLEAR_KEY, INPUT_PREFIX, PREF_PREFIX, TAB_GENERATION_KEY } from './io';
+import { APP_PREFIX, clearAppData, CLEAR_KEY, INPUT_PREFIX, PREF_PREFIX, TAB_GENERATION_KEY } from './io';
 import { memoryStorage } from './memory.fixtures';
 import { toolCatalog } from '../../toolCatalog';
 

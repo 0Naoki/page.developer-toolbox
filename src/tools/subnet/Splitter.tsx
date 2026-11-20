@@ -126,12 +126,15 @@ function EqualSplit6({ network, prefix, newPrefix, cloud }: { network: bigint; p
     return attempt(() => splitNetwork6(network, prefix, p));
   }, [network, prefix, p]);
   if (!result.ok) return <ErrorText message={result.error} />;
-  const rows = result.subnets.map((n) => ({ n, info: subnetInfo6(n, p, cloud) }));
+  const rows = result.subnets.map((n) => ({ n }));
+  /** 大きさはどのサブネットも同じなので、先頭の1件だけで求める */
+  const first = result.subnets[0];
+  const usable = first === undefined ? 0n : subnetInfo6(first, p, cloud).usable;
   return (
     <>
       <div className="status-row">
         <Badge>{formatCount(result.count)} 個のサブネット</Badge>
-        <Badge>1つあたり {formatCount(rows[0]?.info.usable ?? 0n)} アドレス</Badge>
+        <Badge>1つあたり {formatCount(usable)} アドレス</Badge>
         <CopyButton text={rows.map((r) => `${formatIpv6(r.n)}/${p}`).join('\n')} label={result.count > BigInt(MAX_ROWS) ? `先頭${formatNumber(MAX_ROWS)}件をコピー` : '一覧をコピー'} />
       </div>
       {result.count > BigInt(MAX_ROWS) && <SplitOutput input={`${formatIpv6(network)}/${prefix}`} newPrefix={p} />}

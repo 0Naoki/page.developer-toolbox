@@ -8,7 +8,7 @@
  * - 起動時の消去失敗：旧世代の入力を削除できない間は復元・保存を止め、通知登録後に失敗を示し、自分のタブだけを再試行すること
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { APP_PREFIX } from './index';
+import { APP_PREFIX } from './io';
 import { INPUT_PREFIX } from './io';
 import { memoryStorage } from './memory.fixtures';
 

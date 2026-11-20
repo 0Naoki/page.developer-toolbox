@@ -25,7 +25,6 @@ export type CountResult = {
   halfWidth: number;
   fullWidth: number;
   lines: number;
-  newlines: number;
   /** Shift_JIS で表現できない文字 */
   unsupported: CharIssue[];
   /** EUC-JP で表現できない文字 */
@@ -102,7 +101,6 @@ export function countText(input: string, o: CountOptions): CountResult {
     halfWidth: half,
     fullWidth: full,
     lines: text === '' ? 0 : newlines + 1,
-    newlines,
     unsupported: unsupported.list(),
     unsupportedEuc: unsupportedEuc.list(),
     vendor: vendor.list(),

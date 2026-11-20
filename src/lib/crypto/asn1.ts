@@ -177,8 +177,7 @@ export const readInteger = (n: Node, maxBytes: number): bigint => {
   if (!isUniversal(n, TAG.INTEGER) || n.constructed) throw new Asn1Error('INTEGER ではありません');
   const v = valueOf(n);
   if (v.length > maxBytes) throw new Asn1Error(`整数が長すぎます（${maxBytes}バイトまで）`);
-  let hex = '';
-  for (const b of v) hex += b.toString(16).padStart(2, '0');
+  const hex = toHex(v);
   const x = hex ? BigInt(`0x${hex}`) : 0n;
   /** 先頭ビットが1なら負の数（2の補数） */
   return (v[0] ?? 0) & 0x80 ? x - (1n << BigInt(v.length * 8)) : x;
