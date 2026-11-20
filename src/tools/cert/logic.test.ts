@@ -310,7 +310,8 @@ describe('拡張の読み取り', () => {
     expect(summary.extensions).toHaveLength(70_000);
     expect(summary.extensions[0]?.values).toEqual(['（読めない値：FF）']);
     expect(summary.extensions[1]?.values[0]).toContain('同じ拡張が重複しています');
-  });
+    /** 7万件の読み取りを5回するため、並行実行の負荷で vitest の既定（5秒）を超えることがある。判定は上の相対比較で行う */
+  }, 30_000);
 
   it('同じ拡張が重複していたら、2つ目以降で SAN などを上書きしない', () => {
     const list = extensions([

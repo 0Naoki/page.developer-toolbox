@@ -171,7 +171,8 @@ describe('大きなデータ（Math.max の引数の上限）', () => {
     const r = jsonToCsv(json, DEFAULT_JSON_TO_CSV);
     expect(r.rows).toBe(ROWS);
     expect(r.columns).toBe(2);
-  });
+    /** 時間は確かめない（RangeError にならないことを守る）。並行実行の負荷で vitest の既定（5秒）を超えることがあるため、枠を広げる */
+  }, 30_000);
 });
 
 describe('CSVへの展開量の制限', () => {

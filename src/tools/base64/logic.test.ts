@@ -85,7 +85,8 @@ describe('bytesToBase64', () => {
     const encoded = bytesToBase64(bytes);
     expect(encoded).toHaveLength(266_668);
     expect(base64ToBytes(encoded)).toEqual(bytes);
-  });
+    /** 単独で約2秒かかり（大きな配列の比較）、並行実行の負荷で vitest の既定（5秒）を超えることがあるため、枠を広げる */
+  }, 30_000);
 });
 
 describe('decodeInput', () => {
