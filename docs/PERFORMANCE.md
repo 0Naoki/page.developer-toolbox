@@ -191,6 +191,17 @@ node scripts/measure-epoch-parsing.mjs docs/records/epoch-parsing-YYYY-MM-DD.jso
 
 HEAD と作業ツリーの解析処理を、各ケースの予備実行後に3回ずつ比較します。範囲外の数値は `9` を1,000・1,000,000・8,000,000単位並べたもの、有効な数値は `1` の先頭へ0、または `1.001` の末尾へ9を800万単位加えたものです。入力の単位は自動判定です。エラーとミリ秒の値が期待どおりかも確かめ、入力の準備・描画・保存を除く解析の時間だけを記録します。依存を変えた比較では `--comparison=tree` を使ってください。
 
+### ファイルHMACの読込の再利用
+
+```powershell
+node --expose-gc scripts/measure-hash-file-cache.mjs docs/records/hash-file-cache-YYYY-MM-DD.json
+```
+
+同じFileを2つの鍵で順に計算し、1 MiB・8 MiB・256 MiBを各3回測ります。
+計算結果の一致、読込回数、GC後に保持するArrayBufferの増分と解放後の増分を記録します。
+保持は画面内の小さいファイル1件だけに限ります。大容量ファイルはキャッシュせず、入力元の変更や画面移動では解放します。
+GC後の観測値であり、最大メモリ・RSS・ブラウザの性能ではありません。
+
 ### テキスト差分の応答
 
 ```powershell

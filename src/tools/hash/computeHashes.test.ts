@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { computeHashes } from './computeHashes';
+import { computeHashes, createHashComputer, MAX_CACHED_FILE_BYTES } from './computeHashes';
 import * as hashing from './logic';
 import { FILE_READ_ERROR } from '../../lib/file';
 
@@ -7,6 +7,59 @@ const context = () => ({ isCancelled: () => false, report: vi.fn() });
 afterEach(() => vi.restoreAllMocks());
 
 describe('入力ごとのハッシュ計算', () => {
+  it('同じ小さいファイルのHMACは読込を共有し、鍵ごとの結果を返す。消去後は読み直す', async () => {
+    const computer = createHashComputer();
+    const file = new File(['abc'], 'cached.txt');
+    const read = vi.spyOn(file, 'arrayBuffer');
+    const input = { source: 'file', file, useHmac: true, key: 'first' } as const;
+    const first = await computer.run(input, context());
+    const second = await computer.run({ ...input, key: 'second' }, context());
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(first.rows[0]?.hex).not.toBe(second.rows[0]?.hex);
+    computer.clear();
+    await computer.run(input, context());
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it('別ファイルと上限を超えるファイルは、以前の読込結果を再利用しない', async () => {
+    const computer = createHashComputer();
+    const a = new File(['abc'], 'same.txt');
+    const b = new File(['def'], 'same.txt');
+    const readA = vi.spyOn(a, 'arrayBuffer');
+    const readB = vi.spyOn(b, 'arrayBuffer');
+    const request = (file: File) => ({ source: 'file' as const, file, useHmac: true, key: 'key' });
+    await computer.run(request(a), context());
+    await computer.run(request(b), context());
+    await computer.run(request(a), context());
+    expect(readA).toHaveBeenCalledTimes(2);
+    expect(readB).toHaveBeenCalledTimes(1);
+    vi.spyOn(a, 'size', 'get').mockReturnValue(MAX_CACHED_FILE_BYTES + 1);
+    computer.clear();
+    await computer.run(request(a), context());
+    await computer.run(request(a), context());
+    expect(readA).toHaveBeenCalledTimes(4);
+  });
+
+  it('読込中の同じファイルを共有し、取消した要求の結果は返さない。読込失敗は再試行できる', async () => {
+    const computer = createHashComputer();
+    const file = new File(['abc'], 'pending.txt');
+    let finish!: (bytes: ArrayBuffer) => void;
+    const read = vi.spyOn(file, 'arrayBuffer').mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    let cancelled = false;
+    const input = { source: 'file', file, useHmac: true, key: 'old' } as const;
+    const old = computer.run(input, { ...context(), isCancelled: () => cancelled });
+    const current = computer.run({ ...input, key: 'new' }, context());
+    cancelled = true;
+    finish(new TextEncoder().encode('abc').buffer);
+    expect(await old).toEqual({ rows: [], error: '' });
+    expect((await current).rows).toHaveLength(4);
+    expect(read).toHaveBeenCalledTimes(1);
+    computer.clear();
+    read.mockRejectedValueOnce(new Error('一時的な失敗'));
+    await expect(computer.run(input, context())).rejects.toThrow(FILE_READ_ERROR);
+    expect((await computer.run(input, context())).rows).toHaveLength(4);
+    expect(read).toHaveBeenCalledTimes(3);
+  });
   it('テキストとファイルで同じバイト列なら、全アルゴリズムの結果と順番が一致する', async () => {
     const text = await computeHashes({ source: 'text', text: 'abc', useHmac: false, key: '' }, context());
     const file = await computeHashes({ source: 'file', file: new File(['abc'], 'input.txt'), useHmac: false, key: '' }, context());

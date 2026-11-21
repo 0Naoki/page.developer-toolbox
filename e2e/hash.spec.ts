@@ -132,4 +132,15 @@ test('回帰：ファイルの HMAC で鍵を続けて打っても、打つた�
   /** HMAC-SHA256("secret", "abc") */
   await expect(page.locator('.hash-value').filter({ hasText: '9946dad4e00e913fc8be8e5d3f7e110a4a9e832f83fb09c345285d78638d8a0e' })).toHaveCount(1);
   expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(1);
+  const key = page.getByLabel('秘密鍵（UTF-8として扱います。保存されません）');
+  for (const value of ['other', 'another']) {
+    await key.fill(value);
+    await page.clock.runFor(200);
+    await expect(page.locator('.hash-value')).toHaveCount(4);
+    expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(1);
+  }
+  await pickFile(page, 'changed.txt', 'def');
+  await page.clock.runFor(200);
+  await expect(page.locator('.hash-value')).toHaveCount(4);
+  expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(2);
 });
