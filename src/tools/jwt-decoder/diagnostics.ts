@@ -39,7 +39,7 @@ export function headerWarnings(header: Record<string, unknown>): HeaderWarning[]
     if (k in header) warn(`ヘッダに鍵（${k}）が埋め込まれています。トークン自身に含まれる鍵で検証しても、正しい発行者が署名したことにはなりません`);
   }
   if ('crit' in header) {
-    const names = Array.isArray(header.crit) ? listOf(header.crit.map((x) => (typeof x === 'string' ? x : describeValue(x)))) : describeValue(header.crit);
+    const names = Array.isArray(header.crit) ? listOf(header.crit) : describeValue(header.crit);
     warn(`crit（${names}）があります。挙げられた拡張を理解できない検証側は、このトークンを拒否する必要があります`);
   }
   if ('b64' in header && header.b64 !== true) {
@@ -62,8 +62,12 @@ export const isNumericDate = (value: unknown): value is number => typeof value =
  */
 function describeValue(v: unknown): string {
   if (typeof v === 'string') {
-    const chars = Array.from(v);
-    return JSON.stringify(chars.length > 40 ? `${chars.slice(0, 40).join('')}…` : v);
+    let shown = '', count = 0;
+    for (const char of v) {
+      if (count++ === 40) return JSON.stringify(shown + '…');
+      shown += char;
+    }
+    return JSON.stringify(v);
   }
   if (v === null || typeof v === 'number' || typeof v === 'boolean') return String(v);
   if (Array.isArray(v)) return `配列（要素${formatNumber(v.length)}個）`;
@@ -71,8 +75,8 @@ function describeValue(v: unknown): string {
 }
 
 /** 名前の一覧を、先頭10件までつなぐ。名前はトークン由来で長さに制限がないため、1件ずつ抜粋にする */
-const listOf = (names: string[]): string => {
-  const shown = names.slice(0, 10).map((name) => detailPreview(name)).join(', ');
+const listOf = (names: unknown[]): string => {
+  const shown = names.slice(0, 10).map((name) => detailPreview(typeof name === 'string' ? name : describeValue(name))).join(', ');
   return names.length > 10 ? `${shown} ほか${names.length - 10}件` : shown;
 };
 

@@ -1,6 +1,7 @@
 /**
  * JWTデコーダーのファイルの分担。
  * - `logic.ts`：トークンの分解と、時刻クレームの表示用の値
+ * - `calculation.ts`：Workerでの解析と、画面へ返すデータ・警告の制限
  * - `diagnostics.ts`：時刻クレームの判定と、ヘッダ・クレームの警告
  * - `alg.ts`：署名アルゴリズム（RFC 7518）と Web Crypto API の指定の対応
  * - `keys.ts`：鍵（秘密鍵・公開鍵・JWK Set）の読み込みと安全検査
@@ -20,12 +21,14 @@ import { Segmented } from '../../components/Segmented';
 import { ToolShell } from '../../components/ToolShell';
 import { detailPreview, TEXT_PREVIEW_LIMIT } from '../../lib/text/textPreview';
 import { useNow } from '../../hooks/useNow';
-import { decodeJwe, judgeJwt, parseJwt, type DecodedJwt, type ParsedJwt } from './logic';
+import { judgeJwt, type DecodedJwt } from './logic';
+import type { JwtDisplay } from './calculation';
 import { isHmacAlg } from './alg';
 import type { SecretEncoding } from './keys';
 import { useVerification, type VerificationState } from './useVerification';
-import { ErrorBox, ErrorText } from '../../components/ErrorMessage';
-import { attempt } from '../../lib/errors';
+import { ErrorText } from '../../components/ErrorMessage';
+import { CalculationStatus } from '../../components/CalculationStatus';
+import { useCalculation } from '../../hooks/useCalculation';
 import { previewList } from '../../lib/listPreview';
 import { ListRest } from '../../components/ListRest';
 import { TextOutputPreview } from '../../components/FormattedOutput';
@@ -39,13 +42,10 @@ export default function JwtDecoder() {
   const [token, setToken] = useState('');
   /** サンプルで入力を差し替えたとき、編集履歴を作り直す（LargeTextInput の resetKey） */
   const [tokenRevision, setTokenRevision] = useState(0);
-  const result = useMemo(() => {
-    if (!token.trim()) return null;
-    return attempt(() => {
-      const jwe = decodeJwe(token);
-      return jwe ? { jwe } : { data: parseJwt(token) };
-    });
-  }, [token]);
+  const calculation = useCalculation({ tool: 'jwt', input: token });
+  const result = calculation.result;
+  /** 解析待ちでも鍵の入力はメモリ内に保ち、検証だけを止める。入力が変わった描画から旧トークンの判定を出さない。 */
+  const verification = useVerification(result?.kind === 'jwt' ? result.data : null);
 
   return (
     <ToolShell
@@ -60,37 +60,34 @@ export default function JwtDecoder() {
         </button>
       }>
         {/** 長いトークン（改行のない1行）を普通の textarea で描画すると、画面が数十秒止まることがあるため、表示を先頭までにする */}
-        <LargeTextInput label="トークン" className="code code-short" value={token} onChange={setToken} resetKey={tokenRevision} placeholder="eyJhbGciOi...（Bearer 付きでも可）" />
+        <LargeTextInput limit={MAX_CALCULATION_INPUT} label="トークン" className="code code-short" value={token} onChange={setToken} resetKey={tokenRevision} placeholder="eyJhbGciOi...（Bearer 付きでも可）" />
       </Pane>
 
-      {result && !result.ok && (
-        <ErrorBox title="デコードできません" message={result.error} code />
-      )}
+      {token !== '' && calculation.state !== 'done' && <CalculationStatus {...calculation} />}
 
-      {result?.ok && 'jwe' in result && result.jwe && (
+      {result?.kind === 'jwe' && (
         <>
           <Notice tone="warn">
             JWE（暗号化されたトークン）です。中身（ペイロード）は暗号化されているため、復号の鍵がないと表示できません。読めるのはヘッダだけです。
           </Notice>
           <HandoffHint />
           <div className="split">
-            <JsonPane title="ヘッダ" text={result.jwe.headerJson} />
+            <JsonPane title="ヘッダ" text={result.headerJson} />
           </div>
         </>
       )}
 
-      {result?.ok && 'data' in result && result.data && <Decoded parsed={result.data} />}
+      {result?.kind === 'jwt' && <Decoded parsed={result.data} verification={verification} />}
     </ToolShell>
   );
 }
 
-function Decoded({ parsed }: { parsed: ParsedJwt }) {
+function Decoded({ parsed, verification }: { parsed: JwtDisplay; verification: VerificationState }) {
   /** 期限切れの判定と「あと何時間」を、貼り付けた時点で止めずに更新する。トークンの解析は毎秒やり直さない */
   const now = useNow();
   const data = useMemo(() => judgeJwt(parsed, now), [parsed, now]);
-  const verification = useVerification(parsed);
   /** 重複したキーなどの警告は多くなり得るため、先頭5件と残りの件数にする */
-  const warnings = previewList(data.warnings, 5);
+  const warnings = previewList(data.warnings, 5, parsed.warningTotal);
 
   return (
     <>

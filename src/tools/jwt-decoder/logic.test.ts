@@ -1,8 +1,20 @@
 /** 検査の対象：logic.ts・diagnostics.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
 import { describe, expect, it } from 'vitest';
 import { claimRows, decodeJwe, judgeJwt, parseJwt } from './logic';
-import { headerWarnings } from './diagnostics';
+import { headerWarnings, timeClaimTypeWarnings } from './diagnostics';
 import { base64Url, decodeJwt } from './tokens.fixtures';
+
+it('診断の抜粋では表示しないcrit要素を読まず、補助平面の文字を分断しない', () => {
+  const crit = new Proxy(Array.from({ length: 20 }, (_, i) => `item${i}`), {
+    get(target, key, receiver) {
+      if (key === '10') throw new Error('表示範囲外を読みました');
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  expect(headerWarnings({ crit })[0]?.message).toContain('ほか10件');
+  expect(timeClaimTypeWarnings({ exp: '😀'.repeat(41) })[0]).toContain(JSON.stringify('😀'.repeat(40) + '…'));
+  expect(timeClaimTypeWarnings({ exp: '😀'.repeat(40) })[0]).not.toContain('…');
+});
 
 /** \{"alg":"HS256","typ":"JWT"\} . \{"sub":"123","name":"山田","iat":1700000000,"exp":1700003600\} */
 const header = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';

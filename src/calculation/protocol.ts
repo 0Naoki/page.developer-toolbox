@@ -17,8 +17,10 @@ import type { convertEpochsInText, BulkMode } from '../tools/unix-time/epoch';
 import type { aggregateList, calculateSplit, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
 import type { Zone } from '../lib/time/timezone';
 import type { TextConversion, TextConversionRequest } from '../tools/base64/logic';
+import type { TokenCalculation } from '../tools/jwt-decoder/calculation';
 
 export type CalculationRequest =
+  | { tool: 'jwt'; input: string }
   | { tool: 'json'; input: string; indent: JsonIndent; sortKeys: boolean }
   | ({ tool: 'csv' } & CsvConversionRequest)
   | { tool: 'count'; input: string; newline: Newline; measure: Measure }
@@ -34,6 +36,7 @@ export type CalculationRequest =
 
 /** ツールごとの結果の型 */
 export type CalculationResults = {
+  jwt: TokenCalculation;
   json: JsonResult;
   count: TextMeasurement;
   countReport: string;

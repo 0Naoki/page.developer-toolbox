@@ -40,16 +40,14 @@ const NO_KEY: LoadedKey = { key: null, error: '', warning: null, source: '' };
  * 鍵は機密情報になり得るため、useState で持ち、保存しない（秘密鍵の形式の選択だけを表示設定として保存する）。
  * 鍵の読み込みは描画中に行うため、例外はここで受け止めて keyError にする。
  * 検証の結果は、どの鍵・トークンの結果かを組で持ち（useAsyncFor）、入力を変えた直後の描画でも前の結果を表示しない。
+ * data が null の間は検証を止め、鍵の入力は保持する。Worker解析中の旧トークンを検証しないため。
  */
-export function useVerification(data: ParsedJwt): VerificationState {
+export function useVerification(data: ParsedJwt | null): VerificationState {
   const [keyText, setKeyText] = useState('');
   const [encoding, setEncoding] = usePreference<SecretEncoding>('jwt:secret-encoding', 'utf-8', oneOf('utf-8', 'base64'));
-  /**
-   * 現在時刻の更新で data は毎秒作り直されるため、検証のやり直しの判断には文字列にした値を使う
-   * （alg や kid がオブジェクトのトークンで、毎秒検証し直して表示がちらつかないように）
-   */
-  const alg = typeof data.header.alg === 'string' ? data.header.alg : undefined;
-  const kid = typeof data.header.kid === 'string' ? data.header.kid : undefined;
+  /** alg・kidがオブジェクトのときは検証に使わず、再計算の判断も文字列の値だけで行う。 */
+  const alg = typeof data?.header.alg === 'string' ? data.header.alg : undefined;
+  const kid = typeof data?.header.kid === 'string' ? data.header.kid : undefined;
   const hmac = isHmacAlg(alg);
 
   const key = useMemo((): LoadedKey => {
@@ -68,7 +66,7 @@ export function useVerification(data: ParsedJwt): VerificationState {
     }
   }, [keyText, encoding, hmac, alg, kid]);
 
-  const target = useMemo((): VerifyTarget | null => (key.key ? { key: key.key, signingInput: data.signingInput, signature: data.signature, alg } : null), [key, data.signingInput, data.signature, alg]);
+  const target = useMemo((): VerifyTarget | null => (data && key.key ? { key: key.key, signingInput: data.signingInput, signature: data.signature, alg } : null), [key, data?.signingInput, data?.signature, alg]);
   const verified = useAsyncFor(
     target,
     (t) => verifyJwt(t.signingInput, t.signature, t.alg, t.key),

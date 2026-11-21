@@ -82,6 +82,8 @@ describe('画面から分離した計算', () => {
 
   it('大きすぎる入力を解析前に拒否する', () => {
     expect(() => calculate({ tool: 'json', input: ' '.repeat(MAX_CALCULATION_INPUT + 1), indent: 2, sortKeys: false })).toThrow('入力が大きすぎます');
+    expect(() => calculate({ tool: 'jwt', input: ' '.repeat(MAX_CALCULATION_INPUT + 1) })).toThrow('入力が大きすぎます');
+    expect(calculate({ tool: 'jwt', input: '' })).toBeNull();
   });
 
   it('深い入れ子の整形で出力を際限なく増やさない', () => {

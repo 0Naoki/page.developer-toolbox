@@ -87,7 +87,7 @@ JWTデコーダーのヘッダ・ペイロード、Base64 のデコード結果�
 | パスワード生成 | <!-- limit:password.length:start -->長さ4〜128文字<!-- limit:password.length:end -->、PIN 4〜32桁。1回に1・5・10・20件 | <!-- limit:password.config-preview:start -->記号・除外文字は先頭2,000単位<!-- limit:password.config-preview:end -->を表示（コピーと生成は全文） | — |
 | UUID / ULID | 1回に1・5・10・50・100件 | — | — |
 | ハッシュ生成 | <!-- limit:hash.file:start -->ファイル256 MiB<!-- limit:hash.file:end -->。テキストは上限なし | — | MD5 は<!-- limit:hash.chunk:start -->4 MiBずつ<!-- limit:hash.chunk:end -->処理し、そのたびに画面へ制御を返す |
-| JWTデコーダー | <!-- limit:jwt.key:start -->公開鍵65,536単位<!-- limit:jwt.key:end -->（PEM は1ブロックだけ。証明書のチェーンは、トークンに署名した鍵の証明書だけを入力する）。トークンは上限なし | ヘッダ・ペイロードと長いクレーム値は<!-- limit:jwt.preview:start -->先頭50,000単位まで表示<!-- limit:jwt.preview:end -->。時刻クレームの元の表記は<!-- limit:jwt.claim:start -->先頭2,000単位まで表示<!-- limit:jwt.claim:end -->。alg のバッジ・鍵の欄の見出し・警告やエラーに入る alg・kid・時刻は<!-- limit:jwt.detail:start -->先頭256単位の抜粋<!-- limit:jwt.detail:end -->。ヘッダ・ペイロード・各クレーム値・時刻の元の表記のコピーは全文 | — |
+| JWTデコーダー | <!-- limit:jwt.key:start -->公開鍵65,536単位<!-- limit:jwt.key:end -->（PEM は1ブロックだけ。証明書のチェーンは、トークンに署名した鍵の証明書だけを入力する）。トークン<!-- limit:jwt.input:start -->800万単位<!-- limit:jwt.input:end --> | ヘッダ・ペイロードと長いクレーム値は<!-- limit:jwt.preview:start -->先頭50,000単位まで表示<!-- limit:jwt.preview:end -->。時刻クレームの元の表記は<!-- limit:jwt.claim:start -->先頭2,000単位まで表示<!-- limit:jwt.claim:end -->。alg のバッジ・鍵の欄の見出し・警告やエラーに入る alg・kid・時刻は<!-- limit:jwt.detail:start -->先頭256単位の抜粋<!-- limit:jwt.detail:end -->。ヘッダ・ペイロード・各クレーム値・時刻の元の表記のコピーは全文 | 解析は<!-- limit:jwt.timeout:start -->Workerで10秒<!-- limit:jwt.timeout:end -->。中断・再計算が可能 |
 | 証明書デコーダー | <!-- limit:cert.input:start -->貼り付け1,048,576単位<!-- limit:cert.input:end -->、<!-- limit:cert.file:start -->ファイル1 MiB<!-- limit:cert.file:end -->、<!-- limit:cert.blocks:start -->PEMは64ブロック<!-- limit:cert.blocks:end -->まで | ブロックの解析エラーは先頭5件と総数を表示。SAN・拡張・拡張の値・属性は<!-- limit:cert.list:start -->先頭100件<!-- limit:cert.list:end -->、1つの値は<!-- limit:cert.value:start -->2,000単位まで表示<!-- limit:cert.value:end -->し、超えた値には「以降省略」と元の長さを示す（解読できた値の全件・全文はコピーで取り出す）。未知・不正・重複の拡張は先頭<!-- limit:cert.raw-preview:start -->32バイト<!-- limit:cert.raw-preview:end -->の抜粋（生バイトは全文コピー）。署名の検証に使った<!-- limit:cert.issuer:start -->発行者の名前は先頭256単位の抜粋<!-- limit:cert.issuer:end --> | <!-- limit:cert.attributes:start -->名前の属性は256個<!-- limit:cert.attributes:end -->まで |
 
 表の数値は、各ツールの上限の定数と一致することを単体テスト（`src/documentLimits.test.ts`）で確かめています。上限を変えたときは、この表も直してください。性能の計測手順は [PERFORMANCE.md](PERFORMANCE.md) を参照してください。
@@ -175,6 +175,8 @@ PINは各桁を0〜9から選び、桁数と10種類の文字から強度を計�
 ### JWT・証明書の判定の読み方
 
 JWT のデコード、時刻クレームの判定、署名の検証はそれぞれ別の処理です。「署名は正しい」は入力した鍵で署名が一致したことを示します。発行者や利用対象（iss・aud など）が利用先の要件に合うかは、利用先で確認する必要があります。JWE はヘッダの表示だけに対応し、復号しません。
+
+トークンの解析中・中断後は、前の入力の表示や署名判定を出しません。鍵の入力は保持し、解析後に新しいトークンを検証します。
 
 証明書・CSR の署名検証は、提示された公開鍵との一致を確かめます。有効期限は別に表示します。チェーンの順番の確認は発行者の名前・鍵識別子による候補の照合であり、信頼するルートまでのパス検証や失効確認（OCSP・CRL）は行いません。自己発行（発行者と主体の名前が同じ）と自己署名（自身の鍵で署名を検証できる）は区別します。
 
