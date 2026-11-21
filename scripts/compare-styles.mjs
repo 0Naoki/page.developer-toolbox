@@ -17,15 +17,14 @@
  */
 import { chromium } from '@playwright/test';
 import { build } from 'vite';
-import { createServer } from 'node:http';
 import { readFile, readdir } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { join } from 'node:path';
+import { captureStyleStates, compareSnapshots, serveStyleBuild } from './style-comparison.mjs';
 
 const OUT_ROOT = '.vite/compare-styles';
 /** ランダムな出力を並べる入れ物。中の要素は比べない（生成したパスワードは、文字の種類ごとに色分けした要素の数が毎回変わる） */
 const IGNORE = ['.pw-list'];
 const VIEWPORTS = { desktop: { width: 1280, height: 900 }, mobile: { width: 390, height: 844 } };
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon' };
 
 const [command, ...names] = process.argv.slice(2);
 const dirOf = (name) => {
@@ -37,24 +36,6 @@ const dirOf = (name) => {
 async function toolIds() {
   const catalog = await readFile('src/toolCatalog.ts', 'utf8');
   return [...catalog.matchAll(/^\s+id: '([^']+)',$/gm)].map((m) => m[1]);
-}
-
-/** dist のフォルダを、空いているポートで配信する */
-async function serve(dir) {
-  const server = createServer(async (req, res) => {
-    const path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
-    const file = path === '/' ? '/index.html' : path;
-    try {
-      const body = await readFile(join(dir, file));
-      res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' });
-      res.end(body);
-    } catch {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  return { server, url: `http://127.0.0.1:${server.address().port}/` };
 }
 
 /** ページの中で、全要素の計算後のスタイルをハッシュにする（キーは body からの要素の位置） */
@@ -80,39 +61,24 @@ function capture(ignore) {
 
 /** 全ツールとトップページの、状態ごとの計算後のスタイル */
 async function snapshots(dir) {
-  const { server, url } = await serve(dir);
-  const browser = await chromium.launch();
+  const { server, url } = await serveStyleBuild(dir);
+  let browser;
   const out = {};
   try {
+    browser = await chromium.launch();
     for (const [viewport, size] of Object.entries(VIEWPORTS)) {
       for (const id of ['', ...(await toolIds())]) {
         const page = await browser.newPage({ viewport: size });
         await page.goto(`${url}#/${id}`);
         await page.waitForTimeout(400);
-        const sample = page.getByRole('button', { name: 'サンプル', exact: true });
-        if (await sample.count()) {
-          await sample.first().click();
-          await page.waitForTimeout(800);
-        }
         const name = `${viewport} ${id || '(トップページ)'}`;
-        out[name] = await page.evaluate(capture, IGNORE);
-        const groups = page.locator('main [role="group"]');
-        for (let g = 0; g < (await groups.count()); g++) {
-          const buttons = groups.nth(g).locator('button');
-          for (let b = 0; b < (await buttons.count()); b++) {
-            const button = buttons.nth(b);
-            if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
-            const label = (await button.textContent())?.trim();
-            await button.click();
-            await page.waitForTimeout(500);
-            out[`${name} [${g}] ${label}`] = await page.evaluate(capture, IGNORE);
-          }
-        }
+        Object.assign(out, await captureStyleStates(page, name, capture, IGNORE));
         await page.close();
       }
     }
   } finally {
-    await browser.close();
+    await browser?.close();
+    server.closeAllConnections();
     server.close();
   }
   return out;
@@ -141,22 +107,8 @@ async function compare(beforeName, afterName) {
   }
 
   const [a, b] = [await snapshots(before), await snapshots(after)];
-  let elements = 0;
-  const diffs = [];
-  for (const [state, elementsBefore] of Object.entries(a)) {
-    const elementsAfter = b[state];
-    if (!elementsAfter) {
-      diffs.push(`${state}：変更後にこの状態がありません`);
-      continue;
-    }
-    for (const [path, x] of Object.entries(elementsBefore)) {
-      elements++;
-      const y = elementsAfter[path];
-      if (!y) diffs.push(`${state} ${path}：変更後にこの要素がありません`);
-      else if (x.hash !== y.hash) diffs.push(`${state} ${path}（.${x.cls || '(クラスなし)'}）：計算後のスタイルが違います`);
-    }
-  }
-  console.log(`計算後のスタイル：${Object.keys(a).length} 状態・${elements} 要素`);
+  const { states, elements, differences: diffs } = compareSnapshots(a, b);
+  console.log(`計算後のスタイル：${states} 状態・${elements} 要素`);
   if (diffs.length) {
     failed = true;
     for (const d of diffs.slice(0, 50)) console.log(`  ${d}`);
