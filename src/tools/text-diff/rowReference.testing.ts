@@ -1,4 +1,4 @@
-/** 圧縮・上限適用前の参照実装。表示の順序と折りたたみを比較するテストだけで使う。 */
+/** 圧縮・上限適用前の参照実装。表示の順序と折りたたみのテスト、および差分転送の計測で使う。 */
 import type { DiffRow } from './logic';
 
 import type { FoldedRow, UnifiedDisplayRow } from './rows';
@@ -49,11 +49,6 @@ export function visibleRows(rows: DiffRow[], options: { onlyChanges: boolean; co
     row.kind === 'fold' && options.expanded.includes(row.from) ? rows.slice(row.from, row.from + row.count) : [row],
   );
 }
-
-/**
- * 統合表示（左右に分けない表示）の1行。unified.ts の UnifiedItem（コピー用のパッチの行）とは別のもので、
- * 折りたたみと、左右の行番号を持つ。
- */
 
 /** 統合表示の行にする。連続する変更は「削除した行をすべて → 追加した行をすべて」の順に並べ直す */
 export function unifiedDisplayRows(rows: readonly FoldedRow[]): UnifiedDisplayRow[] {

@@ -25,7 +25,8 @@ export type FileLoaderOptions<T> = {
  * 上限の確認・読み込み・最新かどうかの確認・失敗の文言・読み込み中の表示をツール間でそろえる。
  * 新しいファイルを選んだとき、`cancel`・`clear` を呼んだとき（入力の編集・設定の変更など）、画面を離れたときに、
  * それより前の読み込みの結果を捨てる。読み込みの失敗（FileInputError）は共通の文言、
- * 読めた後の変換の失敗は `decodeErrorMessage` の文言で `error` に入れる。読み込んだ内容は保存しない。
+ * 読めた後の変換の失敗は `decodeErrorMessage` の文言で `error` に入れる。
+ * このフック自体は内容を保存しない。読み込んだ内容の保存は、呼び出し側の `onLoaded` で決める。
  *
  * @typeParam T - decode が返す値の型。
  * @returns `pick`（選んだファイルを読み込む）、`cancel`（進行中の読み込みを捨てる。文言は残す）、

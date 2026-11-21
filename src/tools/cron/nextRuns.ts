@@ -114,7 +114,7 @@ export function nextRuns(cron: CronExpression, zone: Zone, from: number, count: 
  *
  * @remarks
  * 基準日時の欄（日本時間として読む）に貼り戻しても同じ時刻になるよう、日本時間以外の表示には withOffset で
- * UTC からのずれを付ける（「2026-10-04 20:00:00 -04:00（日）」）。曜日の添え書きは、日時の入力（parseDateTime）が読み飛ばす。
+ * UTC からのずれを付ける（「2026-10-04 20:00:00 -04:00（日）」）。parseDateTimeは曜日と日付の一致を検証してから、曜日の添え書きを取り除く。
  */
 export function formatRun(ms: number, zone: Zone, withOffset = false): string {
   const { y, mo, d } = wallOf(ms, zone);

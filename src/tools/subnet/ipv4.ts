@@ -66,7 +66,7 @@ export function parseNetwork(input: string): ParsedNetwork {
 }
 
 /** 例外を投げずに parseNetwork と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
-export function readNetwork(input: string): ParsedNetwork | Failure {
+function readNetwork(input: string): ParsedNetwork | Failure {
   const s = input.trim();
   if (!s) return () => { throw new Error('アドレスを入力してください'); };
   const m = /^([\d.]+)(?:\s*\/\s*|\s+)(\S+)$/.exec(s);

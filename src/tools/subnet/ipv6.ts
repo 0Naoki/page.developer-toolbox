@@ -23,7 +23,7 @@ export function parseIpv6(input: string): bigint {
 }
 
 /** 例外を投げずに parseIpv6 と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
-export function readIpv6(input: string): bigint | Failure {
+function readIpv6(input: string): bigint | Failure {
   let s = input.trim();
   const shown = s;
   if (s.startsWith('[') && s.endsWith(']')) s = s.slice(1, -1);
@@ -84,7 +84,7 @@ export function parseNetwork6(input: string): ParsedNetwork6 {
 type ParsedNetwork6 = { ip: bigint; prefix: number; notation: 'cidr' | 'host' };
 
 /** 例外を投げずに parseNetwork6 と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
-export function readNetwork6(input: string): ParsedNetwork6 | Failure {
+function readNetwork6(input: string): ParsedNetwork6 | Failure {
   const s = input.trim();
   const m = /^(.+?)\s*\/\s*(\d{1,3})$/.exec(s);
   if (s.includes('/') && (!m || m[1]?.includes('/'))) return () => { throw new Error('IPv6 のプレフィックス長は / の後に 0〜128 の整数で指定してください'); };

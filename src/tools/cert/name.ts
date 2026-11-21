@@ -68,11 +68,6 @@ export const attributeKey = (oid: string, tag: number | null, value: string, raw
   `${oid}\u0000${tag !== null && DIRECTORY_STRINGS.includes(tag) ? `S${prepare(value)}` : `B${toUpperHex(raw)}`}`;
 
 /**
- * 名前が同じか（RFC 5280 7.1）。DER のバイト列が違っても、RDN の並びと各 RDN の属性の集合が同じで、
- * 文字列の値が符号化（PrintableString と UTF8String など）・大文字小文字・空白の違いを除いて同じなら、同じとする。
- * 複数の属性を持つ RDN は集合なので、キーの個数を数えて比べる（属性の数に比例する時間で済む）
- */
-/**
  * 発行者の鍵識別子（AKI）と、発行者とみなす証明書の鍵識別子（SKI）が食い違わないか。どちらかがなければ食い違わないとする。
  *
  * @remarks
@@ -82,6 +77,11 @@ export const attributeKey = (oid: string, tag: number | null, value: string, raw
 export const keyIdsCompatible = (authorityKeyId: string | null, subjectKeyId: string | null): boolean =>
   !authorityKeyId || !subjectKeyId || authorityKeyId === subjectKeyId;
 
+/**
+ * 名前が同じか（RFC 5280 7.1）。DER のバイト列が違っても、RDN の並びと各 RDN の属性の集合が同じで、
+ * 文字列の値が符号化（PrintableString と UTF8String など）・大文字小文字・空白の違いを除いて同じなら、同じとする。
+ * 複数の属性を持つ RDN は集合なので、キーの個数を数えて比べる（属性の数に比例する時間で済む）
+ */
 export function sameName(a: ParsedName, b: ParsedName): boolean {
   if (sameBytes(a.raw, b.raw)) return true;
   if (a.rdns.length !== b.rdns.length) return false;

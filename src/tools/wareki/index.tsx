@@ -27,8 +27,7 @@ export default function WarekiTool() {
   const toS = useMemo(() => attemptInput(wareki, parseWareki), [wareki]);
   const age = useMemo(
     () => attemptInput(birth, (s) => ageFrom(s, baseDate, today)),
-    /** today は描画のたびに作り直されるため、日付の文字列で変化を判断する（日付が変わったら計算し直す） */
-    [birth, baseDate, todayText],
+    [birth, baseDate, today],
   );
 
   const rows = useMemo(() => yearTable(1926, today.y + 10).reverse(), [today.y]);

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { limitMessage } from '../lib/text/textPreview';
 
 /** 案内の種類。info は色を付けない案内、good・bad・warn は判定の結果と注意 */
-export type NoticeTone = 'info' | 'good' | 'bad' | 'warn';
+type NoticeTone = 'info' | 'good' | 'bad' | 'warn';
 
 /**
  * 案内・警告・判定の結果（`notice`）。文字列で渡す message は、エラーと同じ上限（`MESSAGE_LIMIT`）までに制限して描画する。

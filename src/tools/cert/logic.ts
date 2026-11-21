@@ -196,7 +196,7 @@ export function parseCertificate(der: Uint8Array): Certificate {
   };
 }
 
-export function parseCsr(der: Uint8Array): Csr {
+function parseCsr(der: Uint8Array): Csr {
   const root = parseDerExact(der);
   const info = assertTag(root.children[0], TAG.SEQUENCE, 'CSR の本体');
   assertTag(info.children[0], TAG.INTEGER, 'CSR のバージョン');
