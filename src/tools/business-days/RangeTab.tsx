@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Stat } from '../../components/Stat';
 import { useInput } from '../../hooks/useInput';
 import { daysInMonth, formatYmd, parseYmd, type Ymd } from '../../lib/time/date';
@@ -19,6 +19,8 @@ export function RangeTab({ cal, today }: { cal: Calendar; today: Ymd }) {
   );
   /** 件数は期間（最大30年）と独自休日の数で増える（毎日を独自休日にすると1万件を超える）ため、先頭だけを描画し、全件はコピーで取り出す */
   const offDays = r.ok ? previewList(r.offDays) : null;
+  /** 結果が変わらない間は同じ関数を渡す（CopyButton は関数が変わると、コピー中の状態を前の内容のものとして捨てるため） */
+  const copyOffDays = useCallback(() => (r.ok ? r.offDays.map((o) => `${withDow(o.date)}\t${o.reason}`).join('\n') : ''), [r]);
 
   return (
     <>
@@ -48,7 +50,7 @@ export function RangeTab({ cal, today }: { cal: Calendar; today: Ymd }) {
               <ListRest
                 rest={offDays.rest}
                 shown={offDays.shown.length}
-                copyText={offDays.rest > 0 ? () => r.offDays.map((o) => `${withDow(o.date)}\t${o.reason}`).join('\n') : undefined}
+                copyText={offDays.rest > 0 ? copyOffDays : undefined}
                 copyLabel="すべての休みをコピー"
               />
             </>

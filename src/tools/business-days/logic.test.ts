@@ -114,7 +114,7 @@ describe('独自休日の入力', () => {
   it('改行・カンマ区切りの日付を「2026-10-26」の形にそろえ、読めない行は知らせる', () => {
     expect(parseExtraHolidays('2026/10/26\r\n 20261027 ,2026年10月28日\n\n明日\n2026-02-30')).toEqual({
       dates: ['2026-10-26', '2026-10-27', '2026-10-28'],
-      invalid: [{ line: 4, text: '明日', length: 2 }, { line: 5, text: '2026-02-30', length: 10 }],
+      invalid: [{ line: 4, text: '明日', length: 2, chars: 2 }, { line: 5, text: '2026-02-30', length: 10, chars: 10 }],
       invalidCount: 2,
     });
     expect(parseExtraHolidays('')).toEqual({ dates: [], invalid: [], invalidCount: 0 });
@@ -124,16 +124,16 @@ describe('独自休日の入力', () => {
     expect(parseExtraHolidays('2026-01-01\r2026-01-02')).toEqual({ dates: ['2026-01-01', '2026-01-02'], invalid: [], invalidCount: 0 });
     expect(parseExtraHolidays('2026-01-01\r\n2026-01-02\r明日\n2026-01-03\r\r2026-02-30')).toEqual({
       dates: ['2026-01-01', '2026-01-02', '2026-01-03'],
-      invalid: [{ line: 3, text: '明日', length: 2 }, { line: 6, text: '2026-02-30', length: 10 }],
+      invalid: [{ line: 3, text: '明日', length: 2, chars: 2 }, { line: 6, text: '2026-02-30', length: 10, chars: 10 }],
       invalidCount: 2,
     });
   });
 
   it('読めない項目の診断は、件数と1件の長さを制限し、総件数と元の長さを返す', () => {
     const long = parseExtraHolidays('x'.repeat(1_000_000));
-    expect(long.invalid).toEqual([{ line: 1, text: 'x'.repeat(MAX_INVALID_PREVIEW), length: 1_000_000 }]);
+    expect(long.invalid).toEqual([{ line: 1, text: 'x'.repeat(MAX_INVALID_PREVIEW), length: 1_000_000, chars: 1_000_000 }]);
     const exact = parseExtraHolidays('y'.repeat(MAX_INVALID_PREVIEW));
-    expect(exact.invalid[0]).toEqual({ line: 1, text: 'y'.repeat(MAX_INVALID_PREVIEW), length: MAX_INVALID_PREVIEW });
+    expect(exact.invalid[0]).toEqual({ line: 1, text: 'y'.repeat(MAX_INVALID_PREVIEW), length: MAX_INVALID_PREVIEW, chars: MAX_INVALID_PREVIEW });
     /** サロゲートペアの途中で切らない */
     const emoji = parseExtraHolidays('a'.repeat(MAX_INVALID_PREVIEW - 1) + '😀');
     expect(emoji.invalid[0]?.text).toBe('a'.repeat(MAX_INVALID_PREVIEW - 1));
@@ -144,7 +144,7 @@ describe('独自休日の入力', () => {
     expect(performance.now() - started).toBeLessThan(500);
     expect(many.invalidCount).toBe(100_000);
     expect(many.invalid).toHaveLength(MAX_INVALID_SHOWN);
-    expect(many.invalid.at(-1)).toEqual({ line: MAX_INVALID_SHOWN, text: `bad${MAX_INVALID_SHOWN - 1}`, length: `bad${MAX_INVALID_SHOWN - 1}`.length });
+    expect(many.invalid.at(-1)).toEqual({ line: MAX_INVALID_SHOWN, text: `bad${MAX_INVALID_SHOWN - 1}`, length: `bad${MAX_INVALID_SHOWN - 1}`.length, chars: `bad${MAX_INVALID_SHOWN - 1}`.length });
   });
 
   it('回帰：読めない項目の文言は総件数を先頭に置き、表示・読み上げで後ろを切っても件数が残る', () => {
@@ -156,6 +156,8 @@ describe('独自休日の入力', () => {
     const longMessage = invalidHolidaysMessage(long);
     expect(longMessage.slice(0, 256)).toContain('読み取れない日付が 1,200 件あります（先頭 20 件）：1行目「');
     expect(longMessage).toContain('…（全201文字）」');
+    /** 文字数はコードポイントで数える（絵文字101個は UTF-16 では202単位だが、101文字） */
+    expect(invalidHolidaysMessage(parseExtraHolidays('😀'.repeat(101)))).toContain('…（全101文字）」');
     expect(invalidHolidaysMessage(parseExtraHolidays('明日'))).toBe('読み取れない日付が 1 件あります：1行目「明日」');
   });
 });

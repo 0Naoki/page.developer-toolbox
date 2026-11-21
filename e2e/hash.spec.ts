@@ -126,6 +126,8 @@ test('回帰：ファイルの HMAC で鍵を続けて打っても、打つた�
       return native.call(this);
     };
   });
+  /** install() だけでは時計は進み続ける。鍵を打つ途中・打ち終わってから確かめるまでに150msの待ちが終わらないよう、ここで止める */
+  await page.clock.pauseAt(Date.now() + 60_000);
   await page.getByLabel('秘密鍵（UTF-8として扱います。保存されません）').pressSequentially('secret');
   expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(0);
   await page.clock.runFor(200);

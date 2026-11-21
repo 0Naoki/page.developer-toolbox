@@ -35,9 +35,15 @@ export default function BusinessDays() {
   const [extraText, setExtraText] = useInput('bizdays:extra');
 
   const extra = useMemo(() => parseExtraHolidays(extraText), [extraText]);
+  /**
+   * 読めない項目だけを編集したときは、読めた日付が同じなら同じ配列を使う（暦・期間の結果・全件コピーの関数を作り直さず、
+   * コピー中の状態を捨てないように）。日付は「2026-10-26」の形にそろえてあるので、つないだ文字列で同じかを判断できる
+   */
+  const datesKey = extra.dates.join(',');
+  const extraDates = useMemo(() => extra.dates, [datesKey]);
   const cal: Calendar = useMemo(
-    () => ({ weekend, holidays: useHolidays, yearEnd, extra: extra.dates }),
-    [weekend, useHolidays, yearEnd, extra.dates],
+    () => ({ weekend, holidays: useHolidays, yearEnd, extra: extraDates }),
+    [weekend, useHolidays, yearEnd, extraDates],
   );
 
   const toggleWeekday = (d: number) =>

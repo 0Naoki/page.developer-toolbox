@@ -42,8 +42,22 @@ export const MAX_INVALID_SHOWN = 20;
 /** 読めない項目1件の表示の長さ（UTF-16単位）。入力欄はプレビューに制限しているため、診断で長い1行を全文描画しない */
 export const MAX_INVALID_PREVIEW = 100;
 
-/** 読めない項目の診断。text は表示用の抜粋、length は元の長さ */
-export type InvalidHoliday = { line: number; text: string; length: number };
+/** 読めない項目の診断。text は表示用の抜粋、length は元の長さ（UTF-16 の単位。抜粋したかの判定に使う）、chars は元の文字数（コードポイント数。文言に出す） */
+export type InvalidHoliday = { line: number; text: string; length: number; chars: number };
+
+/** 文字数（コードポイント数）。配列を作らずに数える */
+function codePointCount(s: string): number {
+  let count = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = s.charCodeAt(i + 1);
+      if (d >= 0xdc00 && d <= 0xdfff) i++;
+    }
+    count++;
+  }
+  return count;
+}
 
 /**
  * 会社独自の休日の入力を読む。1行に1日付で、カンマで区切ってもよい。
@@ -70,7 +84,7 @@ export function parseExtraHolidays(text: string): { dates: string[]; invalid: In
       }
       invalidCount++;
       if (invalid.length < MAX_INVALID_SHOWN) {
-        invalid.push({ line: i + 1, text: s.length > MAX_INVALID_PREVIEW ? textPreview(s, MAX_INVALID_PREVIEW) : s, length: s.length });
+        invalid.push({ line: i + 1, text: s.length > MAX_INVALID_PREVIEW ? textPreview(s, MAX_INVALID_PREVIEW) : s, length: s.length, chars: codePointCount(s) });
       }
     }
   }
@@ -84,7 +98,7 @@ export function parseExtraHolidays(text: string): { dates: string[]; invalid: In
  * 表示（1,000単位）と読み上げ（256単位）は文言を後ろで切るため、総件数を末尾に置くと、項目が長い・多いときに件数が消える。
  */
 export function invalidHolidaysMessage({ invalid, invalidCount }: { invalid: InvalidHoliday[]; invalidCount: number }): string {
-  const items = invalid.map((item) => `${item.line}行目「${item.text}${item.text.length < item.length ? `…（全${formatNumber(item.length)}文字）` : ''}」`);
+  const items = invalid.map((item) => `${item.line}行目「${item.text}${item.text.length < item.length ? `…（全${formatNumber(item.chars)}文字）` : ''}」`);
   const head = invalidCount > invalid.length ? `（先頭 ${formatNumber(invalid.length)} 件）` : '';
   return `読み取れない日付が ${formatNumber(invalidCount)} 件あります${head}：${items.join('、')}`;
 }

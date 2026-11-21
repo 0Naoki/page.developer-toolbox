@@ -161,6 +161,8 @@ export function CertView({ cert, certs }: { cert: Certificate; certs: Certificat
 export function CsrView({ csr }: { csr: Csr }) {
   const verification = useVerification(csr, NO_CERTS);
   const attributes = previewList(csr.hiddenAttributes, LIST_PREVIEW_LIMIT);
+  /** 一覧が変わらない間は同じ関数を渡す（CopyButton は関数が変わると、コピー中の状態を前の内容のものとして捨てるため） */
+  const copyAttributes = useCallback(() => csr.hiddenAttributes.join('\n'), [csr]);
   return (
     <>
       <table className="kv cert-table">
@@ -176,7 +178,7 @@ export function CsrView({ csr }: { csr: Csr }) {
           {attributes.rest > 0 && (
             <tr>
               <th>属性</th>
-              <td><ListRest rest={attributes.rest} shown={attributes.shown.length} copyText={() => csr.hiddenAttributes.join('\n')} copyLabel="すべての属性をコピー" /></td>
+              <td><ListRest rest={attributes.rest} shown={attributes.shown.length} copyText={copyAttributes} copyLabel="すべての属性をコピー" /></td>
               <td />
             </tr>
           )}
@@ -189,6 +191,8 @@ export function CsrView({ csr }: { csr: Csr }) {
 
 function SanRow({ cert }: { cert: Certificate | Csr }) {
   const san = previewList(cert.san, LIST_PREVIEW_LIMIT);
+  /** 一覧が変わらない間は同じ関数を渡す（CopyButton は関数が変わると、コピー中の状態を前の内容のものとして捨てるため） */
+  const copySan = useCallback(() => cert.san.map((g) => `${g.type}: ${g.value}`).join('\n'), [cert]);
   return (
     <tr>
       <th>SAN</th>
@@ -206,7 +210,7 @@ function SanRow({ cert }: { cert: Certificate | Csr }) {
         )}
       </td>
       <td>
-        <ListRest rest={san.rest} shown={san.shown.length} copyText={san.rest > 0 ? () => cert.san.map((g) => `${g.type}: ${g.value}`).join('\n') : undefined} copyLabel="すべての SAN をコピー" />
+        <ListRest rest={san.rest} shown={san.shown.length} copyText={san.rest > 0 ? copySan : undefined} copyLabel="すべての SAN をコピー" />
       </td>
     </tr>
   );
