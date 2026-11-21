@@ -3,7 +3,8 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - [R031] 営業日の期間集計：両端を含む日数と休日の内訳が逆順でも一致すること。独自休日・祝日・年末年始・週末の理由の優先順位を保ち、週末だけの休みを内訳から除くこと。期間と祝日の計算範囲を守ること。休みの内訳が多くても（30年の毎日を独自休日にすると10,958件）
- *   先頭100件だけを描画し、全件をコピーで取り出せること（あわせて `src/tools/business-days/logic.test.ts`）
+ *   先頭100件だけを描画し、全件をコピーで取り出せること（あわせて `src/tools/business-days/logic.test.ts`）。
+ *   全件コピーの待機中に、休みの一覧が変わらない編集（期間の外の独自休日を足す）をしても、コピーの失敗を知らせること
  *   第n営業日と前後の営業日数は巨大な整数・指数表記・範囲外を拒否し、修正後に復旧すること。
  *   日本時間の年の変更で年の選択範囲を更新し、入力した日付は保つこと。
  *   前後移動と0営業日の探索で0000〜9999年を越えたらエラーにし、範囲内へ修正すると復旧すること。
@@ -107,4 +108,30 @@ test('営業日計算：期間内の休みが多くても先頭100件だけを�
   await expect(page.getByText('ほか 10,858 件（先頭 100 件を表示）', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'すべての休みをコピー', exact: true }).click();
   await expect.poll(() => copiedLines(page)).toBe(10_958);
+});
+
+test('回帰：全件コピーの待機中に、休みの一覧が変わらない編集をしても、コピーの失敗を知らせる', CROSS_BROWSER, async ({ page }) => {
+  /** 書き込みを止めておき、後で失敗させる */
+  await page.addInitScript(() => {
+    const state = window as unknown as { failCopy?: () => void };
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: () => new Promise<void>((_, reject) => { state.failCopy = () => reject(new Error('denied')); }),
+    } });
+  });
+  await page.goto('./#/bizdays');
+  await page.getByLabel('開始日', { exact: true }).fill('2026-01-01');
+  await page.getByLabel('終了日', { exact: true }).fill('2026-12-31');
+  /** 2026年の毎日を独自休日にして、休みを100件より多くする */
+  const days: string[] = [];
+  for (let t = Date.UTC(2026, 0, 1); t <= Date.UTC(2026, 11, 31); t += 86_400_000) days.push(new Date(t).toISOString().slice(0, 10));
+  const holidays = page.getByRole('textbox', { name: '会社独自の休日（1行に1日付）', exact: true });
+  await holidays.fill(days.join('\n'));
+  const copy = page.getByRole('button', { name: 'すべての休みをコピー', exact: true });
+  await copy.click();
+  await page.waitForFunction(() => Boolean((window as unknown as { failCopy?: () => void }).failCopy));
+  /** 期間の外の正しい日付を足す（暦は変わるが、期間の休みの一覧は同じ）。以前は全件コピーの関数が変わり、コピー中の状態を捨てていた */
+  await holidays.fill(`${days.join('\n')}\n2030-01-01`);
+  await expect(holidays).toHaveValue(/\n2030-01-01$/);
+  await page.evaluate(() => (window as unknown as { failCopy: () => void }).failCopy());
+  await expect(page.getByText('コピーできませんでした。', { exact: false })).toBeVisible();
 });
