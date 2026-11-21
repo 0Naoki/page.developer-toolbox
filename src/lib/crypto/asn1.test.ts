@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { Asn1Error, parseDer, parseDerExact, readOid, readString, readTime } from './asn1';
+import { Asn1Error, parseDer, parseDerExact, readBoolean, readBitString, readOid, readString, readTime } from './asn1';
 import { derLength } from './der.testing';
 
 const decode = (tag: number, bytes: number[]) => readString(parseDerExact(new Uint8Array([tag, bytes.length, ...bytes])));
+
+describe('DER の真偽値とビット列', () => {
+  const node = (tag: number, bytes: number[]) => parseDerExact(Uint8Array.from([tag, bytes.length, ...bytes]));
+  it('BOOLEAN は1バイトの 00 または FF だけを受け付ける', () => {
+    expect(readBoolean(node(1, [0]))).toBe(false);
+    expect(readBoolean(node(1, [255]))).toBe(true);
+    for (const body of [[], [0, 255], [1]]) expect(() => readBoolean(node(1, body))).toThrow(Asn1Error);
+    expect(() => readBoolean(node(0x21, []))).toThrow(Asn1Error);
+  });
+  it('BIT STRING の欠損・未使用ビット数・末尾の未使用ビットを検証する', () => {
+    expect(readBitString(node(3, [0]))).toEqual({ unused: 0, bytes: new Uint8Array() });
+    expect(readBitString(node(3, [7, 128]))).toEqual({ unused: 7, bytes: Uint8Array.of(128) });
+    for (const body of [[], [8, 0], [1], [7, 255]]) expect(() => readBitString(node(3, body))).toThrow(Asn1Error);
+    expect(() => readBitString(node(0x23, []))).toThrow(Asn1Error);
+  });
+});
 
 describe('DER の文字列', () => {
   it('不正なUTF-8と欠けた文字を置換・切り捨てしない', () => {
