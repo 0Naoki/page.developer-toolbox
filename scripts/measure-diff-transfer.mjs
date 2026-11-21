@@ -20,6 +20,7 @@ for (const { lines, shape } of shapes) {
   const request = { input, after, ignoreWhitespace: false, ignoreCase: false };
   const versions = {};
   let first;
+  let firstPatch;
   let referenceRows;
   for (const [name, api] of Object.entries(comparison.versions)) {
     let result;
@@ -30,14 +31,17 @@ for (const { lines, shape } of shapes) {
     const beforeLines = allRows.flatMap((row) => row.left ? [row.left.text] : []);
     const afterLines = allRows.flatMap((row) => row.right ? [row.right.text] : []);
     if (JSON.stringify(beforeLines) !== JSON.stringify(original) || JSON.stringify(afterLines) !== JSON.stringify(modified)) throw new Error('差分から元の入力を復元できません');
-    if (first && !first.approximate && !result.approximate && first.unified !== result.unified) throw new Error('全文パッチが変わっています');
+    let patch = result.unified;
+    const exportPreparation = typeof api.unifiedFromPacked === 'function' ? measure(() => { patch = api.unifiedFromPacked(result.rows); }) : null;
+    if (first && !first.approximate && !result.approximate && firstPatch !== patch) throw new Error('全文パッチが変わっています');
     first ??= result;
+    firstPatch ??= patch;
     referenceRows ??= allRows;
     const packing = old ? null : measure(() => packed.packRows(referenceRows, input, after));
     const clone = measure(() => structuredClone(result));
     const split = measure(() => old ? reference.visibleRows(result.rows, options).slice(0, options.limit) : preview.splitPreview(result.rows, options));
     const unified = measure(() => old ? reference.unifiedDisplayRows(reference.visibleRows(result.rows, options)).slice(0, options.limit) : preview.unifiedPreview(result.rows, options));
-    versions[name] = { calculation, packing, clone, splitRestore: split, unifiedRestore: unified, serializedBytes: serialize(result).byteLength,
+    versions[name] = { calculation, packing, clone, exportPreparation, splitRestore: split, unifiedRestore: unified, serializedBytes: serialize(result).byteLength,
       rowObjectsOrBlocks: old ? result.rows.length : result.rows.blocks.length, approximate: result.approximate };
   }
   cases.push({ lines, shape, inputUtf16: input.length, afterUtf16: after.length, versions });

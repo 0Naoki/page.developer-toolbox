@@ -18,8 +18,82 @@ test('テキスト差分：短い貼り付けのCRLFをunifiedコピーに保持
   await page.goto('./#/diff');
   await pasteLargeInput(page, '変更前', 'a\r\nb\r\nc\r\n');
   await pasteLargeInput(page, '変更後', 'a\r\nB\r\nc\r\n');
+  await page.getByRole('button', { name: 'unified形式を準備', exact: true }).click();
   await page.getByRole('button', { name: 'unified形式でコピー' }).click();
   await expect.poll(() => copiedText(page)).toBe('--- before\n+++ after\n@@ -1,3 +1,3 @@\n a\r\n-b\r\n+B\r\n c\r\n');
+});
+
+test('テキスト差分：全文は操作時だけ準備し、入力変更で古い出力を破棄する', CROSS_BROWSER, async ({ page }) => {
+  await captureClipboard(page);
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    const w = window as Window & { patchRequests?: number; patchInput?: { size: number; hasText: boolean }; holdPatch?: boolean; finishPatch?: () => void };
+    w.patchRequests = 0;
+    w.holdPatch = true;
+    window.Worker = class extends NativeWorker {
+      postMessage(message: unknown): void {
+        if ((message as { tool?: string }).tool === 'diffUnified') {
+          w.patchRequests = (w.patchRequests ?? 0) + 1;
+          const request = message as { inputSize: number };
+          w.patchInput = { size: request.inputSize, hasText: 'input' in request || 'after' in request };
+          if (w.holdPatch) { w.finishPatch = () => super.postMessage(message); return; }
+        }
+        super.postMessage(message);
+      }
+    };
+  });
+  await page.goto('./#/diff');
+  const before = page.getByRole('textbox', { name: '変更前', exact: true });
+  await before.fill('old');
+  await page.getByRole('textbox', { name: '変更後', exact: true }).fill('new');
+  const prepare = page.getByRole('button', { name: 'unified形式を準備', exact: true });
+  await expect(prepare).toBeEnabled();
+  expect(await page.evaluate(() => (window as Window & { patchRequests?: number }).patchRequests)).toBe(0);
+  await prepare.click();
+  await expect.poll(() => page.evaluate(() => (window as Window & { patchRequests?: number }).patchRequests)).toBe(1);
+  await expect.poll(() => page.evaluate(() => (window as Window & { patchInput?: unknown }).patchInput)).toEqual({
+    size: (await before.inputValue()).length + (await page.getByRole('textbox', { name: '変更後', exact: true }).inputValue()).length,
+    hasText: false,
+  });
+  const copy = page.getByRole('button', { name: 'unified形式でコピー', exact: true });
+  await expect(copy).toBeDisabled();
+  await before.fill('changed');
+  await expect(prepare).toBeEnabled();
+  await expect(copy).toHaveCount(0);
+  await page.evaluate(() => {
+    const w = window as Window & { holdPatch?: boolean; finishPatch?: () => void };
+    w.finishPatch?.();
+    w.holdPatch = false;
+  });
+  await expect(copy).toHaveCount(0);
+  await prepare.click();
+  await copy.click();
+  await expect.poll(() => copiedText(page)).toContain('-changed\n');
+  expect(await copiedText(page)).toContain('+new\n');
+});
+
+test('テキスト差分：全文の準備が失敗しても再試行できる', CROSS_BROWSER, async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    let fail = true;
+    window.Worker = class extends NativeWorker {
+      postMessage(message: unknown): void {
+        if (fail && (message as { tool?: string }).tool === 'diffUnified') {
+          fail = false;
+          queueMicrotask(() => this.dispatchEvent(new MessageEvent('message', { data: { ok: false, error: '全文の準備に失敗' } })));
+        } else super.postMessage(message);
+      }
+    };
+  });
+  await page.goto('./#/diff');
+  await page.getByRole('textbox', { name: '変更前', exact: true }).fill('old');
+  await page.getByRole('textbox', { name: '変更後', exact: true }).fill('new');
+  await page.getByRole('button', { name: 'unified形式を準備', exact: true }).click();
+  await expect(page.getByText('全文の準備に失敗', { exact: true })).toBeVisible();
+  const copy = page.getByRole('button', { name: 'unified形式でコピー', exact: true });
+  await expect(copy).toBeDisabled();
+  await page.getByRole('button', { name: '再計算', exact: true }).click();
+  await expect(copy).toBeEnabled();
 });
 
 test('CSV変換：出力プレビューを制限しても保存には全文を使う', CROSS_BROWSER, async ({ page }) => {
@@ -216,6 +290,7 @@ test('テキスト差分：両方の表示で長い行を省略し、unifiedコ�
   await expect(page.getByText('（以降省略）', { exact: true })).toHaveCount(4);
   await page.getByRole('button', { name: '1列にまとめる', exact: true }).click();
   await expect(page.getByText('（以降省略）', { exact: true })).toHaveCount(3);
+  await page.getByRole('button', { name: 'unified形式を準備', exact: true }).click();
   await page.getByRole('button', { name: 'unified形式でコピー', exact: true }).click();
   await expect.poll(() => copiedLength(page)).not.toBeNull();
   const patch = await copiedText(page);
@@ -248,7 +323,7 @@ test('テキスト差分：計算中は旧結果を表示してコピーを無�
   await before.fill('old');
   await page.getByRole('textbox', { name: '変更後', exact: true }).fill('new');
   await expect(page.getByText('+1 行', { exact: true })).toBeVisible();
-  const copy = page.getByRole('button', { name: 'unified形式でコピー', exact: true });
+  const copy = page.getByRole('button', { name: 'unified形式を準備', exact: true });
   await expect(copy).toBeEnabled();
   await before.fill('__HOLD__');
   await expect.poll(() => page.evaluate(() => (window as Window & { diffHeld?: boolean }).diffHeld)).toBe(true);

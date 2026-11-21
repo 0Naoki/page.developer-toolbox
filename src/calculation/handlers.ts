@@ -9,7 +9,7 @@ import { formatJsonForScreen } from '../tools/json-formatter/logic';
 import { measureText } from '../tools/text-count/logic';
 import { createDiagnosticReport } from '../tools/text-count/reports';
 import { convertCsvRequest } from '../tools/csv-json/calculation';
-import { calculateDiff } from '../tools/text-diff/calculation';
+import { calculateDiff, unifiedFromPacked } from '../tools/text-diff/calculation';
 import { convertEpochsInText } from '../tools/unix-time/epoch';
 import { aggregateList, calculateSplit, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
 import { convertText } from '../tools/base64/logic';
@@ -31,6 +31,7 @@ const HANDLERS: { [T in CalculationTool]: (request: CalculationRequestOf<T>) => 
   subnetSplit: (request) => calculateSplit(request.input, request.newPrefix),
   subnetVlsm: (request) => calculateVlsm(request.input, request.network, request.prefix, request.cloud),
   diff: (request) => calculateDiff(request),
+  diffUnified: (request) => unifiedFromPacked(request.rows),
   csv: (request) => convertCsvRequest(request),
 };
 

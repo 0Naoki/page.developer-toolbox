@@ -1,0 +1,65 @@
+{
+  "measuredAt": "2026-11-20T17:47:59.623Z",
+  "head": "cacf77debfda76f2686f1503b6cf68b14c295561",
+  "scope": "同じ差分結果を使い、元の本文を含む旧要求と合計長だけを加える新要求を比較。予備実行1回、各3回。NodeのV8 serializeとstructuredClone。ブラウザの転送時間・ヒープ使用量ではない。",
+  "environment": {
+    "node": "v24.22.1",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz"
+  },
+  "input": {
+    "before": "same line\\n を10000回 + old\\n",
+    "after": "same line\\n を10000回 + new\\n",
+    "inputUtf16": 100004,
+    "afterUtf16": 100004
+  },
+  "sourceHashes": {
+    "src/calculation/protocol.ts": "19740dc21dbea51ee8558a2d0176cc41e8e12956186b793d27034f7b237a6276",
+    "src/tools/text-diff/UnifiedOutput.tsx": "84de23fcccccdb9996a4e5c89f3d1991512a3868e7c616354b03289d56afcf0d",
+    "src/tools/text-diff/calculation.ts": "0e82083902d8157b0d9717a97004bc5192c057cb4a958fb8c9d1fbe3c1261341",
+    "src/tools/text-diff/packed.ts": "4a40c3881eb5c6648443fbf35720c538341cf7757c0c2eb29dfa820836892710",
+    "src/tools/text-diff/unified.ts": "8f5ca14d85a7ce02612730c5741b57604e237840d67b636174e1c7b81b53f6b3"
+  },
+  "bundleSha256": "6edb7ff677c52ab90c27d75025db339d92a6841cb1e8190b46647df5aecf0501",
+  "versions": {
+    "before": {
+      "runs": [
+        {
+          "serializedBytes": 480360,
+          "cloneMs": 0.6387999999999465,
+          "patchSha256": "38dd700fb0c2a177813bbc98e4d4184d8a6260f0f7de24fefc9a21452bb00169"
+        },
+        {
+          "serializedBytes": 480360,
+          "cloneMs": 0.7770000000000437,
+          "patchSha256": "38dd700fb0c2a177813bbc98e4d4184d8a6260f0f7de24fefc9a21452bb00169"
+        },
+        {
+          "serializedBytes": 480360,
+          "cloneMs": 0.9586000000000467,
+          "patchSha256": "38dd700fb0c2a177813bbc98e4d4184d8a6260f0f7de24fefc9a21452bb00169"
+        }
+      ]
+    },
+    "after": {
+      "runs": [
+        {
+          "serializedBytes": 280345,
+          "cloneMs": 0.4232000000000653,
+          "patchSha256": "38dd700fb0c2a177813bbc98e4d4184d8a6260f0f7de24fefc9a21452bb00169"
+        },
+        {
+          "serializedBytes": 280345,
+          "cloneMs": 0.6265999999999394,
+          "patchSha256": "38dd700fb0c2a177813bbc98e4d4184d8a6260f0f7de24fefc9a21452bb00169"
+        },
+        {
+          "serializedBytes": 280345,
+          "cloneMs": 0.293700000000058,
+          "patchSha256": "38dd700fb0c2a177813bbc98e4d4184d8a6260f0f7de24fefc9a21452bb00169"
+        }
+      ]
+    }
+  }
+}

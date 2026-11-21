@@ -64,7 +64,7 @@ JWTデコーダーのヘッダ・ペイロード、Base64 のデコード結果�
 | JSON整形 | <!-- limit:json.input:start -->800万単位<!-- limit:json.input:end --> | <!-- limit:json.output:start -->整形結果2,000万単位<!-- limit:json.output:end -->、<!-- limit:json.preview:start -->プレビュー先頭50,000単位<!-- limit:json.preview:end -->。重複したキーの警告は先頭5件と残りの件数を表示。<!-- limit:json.tree-input:start -->ツリー表示は入力100万単位まで<!-- limit:json.tree-input:end -->で、<!-- limit:json.tree-page:start -->子は100件ずつ表示<!-- limit:json.tree-page:end -->（それより大きい入力はテキストで表示） | <!-- limit:json.timeout:start -->Workerで10秒<!-- limit:json.timeout:end --> |
 | CSV変換 | <!-- limit:csv.input:start -->800万単位<!-- limit:csv.input:end -->、<!-- limit:csv.file:start -->ファイル24MB<!-- limit:csv.file:end -->（2,400万バイト）、<!-- limit:csv.cells:start -->展開後200万セル<!-- limit:csv.cells:end --> | <!-- limit:csv.output:start -->出力3,200万単位<!-- limit:csv.output:end -->、プレビュー先頭50,000単位 | Workerで10秒 |
 | 文字数・バイト数 | <!-- limit:count.input:start -->800万単位<!-- limit:count.input:end -->、UTF-8ファイル<!-- limit:count.file:start -->24MB<!-- limit:count.file:end -->（2,400万バイト） | 入力の通常表示は<!-- limit:count.input-preview:start -->500〜2,000単位<!-- limit:count.input-preview:end -->。全文を集計し、行別結果は<!-- limit:count.page:start -->100行ずつ<!-- limit:count.page:end -->表示。文字診断・不可視文字の集計は先頭<!-- limit:count.kinds:start -->100種類<!-- limit:count.kinds:end -->、診断の文字の形は通常先頭<!-- limit:count.glyph-preview:start -->5種類<!-- limit:count.glyph-preview:end -->、出現位置は先頭<!-- limit:count.positions:start -->100件<!-- limit:count.positions:end -->、可視化は<!-- limit:count.invisible-preview:start -->2,000単位<!-- limit:count.invisible-preview:end -->。診断一覧の全件TSVは<!-- limit:count.report:start -->3,200万単位<!-- limit:count.report:end -->まで | 通常集計・診断の全件準備はWorkerで<!-- limit:count.timeout:start -->10秒<!-- limit:count.timeout:end --> |
-| テキスト差分 | 2つの入力の<!-- limit:diff.input:start -->合計800万単位<!-- limit:diff.input:end --> | 結果は最初に1,000行、長い行は先頭2,000単位まで表示。unified形式のコピーは全文。計算中は前回の結果を表示し続ける（コピーは不可。中断・失敗のときは表示しない） | Workerで10秒。差分探索は<!-- limit:diff.search-timeout:start -->下記の2秒制限<!-- limit:diff.search-timeout:end -->も適用 |
+| テキスト差分 | 2つの入力の<!-- limit:diff.input:start -->合計800万単位<!-- limit:diff.input:end --> | 結果は最初に1,000行、長い行は先頭2,000単位まで表示。unified形式の全文は操作時に準備してコピーする。計算中は前回の結果を表示し続ける（コピーは不可。中断・失敗のときは表示しない） | Workerで10秒。差分探索は<!-- limit:diff.search-timeout:start -->下記の2秒制限<!-- limit:diff.search-timeout:end -->も適用 |
 | UNIX時間の一括変換 | <!-- limit:epoch.input:start -->800万単位<!-- limit:epoch.input:end --> | 全文を変換対象にする | <!-- limit:epoch.timeout:start -->Workerで10秒<!-- limit:epoch.timeout:end --> |
 | 正規表現 | <!-- limit:regex.pattern:start -->式1万単位<!-- limit:regex.pattern:end -->、テスト文字列・置換文字列<!-- limit:regex.text:start -->各10万単位<!-- limit:regex.text:end -->、<!-- limit:regex.groups:start -->キャプチャ50個<!-- limit:regex.groups:end --> | <!-- limit:regex.matches:start -->表示500マッチ<!-- limit:regex.matches:end -->、<!-- limit:regex.output:start -->置換結果100万単位<!-- limit:regex.output:end -->、マッチとキャプチャの合計100万単位。置換結果は先頭50,000単位を表示し、コピーは全文 | Workerで2秒。大量マッチ時は下記の制限も適用 |
 | 不可視文字検査 | 文字数・バイト数と共通 | 全文を集計。可視化は先頭2,000単位、種類別集計は100種類、位置一覧は100件 | 文字数・バイト数と共通 |
@@ -227,6 +227,10 @@ JavaScriptの文字列には、UTF-8で表せない「対になっていない�
 | HMAC・JWTのUTF-8の秘密鍵 | 別の鍵への置き換えを避けるため拒否する |
 
 ### テキスト差分・正規表現
+
+差分の全文コピーは「unified形式を準備」を押してから「unified形式でコピー」を選びます。
+表示した行の対応から全文を作るため、探索を打ち切った場合も表示と同じ差分になります。
+入力や比較条件を変えると準備済みの出力を破棄します。準備は中断・再試行でき、「unified形式の出力を閉じる」で全文を解放できます。
 
 - **テキスト差分**は、貼り付けで受け取ったCRLF・LF・CRを入力内に保持します。比較と画面の表示では改行の種類の違いを無視します。コピーするunified形式では、`patch` や `git apply` で使えるようにCRLFとLFを保持し、CRだけの改行はLFとして出力します。「空白を無視」「大文字小文字を無視」で一致とみなした行は、変更前の行を共通行として出力するため、変更後の側の空白・大文字小文字の違いはコピーした差分に含まれません。
 - **テキスト差分**は、片方にしかない行を除いて比較します。共通の行の順番が大きく異なるテキストでは2秒で差分探索を打ち切り、残りを「まとめて削除・追加」として表示します（内容は正しく、最小の差分ではない旨を画面に表示します）。

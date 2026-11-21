@@ -6,14 +6,15 @@
  * - `unified.ts`：コピー用の unified 形式のパッチの生成（元の改行を保つ）
  * - `packed.ts`：本文量・行数から入力参照と行の直接保持を選ぶ Worker の応答
  * - `preview.ts`：圧縮した応答から、表示する範囲だけを復元
- * - `calculation.ts`：計算 Worker で差分と unified 形式をまとめて求める
+ * - `calculation.ts`：表示用の差分と、操作時に準備する全文パッチの計算
+ * - `UnifiedOutput.tsx`：表示した差分から全文パッチをWorkerで準備してコピー
  */
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pane } from '../../components/Pane';
 import { Badge } from '../../components/Badge';
 import { Notice } from '../../components/Notice';
 import { CalculationStatus } from '../../components/CalculationStatus';
-import { CopyButton } from '../../components/CopyButton';
+import { UnifiedOutput } from './UnifiedOutput';
 import { LargeTextInput } from '../../components/LargeTextInput';
 import { Segmented } from '../../components/Segmented';
 import { ToolShell } from '../../components/ToolShell';
@@ -46,7 +47,7 @@ WHERE category = 'book'
   AND stock > 0
 ORDER BY price DESC;`;
 
-const EMPTY_RESULT: DiffCalculation = { rows: { blocks: [], before: '', after: '', leftStarts: new Uint32Array(), rightStarts: new Uint32Array(), length: 0 }, added: 0, removed: 0, identical: true, approximate: false, unified: '' };
+const EMPTY_RESULT: DiffCalculation = { rows: { blocks: [], before: '', after: '', leftStarts: new Uint32Array(), rightStarts: new Uint32Array(), length: 0 }, added: 0, removed: 0, identical: true, approximate: false };
 
 export default function TextDiff() {
   const [before, setBefore] = useInput('diff:before');
@@ -155,7 +156,7 @@ export default function TextDiff() {
               )}
               <span className="spacer" />
               {/** 計算中に表示している前の結果は、今の入力の差分ではないためコピーさせない */}
-              {!result.identical && <CopyButton text={calculation.state === 'done' ? result.unified : ''} label="unified形式でコピー" />}
+              {!result.identical && <UnifiedOutput inputSize={before.length + after.length} rows={result.rows} enabled={calculation.state === 'done'} />}
             </div>
 
             {result.approximate && (

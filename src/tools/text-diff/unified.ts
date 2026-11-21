@@ -3,7 +3,7 @@
  */
 import type { DiffLine, DiffResult } from './logic';
 
-export type UnifiedItem = { mark: ' ' | '-' | '+'; text: string; a?: DiffLine; b?: DiffLine };
+type UnifiedItem = { mark: ' ' | '-' | '+'; text: string; a?: DiffLine; b?: DiffLine };
 
 const NO_NEWLINE = '\\ No newline at end of file';
 
@@ -15,7 +15,7 @@ const CONTEXT = 3;
  * patch や git apply で使えるよう、見出し（---/+++）と、前後 CONTEXT 行だけを残したハンク（\@\@ -l,s +l,s \@\@）にする。
  * 空白・大文字小文字を無視したときに一致した行は、変更前の行を共通行として出す
  */
-export function toUnified(result: DiffResult): string {
+export function toUnified(result: Pick<DiffResult, 'rows'>): string {
   const context = CONTEXT;
   const rows = result.rows;
   let aCount = 0;
