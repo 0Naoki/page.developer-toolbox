@@ -157,7 +157,8 @@ describe('大容量の表示用結果', () => {
     const fake = { ...m, values: m.values.map(() => 7) };
     expect(linesPage(text, fake, { limit: 5, onlyOver: true, page: 0 })).toMatchObject({ overCount: 251, matchingLines: 251 });
     expect(linesPage(text, fake, { limit: null, onlyOver: false, page: 0 }).visible[0]?.value).toBe(7);
-  });
+    /** 単独で約2秒かかり、並行実行の負荷で vitest の既定（5秒）を超えることがあるため、枠を広げる */
+  }, 30_000);
 });
 
 describe('sjisBytesOf', () => {

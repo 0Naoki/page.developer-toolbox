@@ -1,4 +1,4 @@
-/** 検査の対象：logic.ts・myers.ts・unified.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
+/** 検査の対象：logic.ts・myers.ts・unified.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する）。大量行の検査は、参照実装（rowReference.testing.ts）と本番の preview.ts の両方に向ける */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DIFF_TIMEOUT_MS, crlfFlags, diffChars, diffText, diffLines } from './logic';
 import { diffSequencesWithStatus, type DiffOp } from './myers';
@@ -6,6 +6,8 @@ import { foldRows, unifiedDisplayRows, visibleRows } from './rowReference.testin
 import type { UnifiedDisplayRow } from './rows';
 import { LINE_BREAK_CASES } from '../../lib/text/lines.fixtures';
 import { toUnified } from './unified';
+import { packRows } from './packed';
+import { unifiedPreview } from './preview';
 
 const NO_OPTS = { ignoreWhitespace: false, ignoreCase: false };
 const diffSequences = <T>(a: T[], b: T[]) => diffSequencesWithStatus(a, b).ops;
@@ -229,6 +231,9 @@ describe('diffChars', () => {
         { text: '総', changed: true },
         { text: '金額', changed: false },
       ],
+      common: 4,
+      leftLength: 4,
+      rightLength: 5,
     });
   });
 
@@ -236,7 +241,26 @@ describe('diffChars', () => {
     expect(diffChars('abcdef', 'fedcba', { timeoutMs: -1 })).toEqual({
       left: [{ text: 'abcdef', changed: true }],
       right: [{ text: 'fedcba', changed: true }],
+      common: 0,
+      leftLength: 6,
+      rightLength: 6,
     });
+  });
+
+  it('上限の判定は文字数（コードポイント数）の積で行い、UTF-16 の長さでは判定しない', () => {
+    /** 絵文字1,500個どうしは、文字数の積が225万で上限（400万）以内なので文字単位で比べる（UTF-16 の長さの積は900万） */
+    const result = diffChars('😀'.repeat(1500), `${'😀'.repeat(1499)}x`);
+    expect(result).toMatchObject({ common: 1499, leftLength: 1500, rightLength: 1500 });
+    expect(result.left).toEqual([{ text: '😀'.repeat(1499), changed: false }, { text: '😀', changed: true }]);
+    /** 文字数の積が上限を超える行は、行全体を変更扱いにする */
+    expect(diffChars('a'.repeat(2001), 'b'.repeat(2000))).toMatchObject({ common: 0, leftLength: 2001, rightLength: 2000 });
+  });
+
+  it('改行のない長い行どうしは、文字の配列を作らずに行全体を変更扱いにする', () => {
+    const a = 'a'.repeat(4_000_000);
+    const b = `${'😀'.repeat(1_000_000)}b`;
+    const result = diffChars(a, b);
+    expect(result).toEqual({ left: [{ text: a, changed: true }], right: [{ text: b, changed: true }], common: 0, leftLength: 4_000_000, rightLength: 1_000_001 });
   });
 });
 
@@ -298,6 +322,13 @@ describe('unifiedDisplayRows', () => {
     const unified = unifiedDisplayRows(rows);
     expect(unified).toHaveLength(rows.length);
     expect(unified.filter((r) => r.kind === 'del')).toHaveLength(count);
+    /** 画面が使う本番の経路（packRows → unifiedPreview）でも、同じ大量行で全件を数え、先頭だけを返す */
+    const before = Array<string>(count).fill('a').join('\n');
+    const packed = packRows(diffText(before, '', NO_OPTS).rows, before, '');
+    const preview = unifiedPreview(packed, { onlyChanges: true, context: 3, expanded: [], limit: 1000 });
+    expect(preview.total).toBe(count);
+    expect(preview.shown).toHaveLength(1000);
+    expect(preview.shown.every((r) => r.kind === 'del')).toBe(true);
   });
 });
 

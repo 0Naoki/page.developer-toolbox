@@ -1,4 +1,12 @@
-/** 検査の対象：parse.ts・describe.ts・nextRuns.ts（このツールに logic.ts はない）（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
+/**
+ * 検査の対象：parse.ts・describe.ts・nextRuns.ts（このツールに logic.ts はない）（専用のテストファイルを置かないファイルも、ここでまとめて検査する）
+ *
+ * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
+ * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
+ *
+ * - [R057] 夏時間で飛ばされる区間 × 区間の長さ（1時間・30分・丸1日）× 全候補が飛ばされる式：America/New_York の
+ *   「* * 2 ? 3 SUN#2」（Quartz）を短い時間で探し終え、Australia/Lord_Howe の 02:30・02:45 と Pacific/Apia の 2011-12-30 の翌日を正しく扱う
+ */
 import { describe, expect, it } from 'vitest';
 import { formatInZone } from '../../lib/time/dateTimeFormat';
 import { parseDateTime } from '../../lib/time/dateTimeInput';
@@ -248,6 +256,29 @@ describe('nextRuns', () => {
       expect(utc('30 1 * * *', '2026-10-31T12:00:00-04:00', 2)).toEqual(['2026-11-01T05:30:00.000Z', '2026-11-02T06:30:00.000Z']);
     });
 
+    it('回帰：全候補が飛ばされる式でも、候補ごとに変換を試さずに短い時間で探し終える', () => {
+      /** 2時台の毎秒 × 3月第2日曜は、米国の夏時間の開始（02:00 → 03:00）と重なり、200年分の約72万候補がすべて存在しない（以前は数十秒止まった） */
+      const started = performance.now();
+      expect(nextRuns(parseCron('* * 2 ? 3 SUN#2', 'quartz'), NY, at('2026-01-01T00:00:00Z'), 5)).toEqual([]);
+      expect(performance.now() - started).toBeLessThan(3_000);
+    });
+
+    it('飛ばされる区間の長さはゾーンごとに求め、区間の後の実在する時刻は実行する', () => {
+      const iso = (expr: string, zone: string, from: string, count: number) =>
+        nextRuns(parseCron(expr, 'quartz'), zone, at(from), count).map((ms) => new Date(ms).toISOString());
+      /** Australia/Lord_Howe は 2026-10-04 02:00（+10:30）に 02:30（+11:00）へ、30分だけ飛ぶ */
+      expect(iso('0 */15 2 * * ?', 'Australia/Lord_Howe', '2026-10-03T12:00:00Z', 3))
+        .toEqual(['2026-10-03T15:30:00.000Z', '2026-10-03T15:45:00.000Z', '2026-10-04T15:00:00.000Z']);
+      /** 区間の中の毎秒の候補も、区間の後の 02:30:00 から実行する */
+      expect(iso('* * 2 * * ?', 'Australia/Lord_Howe', '2026-10-03T12:00:00Z', 2))
+        .toEqual(['2026-10-03T15:30:00.000Z', '2026-10-03T15:30:01.000Z']);
+      /** Pacific/Apia は 2011-12-30 が丸1日ない（12-29 の次が 12-31） */
+      expect(iso('0 0 12 * * ?', 'Pacific/Apia', '2011-12-28T12:00:00Z', 3))
+        .toEqual(['2011-12-28T22:00:00.000Z', '2011-12-29T22:00:00.000Z', '2011-12-30T22:00:00.000Z']);
+      /** America/New_York の 02:00〜02:59:59 は飛ばし、03:00:00 から実行する */
+      expect(utc('* 2,3 * * *', '2026-03-08T00:00:00-05:00', 1)).toEqual(['2026-03-08T07:00:00.000Z']);
+    });
+
     it('2回ある時刻の2回目から探しても、過去の時刻を返さない', () => {
       const from = '2026-11-01T06:10:00.000Z'; /** 2回目の 01:10 */
       const result = utc('*/15 * * * *', from, 1);
@@ -357,6 +388,7 @@ describe('cronWarnings', () => {
     expect(cronWarnings(parseCron('0 0 31 * *', 'unix'))).toEqual(['31日がない月には実行されません']);
     expect(cronWarnings(parseCron('0 0 0 31W * ?', 'quartz'))).toEqual(['31日がない月には実行されません']);
     expect(cronWarnings(parseCron('0 0 0 28W * ?', 'quartz'))).toEqual([]);
+    expect(cronWarnings(parseCron('0 0 28 * *', 'unix'))).toEqual([]);
     expect(cronWarnings(parseCron('0 0 0 L * ?', 'quartz'))).toEqual([]);
     expect(cronWarnings(parseCron('0 0 0 ? * 2', 'quartz'))).toEqual([]);
   });
@@ -375,10 +407,6 @@ describe('cronWarnings', () => {
     expect(cronWarnings(parseCron('0 */5 * * *', 'unix'))[0]).toContain('20時の次は0時');
   });
 
-  it('月によっては存在しない日を注意する', () => {
-    expect(cronWarnings(parseCron('0 0 31 * *', 'unix'))).toEqual(['31日がない月には実行されません']);
-    expect(cronWarnings(parseCron('0 0 28 * *', 'unix'))).toEqual([]);
-  });
 });
 
 describe('Date の上限の近くの探索', () => {

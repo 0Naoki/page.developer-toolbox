@@ -2,8 +2,6 @@ import { type Zone } from '../../lib/time/timezone';
 import { parseDateTime } from '../../lib/time/dateTimeInput';
 import { formatWithOffset, showsMillis } from '../../lib/time/dateTimeFormat';
 
-/** エポック時間 */
-
 export type EpochUnit = 's' | 'ms' | 'us' | 'ns';
 
 /** 整数部の桁数に対応する単位。先頭の0を数えるかは呼び出し側が決める。 */
@@ -77,10 +75,8 @@ export function parseAny(input: string, zone: Zone, now: number): Date {
   return parseDateTime(s, zone);
 }
 
-/** 一括変換 */
-
-/** 10桁（秒）・13桁（ミリ秒）・16桁（マイクロ秒）・19桁（ナノ秒）の数値（負数も含む）。前後が英数字なら ID などとみなして対象外 */
 /**
+ * 10桁（秒）・13桁（ミリ秒）・16桁（マイクロ秒）・19桁（ナノ秒）の数値（負数も含む）。前後が英数字なら ID などとみなして対象外。
  * 数字の直前の - も境界から除き、負数の数字部分だけに一致するのを防ぐ。
  * 「1700000000.123abc」の小数部分が一致しないときに整数部分だけへ後退しないよう、後ろに英数字も「.数字」も
  * 続かないことを確かめる（文の終わりの「.」は数値の一部ではないので許す）。「3.1700000000」の小数部分も対象外

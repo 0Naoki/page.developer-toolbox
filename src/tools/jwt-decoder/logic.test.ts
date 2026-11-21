@@ -1,8 +1,20 @@
 /** 検査の対象：logic.ts・diagnostics.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する） */
 import { describe, expect, it } from 'vitest';
 import { claimRows, decodeJwe, judgeJwt, parseJwt } from './logic';
-import { headerWarnings } from './diagnostics';
+import { headerWarnings, timeClaimTypeWarnings } from './diagnostics';
 import { base64Url, decodeJwt } from './tokens.fixtures';
+
+it('診断の抜粋では表示しないcrit要素を読まず、補助平面の文字を分断しない', () => {
+  const crit = new Proxy(Array.from({ length: 20 }, (_, i) => `item${i}`), {
+    get(target, key, receiver) {
+      if (key === '10') throw new Error('表示範囲外を読みました');
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  expect(headerWarnings({ crit })[0]?.message).toContain('ほか10件');
+  expect(timeClaimTypeWarnings({ exp: '😀'.repeat(41) })[0]).toContain(JSON.stringify('😀'.repeat(40) + '…'));
+  expect(timeClaimTypeWarnings({ exp: '😀'.repeat(40) })[0]).not.toContain('…');
+});
 
 /** \{"alg":"HS256","typ":"JWT"\} . \{"sub":"123","name":"山田","iat":1700000000,"exp":1700003600\} */
 const header = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
@@ -130,9 +142,18 @@ describe('decodeJwt', () => {
     expect(r.warnings).toEqual(['ペイロード：キー「role」が重複しています（1行目）']);
   });
 
+  it('1888年より前の時刻クレームは、JST ではなくオフセット（+09:18:59）を付ける', () => {
+    /** iat が -3000000000（1874年）。東京の当時のずれは +09:18:59 で、「JST」（+09:00）と書くと貼り戻したときにずれる */
+    const r = decodeJwt(tokenWith('{"iat":-3000000000,"exp":1700000000}'), 0);
+    expect(r.timeClaims.map(({ name, jst, zone }) => ({ name, jst, zone }))).toEqual([
+      { name: 'iat', jst: '1874-12-08 03:58:59', zone: '+09:18:59' },
+      { name: 'exp', jst: '2023-11-15 07:13:20', zone: 'JST' },
+    ]);
+  });
+
   it('日時にできない時刻クレームがあっても、ほかの部分はデコードする', () => {
     const r = decodeJwt(tokenWith('{"sub":"1","exp":9999999999999}'), 0);
-    expect(r.timeClaims).toEqual([{ name: 'exp', label: '有効期限 (exp)', epoch: 9999999999999, epochText: '9999999999999', jst: null, relative: null }]);
+    expect(r.timeClaims).toEqual([{ name: 'exp', label: '有効期限 (exp)', epoch: 9999999999999, epochText: '9999999999999', jst: null, zone: null, relative: null }]);
     expect(r.payload.sub).toBe('1');
     expect(r.expired).toBe(false);
     /** Infinity になる値は NumericDate として使えないため、不正とする（ほかの部分はデコードする） */

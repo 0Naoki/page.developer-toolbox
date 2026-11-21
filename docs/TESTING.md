@@ -20,7 +20,7 @@ E2Eだけ実行するときは `npm run e2e` でビルドから実行できま�
 対象の版でビルドし直す手順と、成果物のハッシュの記録も維持してください。
 CIは `check` の後にE2Eを実行し、ビルドを重複させません。
 
-`npm run test:scripts` は、計測基盤のNodeテストだけを実行します。`check` にも含めています。
+`npm run test:scripts` は、計測基盤とCSS比較のNodeテストを実行します。`check` にも含めています。
 一時ディレクトリと一時Gitリポジトリで、古いビルドの拒否・比較方式・依存ファイルの移動・異なるpackage-lockの拒否を確認します。
 作業中のリポジトリのファイル・ブランチ・コミットは変更しません。
 
@@ -50,9 +50,15 @@ npm run e2e:run -- e2e/storage.spec.ts --project=webkit --workers=2
 | `src/sourceScan.test.ts` | 静的検査が使う解析（コメントの除去・通信の API の参照・ローカル依存の抽出）が、紛らわしい書き方を誤らないこと | `src/sourceScan.testing.ts` を直す |
 | `src/docs.test.ts` | README の一覧・件数、入力保存対象と説明、ツールのファイルの分担、回帰IDと担当コメントがコードと一致すること | README・USAGE・TESTING や担当ファイルの説明を直す |
 | `src/documentLinks.test.ts` | Markdown の相対リンク・見出しリンク、コード表記のファイルパス、コードのコメントや文言に書いたファイルのパスが存在すること（運用記録の過去のパスと書き方の例を除く） | リンク先・見出し・パスを直す |
-| `src/styles.classes.test.ts` | CSS のクラスが、使う画面の範囲に合ったファイルにあること（ツール別の CSS のクラスをほかの画面で使わない。部品の層の CSS に1つの画面だけのクラスを置かない。ツール別の CSS のファイル名がツールのフォルダ名と同じ）。`src/styles/` のどのファイルも入口（`src/styles.css`）で1回だけ、見出しの番号に合った層（`layer(...)`）に入れて読み込むこと（読み込み忘れたファイルの規則は本番でまったく効かず、層に入れない規則はどの層よりも優先されるため）。クラスと画面の対応の読み方は `src/cssClasses.testing.ts` | クラスを、使う画面の範囲に合った CSS に移す（例外は、理由を書いてテストの `ALLOWED` に足す）。読み込みは `src/styles.css` の該当する層に足す |
+| `src/styles.classes.test.ts` | CSS のクラスが、使う画面の範囲に合ったファイルにあること（ツール別の CSS のクラスをほかの画面で使わない。部品の層の CSS に1つの画面だけのクラスを置かない。ツール別の CSS のファイル名がツールのフォルダ名と同じ。どの画面・部品も使わないクラスを残さない）。`src/styles/` のどのファイルも入口（`src/styles.css`）で1回だけ、見出しの番号に合った層（`layer(...)`）に入れて読み込むこと（読み込み忘れたファイルの規則は本番でまったく効かず、層に入れない規則はどの層よりも優先されるため）。クラスと画面の対応の読み方は `src/cssClasses.testing.ts` | クラスを、使う画面の範囲に合った CSS に移す（例外は、理由を書いてテストの `ALLOWED` に足す）。読み込みは `src/styles.css` の該当する層に足す |
 | `src/scripts.test.ts` | 計測スクリプト（`scripts/*.mjs`）の構文・import・ファイルのパス・計算処理の関数と定数を確認する。Nodeテスト内の一時ファイルのパスは、実在するソースとして検査しない | スクリプトの import・パス・使う関数の名前を直す |
 | `src/documentLimits.test.ts` | [USAGE.md](USAGE.md) の上限・表示量・打ち切りが実装の定数と一致し、クラウドの参照元と確認日が載っていること | USAGE の制約を、実装の定数と照合して直す |
+| `src/styles.contrast.test.ts` | 色の変数（`src/styles/theme.css`・`theme-status.css`）の主な「文字と背景」の組み合わせが、ライト・ダークとも 4.5:1 以上であること。色を変数で書いていること | 色の変数を直す。新しい組み合わせはテストの `PAIRS` に足す |
+| `src/csp.test.ts` | CSP の指定の一覧が、期待した値と完全に一致すること（許可を足すと失敗する） | `csp.config.ts` を直す。緩めるときは理由を書き、期待値も直す |
+| `src/registry.test.ts` | ツールの一覧（`src/toolCatalog.ts`）と `src/tools/` のフォルダ・不具合報告のテンプレートが対応し、ツール ID が保存キーと重ならないこと | ツールの一覧・フォルダ・テンプレートをそろえる |
+| `src/indexHtml.test.ts` | `index.html` の公開先の指定（canonical・OGP）が、[SECURITY.md](../SECURITY.md) の「正式な公開先」と一致し、説明のツールの数が一覧と一致すること | `index.html` を直す |
+| `src/buildInfo.test.ts` | 画面の版に `package.json` の version とビルドしたコミットを埋め込み、不具合報告のテンプレートに版の欄があること | `vite.config.ts` の版の埋め込みか、テンプレートを直す |
+| `src/startScript.test.ts` | 起動スクリプト（`start.ps1`）が、`package.json`・`.nvmrc`・CI・文書と同じ Node の版と準備のコマンドを使うこと（Windows でしか動かないため、実行せずに確かめる） | `start.ps1` か、食い違った側を直す |
 
 文書の収集は `src/documentSources.testing.ts`、見出しアンカー・固定マーカー・数値と単位の照合は `src/documentMarkdown.testing.ts` に分けています。
 上限の固定IDと期待値は `src/documentLimitsCatalog.testing.ts` にあります。IDはツール・列・値・単位と対応させます。
@@ -107,13 +113,14 @@ CI で E2E が失敗したときは、同じレポートを成果物（`playwrig
 - コピーした内容は `captureClipboard` で記録し、`copiedText`・`copiedLength`・`copiedLines` で確かめます（OS のクリップボードは変えません。長いテキストは長さや行数をページの中で数え、全文をテストへ渡しません）。
 - 読み込みを遅らせる・失敗させるなど、特別なファイルを使うテストだけはページの中で直接作ります。
 - ページを渡す前に外部通信・CSP違反・実行時エラーの監視を始め、終了時にまとめて検査するため、ケースごとの `watch` 呼び出しは不要です。
-- CSPの拒否そのものを試すケースは標準の `test` を `probeTest` として明示し、期待する拒否をケース内で検証します。opener・読込失敗を扱う `security.spec.ts`・`navigation.spec.ts` も、標準の `test` を使い、ケースごとに検証します。
+- CSPの拒否そのものを試すケースは標準の `test` を `probeTest` として明示し、期待する拒否をケース内で検証します。opener を扱うケース（`security.spec.ts`）と、画面のファイルの読込失敗を扱うケース（`navigation.spec.ts`）も、そのケースだけ `probeTest` を使い、期待する状態をケース内で検証します。同じファイルのほかのケースは、監視付きの `test` を使います。
 
 ### 短縮するときのルール
 
 - タイムアウトは `page.clock` で進め、実時間の2秒・10秒を待ちません。Workerの開始を確認してから時計を進め、終了後の再計算も検査します。
 - 保存・描画の完了は状態を観測して待ちます。計算中に部品の位置が変わる場合は、計算完了を待って操作します。
 - ファイル競合は読み込みの完了順序を明示して検査し、固定時間の待機に依存させません。
+- 読み上げは待機と文言公開の間も時計を分けて進め、公開待ちで取り消したエラーが領域へ出ないことを検査します。
 - テストを移動・統合するときは、分割前後のプロジェクト別のテスト名と件数を照合します。時間短縮のために既知不具合の入力や重要なアサーションを削らないでください。
 - 通常実行はトレースを取らず、失敗したケースを1回だけ再実行して詳細なトレースを記録します。初回失敗時のスクリーンショットも残します。再実行で成功しても `failOnFlakyTests: true` により検査全体は失敗するため、再発や不安定さを隠しません。調査中に初回から記録したい場合は `--trace=on` を指定してください。
 - セキュリティ検査の除外範囲を広げないでください。WebKitのselect内部スタイルに限った既存の除外は `e2e/watch.ts` にあります。
@@ -212,6 +219,8 @@ Workerの実行管理は `src/lib/worker/runWorker.test.ts` でも、待機中�
 | CSVの重複した親キー × 展開・配列・エスケープ <!-- regression:R054 --> | `src/tools/csv-json/writeCsv.test.ts`・`e2e/csv.spec.ts` |
 | 文字診断の全件取得 × 抜粋・総数・位置・入力変更 <!-- regression:R055 --> | `src/tools/text-count/reports.test.ts`・`e2e/text-count.spec.ts` |
 | 入力の表示上限 × IME確定・取消・保存・履歴 <!-- regression:R056 --> | `e2e/input-composition.spec.ts` |
+| cron の夏時間で飛ばされる区間 × 区間の長さ × 全候補が飛ばされる式 <!-- regression:R057 --> | `src/tools/cron/logic.test.ts` |
+| サブネットの集約・重複チェック × 読めない行が大量 × IPv4・IPv6 の混在 <!-- regression:R058 --> | `src/tools/subnet/ipv4.test.ts` |
 
 ### 実装との比較だけでは見つからない条件
 
@@ -253,6 +262,10 @@ node scripts/compare-styles.mjs compare before after
 
 - ビルドした CSS の規則の集まり（並びの違いは問わず、消えた規則・増えた規則を表示する）
 - 全ツールとトップページの全要素の計算後のスタイル（PC 幅とスマートフォン幅。初期の状態・「サンプル」を押した状態・切り替えボタンを1つずつ押した状態）
+
+初期状態はサンプル投入前に別のキーで記録します。状態と要素の追加・削除は両方向で比較します。
+親の切り替えで現れる子も、親を次へ切り替える前に収集します。同じ名前・選択肢の切り替えは各ボタンを1回ずつ押し、全組合せは試しません。
+配信範囲・不正なURL・比較判定・初期状態と条件付きの切り替えの収集は `scripts/style-comparison.test.mjs` で検査します。
 
 ダークテーマ・マウスを乗せたとき・フォーカス・エラーの状態は比べないため、これらに関わる規則を動かしたときは目視でも確かめてください。生成したパスワードの一覧は、ランダムな文字で要素が変わるため比べません。
 

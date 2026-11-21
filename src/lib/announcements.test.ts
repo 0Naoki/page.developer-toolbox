@@ -41,6 +41,41 @@ describe('Announcer', () => {
     vi.advanceTimersByTime(ANNOUNCE_DELAY_MS + PUBLISH_DELAY_MS);
     expect(shown.at(-1)).toBe('1。2。3。ほか 2 件');
   });
+
+  it('公開待ちの間に取り消した文言だけを除き、同じ文言を出した別の通知元は残す', () => {
+    const { shown, announcer } = setup();
+    const a = Symbol('a'), b = Symbol('b'), c = Symbol('c');
+    announcer.announce(a, 'A');
+    announcer.announce(b, '同じ文言');
+    announcer.announce(c, '同じ文言');
+    vi.advanceTimersByTime(ANNOUNCE_DELAY_MS + PUBLISH_DELAY_MS / 2);
+    announcer.cancel(a);
+    announcer.cancel(b);
+    vi.advanceTimersByTime(PUBLISH_DELAY_MS / 2);
+    expect(shown).toEqual(['', '同じ文言']);
+  });
+
+  it('公開待ちの間に同じ通知元を更新したら、古い文言を出さず、新しい文言は改めて待って読む', () => {
+    const { shown, announcer } = setup();
+    const source = Symbol('field');
+    announcer.announce(source, '古い文言');
+    vi.advanceTimersByTime(ANNOUNCE_DELAY_MS + PUBLISH_DELAY_MS / 2);
+    announcer.announce(source, '新しい文言');
+    vi.advanceTimersByTime(PUBLISH_DELAY_MS / 2);
+    expect(shown).toEqual(['']);
+    vi.advanceTimersByTime(ANNOUNCE_DELAY_MS + PUBLISH_DELAY_MS);
+    expect(shown).toEqual(['', '', '新しい文言']);
+  });
+
+  it('公開待ちのすべての文言を取り消したら、予約済みでも読み上げない', () => {
+    const { shown, announcer } = setup();
+    const source = Symbol('field');
+    announcer.announce(source, '消したエラー');
+    vi.advanceTimersByTime(ANNOUNCE_DELAY_MS);
+    announcer.cancel(source);
+    vi.advanceTimersByTime(PUBLISH_DELAY_MS);
+    expect(shown).toEqual(['']);
+  });
 });
 
 describe('PendingAnnouncements', () => {

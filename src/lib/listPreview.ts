@@ -9,5 +9,7 @@ export const LIST_PREVIEW_LIMIT = 100;
 
 /** 一覧の先頭 limit 件と、表示しない残りの件数 */
 export function previewList<T>(items: readonly T[], limit = LIST_PREVIEW_LIMIT, total = items.length): { shown: readonly T[]; rest: number } {
-  return { shown: items.length > limit ? items.slice(0, limit) : items, rest: Math.max(0, total - limit) };
+  const shown = items.length > limit ? items.slice(0, limit) : items;
+  /** 渡した一覧が上限より短く、total が一覧より多いとき（一覧がすでに抜粋のとき）も、表示しなかった件数を正しく数える */
+  return { shown, rest: Math.max(0, total - shown.length) };
 }

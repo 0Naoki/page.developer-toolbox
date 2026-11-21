@@ -16,7 +16,7 @@ export type ParseOptions = {
  * ダブルクォート内のカンマ・改行、"" によるエスケープに対応する。
  */
 export function parseCsv(input: string, delimiter: Delimiter = ',', options: ParseOptions = {}): string[][] {
-  const text = input.replace(/^﻿/, '');
+  const text = input.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';

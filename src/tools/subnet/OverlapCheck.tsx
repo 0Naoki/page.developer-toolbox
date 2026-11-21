@@ -40,12 +40,12 @@ export function OverlapCheck() {
       )}
       {result && result.count > 0 &&
         (result.overlaps.length === 0 ? (
-          <Notice tone="good">{result.count} 件の範囲に、重なりはありません。</Notice>
+          <Notice tone="good">{formatNumber(result.count)} 件の範囲に、重なりはありません。</Notice>
         ) : (
           <>
             <Notice tone="bad">
-              {result.overlaps.length}
-              {result.truncated && '件以上（先頭 ' + MAX_OVERLAPS + ' 件を表示）'}
+              {formatNumber(result.overlaps.length)}
+              {result.truncated && '件以上（先頭 ' + formatNumber(MAX_OVERLAPS) + ' 件を表示）'}
               {!result.truncated && '件'}の重なりがあります。
             </Notice>
             <ul className="overlap-list">

@@ -69,8 +69,6 @@ export function createUuidV7Generator(rng: Rng = cryptoRng) {
   };
 }
 
-/** ULID */
-
 /** Crockford の Base32（I, L, O, U を含まない） */
 const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const MAX_TIME = 2 ** 48 - 1;

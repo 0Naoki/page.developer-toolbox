@@ -43,7 +43,8 @@ export default function RadixTool() {
   const [text, setText] = useInput('radix:text');
   const [sourceText, setSourceText] = useInput('radix:base', '10');
   const [width, setWidth] = usePreference<Width>('radix:width', 32, oneOf(0, 8, 16, 32, 64));
-  const source = (Number(sourceText) || 10) as Base;
+  /** 保存値を手で書き換えられても、対応する基数（2・8・10・16）以外は10進数として扱う（「7」で英語の例外の文言が出ないように） */
+  const source: Base = BASES.find((b) => String(b) === sourceText) ?? 10;
 
   const parsed = useMemo(() => {
     if (!text.trim()) return null;

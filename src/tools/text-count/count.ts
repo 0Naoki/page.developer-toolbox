@@ -1,5 +1,5 @@
-import { eucjpBytesOf, reasonOf, sjisBytesOf, vendorKindOf } from './encoding';
-import { IssueList, type CharIssue, type IssueTotals } from './issues';
+import { eucjpBytesOf, sjisBytesOf } from './encoding';
+import { IssueList, issueReasonOf, type CharIssue, type IssueTotals } from './issues';
 
 export type Newline = 'lf' | 'crlf' | 'none';
 
@@ -25,7 +25,6 @@ export type CountResult = {
   halfWidth: number;
   fullWidth: number;
   lines: number;
-  newlines: number;
   /** Shift_JIS で表現できない文字 */
   unsupported: CharIssue[];
   /** EUC-JP で表現できない文字 */
@@ -76,13 +75,16 @@ export function countText(input: string, o: CountOptions): CountResult {
     column++;
     codePoints++;
     const b = sjisBytesOf(ch);
-    if (b === null) unsupported.add(ch, reasonOf(ch), line, column);
-    sjis += b ?? 2;
     const e = eucjpBytesOf(ch);
-    if (e === null) unsupportedEuc.add(ch, reasonOf(ch), line, column);
+    /** 診断の対象かは、全件の集約（issues.ts の aggregateIssues）と同じ関数で決める */
+    const sjisReason = issueReasonOf(ch, 'unsupported', b, e);
+    if (sjisReason !== null) unsupported.add(ch, sjisReason, line, column);
+    const eucReason = issueReasonOf(ch, 'unsupportedEuc', b, e);
+    if (eucReason !== null) unsupportedEuc.add(ch, eucReason, line, column);
+    const vendorReason = issueReasonOf(ch, 'vendor', b, e);
+    if (vendorReason) vendor.add(ch, vendorReason, line, column);
+    sjis += b ?? 2;
     euc += e ?? 2;
-    const kind = b === 2 ? vendorKindOf(ch) : null;
-    if (kind) vendor.add(ch, kind, line, column);
     if (b === 1) half++;
     else full++;
   }
@@ -99,7 +101,6 @@ export function countText(input: string, o: CountOptions): CountResult {
     halfWidth: half,
     fullWidth: full,
     lines: text === '' ? 0 : newlines + 1,
-    newlines,
     unsupported: unsupported.list(),
     unsupportedEuc: unsupportedEuc.list(),
     vendor: vendor.list(),

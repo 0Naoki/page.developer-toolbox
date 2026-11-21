@@ -132,6 +132,17 @@ export function ageOn(birth: Ymd, on: Ymd): number {
   return age;
 }
 
+/**
+ * 生年月日（西暦・和暦のどちらでも）から、基準日（空なら today）の満年齢を求める。
+ * 生年月日が基準日より後のときと、和暦にできない日付（1873年より前）はエラー（画面の描画中に例外を起こさないよう、ここで確かめる）。
+ */
+export function ageFrom(birthText: string, baseText: string, today: Ymd): { age: number; on: Ymd; birthText: string } {
+  const birth = parseDateAny(birthText).date;
+  const on = baseText.trim() ? parseDateAny(baseText).date : today;
+  if (compareYmd(birth, on) > 0) throw new Error('生年月日が基準日より後になっています');
+  return { age: ageOn(birth, on), on, birthText: toWareki(birth).text };
+}
+
 export type YearRow = { year: number; wareki: string; eto: string };
 
 /** 早見表 */

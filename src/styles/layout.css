@@ -249,7 +249,7 @@ kbd {
     overscroll-behavior: contain;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 12px 24px rgb(0 0 0 / 0.15);
+    box-shadow: 0 12px 24px var(--shadow);
   }
   .sidebar-content.open {
     display: flex;

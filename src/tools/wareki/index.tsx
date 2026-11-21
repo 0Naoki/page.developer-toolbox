@@ -5,7 +5,7 @@ import { ToolShell } from '../../components/ToolShell';
 import { useInput } from '../../hooks/useInput';
 import { WEEKDAYS_JA, dayOfWeek, formatYmd, parseYmd } from '../../lib/time/date';
 import { useTodayJst } from '../../hooks/useTodayJst';
-import { ageOn, eto, parseDateAny, parseWareki, toWareki, yearTable } from './logic';
+import { ageFrom, eto, parseWareki, toWareki, yearTable } from './logic';
 import { ErrorText } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
 
@@ -26,16 +26,8 @@ export default function WarekiTool() {
   }), [seireki]);
   const toS = useMemo(() => attemptInput(wareki, parseWareki), [wareki]);
   const age = useMemo(
-    () =>
-      attemptInput(birth, (s) => {
-        const b = parseDateAny(s).date;
-        const on = baseDate.trim() ? parseDateAny(baseDate).date : today;
-        if (formatYmd(b) > formatYmd(on)) throw new Error('生年月日が基準日より後になっています');
-        /** 和暦にできない日付（1873年より前）は描画中ではなくここでエラーにする */
-        return { age: ageOn(b, on), on, birthText: toWareki(b).text };
-      }),
-    /** today は描画のたびに作り直されるため、日付の文字列で変化を判断する（日付が変わったら計算し直す） */
-    [birth, baseDate, todayText],
+    () => attemptInput(birth, (s) => ageFrom(s, baseDate, today)),
+    [birth, baseDate, today],
   );
 
   const rows = useMemo(() => yearTable(1926, today.y + 10).reverse(), [today.y]);

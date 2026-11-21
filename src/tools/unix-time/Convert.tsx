@@ -1,3 +1,4 @@
+/** エポック時間と日時の相互変換のパネル */
 import { useMemo } from 'react';
 import { Pane } from '../../components/Pane';
 import { useInput } from '../../hooks/useInput';
@@ -11,8 +12,6 @@ import { ViewTable, ZoneSelect, zoneRows, type ZoneProps } from './parts';
 import { ErrorText } from '../../components/ErrorMessage';
 import { Notice } from '../../components/Notice';
 import { attempt } from '../../lib/errors';
-
-/** エポック時間と日時の相互変換のパネル */
 
 const UNIT_LABELS: Record<EpochUnit, string> = { s: '秒', ms: 'ミリ秒', us: 'マイクロ秒', ns: 'ナノ秒' };
 const isEpochUnitSetting = oneOf<EpochUnit | 'auto'>('auto', 's', 'ms', 'us', 'ns');

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 /** バッジの色。neutral は色を付けない件数・種類、good・bad は判定の結果、add・del は差分の追加・削除 */
-export type BadgeTone = 'neutral' | 'good' | 'bad' | 'add' | 'del';
+type BadgeTone = 'neutral' | 'good' | 'bad' | 'add' | 'del';
 
 /**
  * 件数・種類・判定の結果を示す小さなラベル（`badge`）。

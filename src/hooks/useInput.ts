@@ -18,7 +18,7 @@ export function useInput(key: InputKey, initial = '') {
   const [value, setInput] = useState(() => readInput(key, initial));
   const latestInput = useRef(value);
   const failureId = useRef(Symbol(key)).current;
-  /** 全消去の途中かは saveInput の中で確かめる（入力のたびに localStorage を読むため、ここでは重ねて確かめない） */
+  /** 保存の直前の全消去の確認は saveInput の中で行う（消去世代を読み直すため）。setValue の isClearingData は、全消去の途中にこのタブのメモリの値を変えないためのもの */
   const save = useCallback((next: string) => {
     try {
       if (saveInput(key, next, initial) && hasInputSaveFailure(failureId)) setInputSaveFailure(failureId, null);

@@ -4,7 +4,7 @@ import { diffText } from './logic';
 import { packRows } from './packed';
 import { splitPreview, unifiedPreview } from './preview';
 import { visibleRows, unifiedDisplayRows, foldRows } from './rowReference.testing';
-import { calculateDiff } from './calculation';
+import { calculateDiff, unifiedFromPacked } from './calculation';
 import { toUnified } from './unified';
 
 it('圧縮した結果を構造化複製しても、表示と全文パッチを参照実装と同じに保つ', () => {
@@ -14,7 +14,9 @@ it('圧縮した結果を構造化複製しても、表示と全文パッチを�
       const options = { ignoreWhitespace, ignoreCase };
       const result = diffText(before, after, options);
       const packed = structuredClone(packRows(result.rows, before, after));
-      expect(calculateDiff({ input: before, after, ...options }).unified).toBe(toUnified(result));
+      const screen = calculateDiff({ input: before, after, ...options });
+      expect(screen).not.toHaveProperty('unified');
+      expect(unifiedFromPacked(structuredClone(screen.rows))).toBe(toUnified(result));
       for (const onlyChanges of [false, true]) for (const context of [0, 3]) {
         const folds = foldRows(result.rows, context).flatMap((r) => r.kind === 'fold' ? [r.from] : []);
         for (const expanded of [[], folds]) for (const limit of [0, 1, 3, 100]) {

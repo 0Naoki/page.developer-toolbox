@@ -177,19 +177,30 @@ export const readInteger = (n: Node, maxBytes: number): bigint => {
   if (!isUniversal(n, TAG.INTEGER) || n.constructed) throw new Asn1Error('INTEGER ではありません');
   const v = valueOf(n);
   if (v.length > maxBytes) throw new Asn1Error(`整数が長すぎます（${maxBytes}バイトまで）`);
-  let hex = '';
-  for (const b of v) hex += b.toString(16).padStart(2, '0');
+  const hex = toHex(v);
   const x = hex ? BigInt(`0x${hex}`) : 0n;
   /** 先頭ビットが1なら負の数（2の補数） */
   return (v[0] ?? 0) & 0x80 ? x - (1n << BigInt(v.length * 8)) : x;
 };
 
-export const readBoolean = (n: Node): boolean => valueOf(n)[0] !== 0;
+/** DER の BOOLEAN。空・複数バイト・00/FF以外を真偽値として扱わない。 */
+export function readBoolean(n: Node): boolean {
+  const v = valueOf(n);
+  if (!isUniversal(n, TAG.BOOLEAN) || n.constructed || v.length !== 1 || (v[0] !== 0 && v[0] !== 255)) {
+    throw new Asn1Error('BOOLEAN の形式が不正です');
+  }
+  return v[0] === 255;
+}
 
 /** BIT STRING の中身（先頭の「未使用ビット数」を除いたバイト列） */
 export function readBitString(n: Node): { bytes: Uint8Array; unused: number } {
   const v = valueOf(n);
-  return { bytes: v.subarray(1), unused: v[0] ?? 0 };
+  const unused = v[0];
+  if (!isUniversal(n, TAG.BIT_STRING) || n.constructed || unused === undefined || unused > 7 ||
+      (v.length === 1 && unused !== 0) || ((v.at(-1)! & ((1 << unused) - 1)) !== 0)) {
+    throw new Asn1Error('BIT STRING の未使用ビットまたは形式が不正です');
+  }
+  return { bytes: v.subarray(1), unused };
 }
 
 /** 1バイト1文字として読む（引数の展開は大きな値で RangeError になるため、ループで組み立てる） */

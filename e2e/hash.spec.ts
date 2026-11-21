@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - [R023] ハッシュ：再計算中や HMAC の鍵・入力元の切り替えで古い値・一致表示を出さないこと、上限を超えるファイルで「計算中」の表示を残さないこと
+ * - [R023] ハッシュ：再計算中や HMAC の鍵・入力元の切り替えで古い値・一致表示を出さないこと、上限を超えるファイルで「計算中」の表示を残さないこと、ファイルの HMAC で鍵を続けて打っても打つたびにファイルを読み直さないこと
  */
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
@@ -85,12 +85,6 @@ test('回帰：HMACの鍵と入力元の切り替えでも、古い計算結果�
   expect(stored).not.toContain('secret-key-for-regression');
 });
 
-test('ハッシュ（Web Crypto API）が動く', CROSS_BROWSER, async ({ page }) => {
-  await page.goto('./#/hash');
-  await page.locator('textarea').fill('abc');
-  await expect(page.locator('.hash-table')).toContainText('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
-});
-
 test('ハッシュのファイル欄は、キーボードで選ぶと枠が表示される', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/hash');
   await page.getByRole('button', { name: 'ファイル' }).click();
@@ -114,4 +108,41 @@ test('ハッシュ：計算中に上限を超えるファイルを選んでも�
   await expect(page.getByText('ファイルが大きすぎます（上限 256 MiB）')).toBeVisible();
   await expect(page.getByText(/計算中…/)).toHaveCount(0);
   await expect(page.locator('.hash-table')).toHaveAttribute('aria-busy', 'false');
+});
+
+test('回帰：ファイルの HMAC で鍵を続けて打っても、打つたびにファイルを読み直さない', CROSS_BROWSER, async ({ page }) => {
+  await page.clock.install();
+  await page.goto('./#/hash');
+  await page.getByRole('group', { name: '入力', exact: true }).getByRole('button', { name: 'ファイル', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'HMAC', exact: true }).check();
+  await pickFile(page, 'data.txt', 'abc');
+  /** ファイルの読み込み（File.arrayBuffer）の回数を数える */
+  await page.evaluate(() => {
+    const w = window as Window & { fileReads?: number };
+    const native = Blob.prototype.arrayBuffer;
+    w.fileReads = 0;
+    Blob.prototype.arrayBuffer = function (this: Blob) {
+      w.fileReads = (w.fileReads ?? 0) + 1;
+      return native.call(this);
+    };
+  });
+  /** install() だけでは時計は進み続ける。鍵を打つ途中・打ち終わってから確かめるまでに150msの待ちが終わらないよう、ここで止める */
+  await page.clock.pauseAt(Date.now() + 60_000);
+  await page.getByLabel('秘密鍵（UTF-8として扱います。保存されません）').pressSequentially('secret');
+  expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(0);
+  await page.clock.runFor(200);
+  /** HMAC-SHA256("secret", "abc") */
+  await expect(page.locator('.hash-value').filter({ hasText: '9946dad4e00e913fc8be8e5d3f7e110a4a9e832f83fb09c345285d78638d8a0e' })).toHaveCount(1);
+  expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(1);
+  const key = page.getByLabel('秘密鍵（UTF-8として扱います。保存されません）');
+  for (const value of ['other', 'another']) {
+    await key.fill(value);
+    await page.clock.runFor(200);
+    await expect(page.locator('.hash-value')).toHaveCount(4);
+    expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(1);
+  }
+  await pickFile(page, 'changed.txt', 'def');
+  await page.clock.runFor(200);
+  await expect(page.locator('.hash-value')).toHaveCount(4);
+  expect(await page.evaluate(() => (window as Window & { fileReads?: number }).fileReads)).toBe(2);
 });

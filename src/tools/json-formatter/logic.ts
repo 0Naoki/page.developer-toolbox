@@ -7,7 +7,7 @@ import { formatNumber } from '../../lib/number';
  * JSON.parse → JSON.stringify で整形すると、
  *   - 9007199254740993 のような大きな整数が丸められる（64ビットIDが別の値になる）
  *   - 1.10 → 1.1、1e2 → 100 のように表記が変わる
- *   - "あ" のようなエスケープが展開される
+ *   - "\u3042" のようなエスケープが展開される
  *   - 重複したキーが黙って消える
  * といった問題が起きる。そのため自前で構文解析し、数値と文字列は元の表記のまま出力する。
  */
@@ -23,7 +23,7 @@ export const MAX_OUTPUT = 20_000_000;
 
 /** JSON文字列を整形（または圧縮）する。値の表記は変えない */
 export function formatJson(input: string, indent: JsonIndent = 2, sortKeys = false): JsonResult {
-  const text = input.replace(/^﻿/, '');
+  const text = input.replace(/^\uFEFF/, '');
   if (text.trim() === '') return { ok: true, output: '', warnings: [] };
   const warnings: string[] = [];
   try {

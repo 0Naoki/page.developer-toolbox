@@ -1,9 +1,9 @@
 /**
  * ハッシュ生成のファイルの分担。
  * - `logic.ts`：ハッシュ・HMAC・MD5 の計算と入力の検査
- * - `computeHashes.ts`：入力ごとの全アルゴリズムの計算、中断確認、進捗報告
+ * - `computeHashes.ts`：全アルゴリズムの計算、中断確認、進捗報告、小さいファイルの読込の再利用
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pane } from '../../components/Pane';
 import { Badge } from '../../components/Badge';
 import { useAsyncFor } from '../../hooks/useAsyncFor';
@@ -21,7 +21,7 @@ import { ErrorBox } from '../../components/ErrorMessage';
 import { errorMessage } from '../../lib/errors';
 import { Check } from '../../components/Check';
 
-import { computeHashes, type HashInput, type HashResult, type Row } from './computeHashes';
+import { createHashComputer, type HashInput, type HashResult, type Row } from './computeHashes';
 
 type Source = 'text' | 'file';
 type OutputFormat = 'hex' | 'HEX' | 'base64';
@@ -39,6 +39,9 @@ export default function HashTool() {
   const [key, setKey] = useState('');
   const [expected, setExpected] = useState('');
   const [fileError, setFileError] = useState('');
+  const computer = useMemo(() => createHashComputer(), []);
+  useEffect(() => { computer.clear(); }, [computer, source, file]);
+  useEffect(() => () => computer.clear(), [computer]);
 
   const needsKey = useHmac && key === '';
   const input = useMemo((): HashInput | null => {
@@ -49,13 +52,14 @@ export default function HashTool() {
   const hasInput = input !== null;
   /**
    * 結果と進捗は input と組にして持ち、入力・鍵・方式・ファイルが変わった描画から、古い結果を照合やコピーへ渡さない。
-   * テキストは打ち終わるまで少し待ってから計算する
+   * テキストと HMAC の鍵は、打ち終わるまで少し待ってから計算する
+   * 小さい同一ファイルの読込は再利用し、大きいファイルでは待機によって読込の重なりを減らす。
    */
   const evaluation = useAsyncFor<HashInput, HashResult, number>(
     input,
-    computeHashes,
+    computer.run,
     (e) => ({ rows: [], error: errorMessage(e) }),
-    { delay: source === 'text' ? 150 : 0 },
+    { delay: source === 'text' || useHmac ? 150 : 0 },
   );
   const rows = evaluation.ready ? evaluation.value.rows : [];
   const busy = hasInput && !evaluation.ready;

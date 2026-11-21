@@ -7,6 +7,7 @@
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { TOOLS, settleRendering } from './app';
+import { ANNOUNCE_DELAY_MS, PUBLISH_DELAY_MS } from '../src/lib/announcements';
 
 for (const [id, title] of TOOLS) {
   test(`${title} が表示され、エラー・CSP違反・外部通信がない`, CROSS_BROWSER, async ({ page }) => {
@@ -93,6 +94,24 @@ test.describe('サンプルの入力', () => {
 test.describe('読み上げ', () => {
   const liveRegion = (page: import('@playwright/test').Page) => page.locator('[data-live-region]');
 
+  test('公開待ちの間に直したエラーは読み上げず、次のエラーは読める', CROSS_BROWSER, async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+    await page.goto('./#/radix');
+    const input = page.getByRole('textbox', { name: '10進数', exact: true });
+    await input.waitFor();
+    await page.clock.pauseAt(new Date('2026-01-01T00:01:00Z'));
+    await input.fill('12x');
+    await expect(page.locator('.error-text')).toHaveCount(1);
+    await page.clock.runFor(ANNOUNCE_DELAY_MS);
+    await input.fill('12');
+    await expect(page.locator('.error-text')).toHaveCount(0);
+    await page.clock.runFor(PUBLISH_DELAY_MS);
+    await expect(liveRegion(page)).toHaveText('');
+    await input.fill('13x');
+    await page.clock.runFor(ANNOUNCE_DELAY_MS + PUBLISH_DELAY_MS);
+    await expect(liveRegion(page)).toHaveText(/^エラー：/);
+  });
+
   test('入力のエラーを、入力が止まってから読み上げる', async ({ page }) => {
     await page.goto('./#/radix');
     await expect(liveRegion(page)).toHaveAttribute('aria-live', 'polite');
@@ -101,6 +120,15 @@ test.describe('読み上げ', () => {
     /** 直すと、エラーは読まない（領域の文言は最後に読んだもののまま） */
     await page.getByRole('textbox', { name: '10進数', exact: true }).fill('12');
     await expect(page.locator('.error-text')).toHaveCount(0);
+  });
+
+  test('進数変換：未入力の初期表示ではエラーを出さず、不正な値のエラーをビット演算で重ねない', async ({ page }) => {
+    await page.goto('./#/radix');
+    await page.getByRole('textbox', { name: '10進数', exact: true }).fill('');
+    await expect(page.getByText('上の欄に値を入力すると、ここで計算します。')).toBeVisible();
+    await expect(page.locator('.error-text')).toHaveCount(0);
+    await page.getByRole('textbox', { name: '10進数', exact: true }).fill('12x');
+    await expect(page.locator('.error-text')).toHaveCount(1);
   });
 
   test('判定の結果（含まれるか）を読み上げる', async ({ page }) => {

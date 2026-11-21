@@ -1,17 +1,22 @@
+/**
+ * 差分のパッチの生成（unified 形式）。比較・画面の表示とは分け、元の行と改行（CRLF）の情報からコピー用のテキストを作る
+ */
 import type { DiffLine, DiffResult } from './logic';
 
-/** 差分のパッチの生成（unified 形式）。比較・画面の表示とは分け、元の行と改行（CRLF）の情報からコピー用のテキストを作る */
-
-export type UnifiedItem = { mark: ' ' | '-' | '+'; text: string; a?: DiffLine; b?: DiffLine };
+type UnifiedItem = { mark: ' ' | '-' | '+'; text: string; a?: DiffLine; b?: DiffLine };
 
 const NO_NEWLINE = '\\ No newline at end of file';
 
+/** 変更の前後に残す共通行の数（git diff の既定と同じ） */
+const CONTEXT = 3;
+
 /**
  * unified diff 形式のテキストを作る（コピー用）。
- * patch や git apply で使えるよう、見出し（---/+++）と、前後 context 行だけを残したハンク（\@\@ -l,s +l,s \@\@）にする。
+ * patch や git apply で使えるよう、見出し（---/+++）と、前後 CONTEXT 行だけを残したハンク（\@\@ -l,s +l,s \@\@）にする。
  * 空白・大文字小文字を無視したときに一致した行は、変更前の行を共通行として出す
  */
-export function toUnified(result: DiffResult, context = 3, labels = { before: 'before', after: 'after' }): string {
+export function toUnified(result: Pick<DiffResult, 'rows'>): string {
+  const context = CONTEXT;
   const rows = result.rows;
   let aCount = 0;
   let bCount = 0;
@@ -71,7 +76,7 @@ export function toUnified(result: DiffResult, context = 3, labels = { before: 'b
   if (changed.length === 0) return '';
 
   const range = (start: number, count: number) => `${count === 0 ? start : start + 1}${count === 1 ? '' : `,${count}`}`;
-  const out = [`--- ${labels.before}`, `+++ ${labels.after}`];
+  const out = ['--- before', '+++ after'];
   for (let c = 0; c < changed.length; ) {
     /** 変更の間の共通行が 2×context 行以下なら、同じハンクにまとめる */
     let last = c;

@@ -132,7 +132,7 @@ export default function JsonFormatter() {
           ) : result ? (
             <ErrorBox
               title="構文エラー"
-              detail={result.line !== undefined ? `${result.line}行目 ${result.column}文字目付近` : undefined}
+              detail={`${result.line}行目 ${result.column}文字目付近`}
               message={result.error}
               code
             />

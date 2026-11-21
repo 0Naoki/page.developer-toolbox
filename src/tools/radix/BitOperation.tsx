@@ -27,7 +27,11 @@ export function BitOperation({ a, width, onUseResult }: { a: bigint | null; widt
   const [bText, setBText] = useInput('radix:b');
 
   const result = useMemo(() => {
-    if (a === null) return { ok: false as const, error: '上の欄に値を入力してください' };
+    /**
+     * 上の欄が空・不正のときは、エラーではなく案内を出す（未入力の初期表示からエラーを読み上げない。
+     * 不正な値のときは、上の欄のエラーと同じ問題を重ねて知らせない）
+     */
+    if (a === null) return null;
     if (op !== 'not' && !bText.trim()) return null;
     return attempt(() => {
       const b = op === 'not' ? 0n : parseInteger(bText, 10).value;
@@ -56,6 +60,7 @@ export function BitOperation({ a, width, onUseResult }: { a: bigint | null; widt
           </label>
         )}
       </div>
+      {a === null && <p className="hint">上の欄に値を入力すると、ここで計算します。</p>}
       {result && !result.ok && <ErrorText message={result.error} />}
       {result?.ok && a !== null && (
         <table className="kv">

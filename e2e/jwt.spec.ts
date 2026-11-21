@@ -3,6 +3,7 @@
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
  * - [R024] JWT：秘密鍵・公開鍵（証明書）での署名照合、トークンと鍵の非保存、上限を超える公開鍵を全文描画しないこと、期限の更新、長いクレームの表示の省略と全文のコピー。長い alg・小数の桁が長い時刻を、バッジ・表・警告・鍵の欄の見出しで抜粋にすること。
+ *   Worker解析の待機・中断・再試行で旧結果を出さず、鍵の入力を保持すること。深いJSONも文字列として表示・コピーできること。
  *   JWK の alg・use・crv が長くても、検証できない理由を表示上限内に残すこと。公開鍵を読み込めないときは「署名が一致しない」でなく「検証できない」とすること
  *   空白だけのUTF-8鍵もHMACの署名検証に使い、同じバイト列をBase64で入力しても一致すること。空文字・Base64と公開鍵の空白だけの入力は未入力とすること。
  *   （あわせて `e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts`）
@@ -13,6 +14,54 @@ import { CROSS_BROWSER } from './tags';
 import { RSA_JWK, SECRET, TOKENS, base64Url } from '../src/tools/jwt-decoder/tokens.fixtures';
 import { pasteLargeInput } from './paste';
 import { captureClipboard, copiedText, copiedLength } from './clipboard';
+
+test('JWT：解析中・中断後は旧判定を出さず、再試行でも鍵を保持する', CROSS_BROWSER, async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    const w = window as Window & { holdJwt?: boolean; finishJwt?: () => void };
+    window.Worker = class extends NativeWorker {
+      postMessage(message: unknown): void {
+        if ((message as { tool?: string }).tool === 'jwt' && w.holdJwt) {
+          w.finishJwt = () => super.postMessage(message);
+          return;
+        }
+        super.postMessage(message);
+      }
+    };
+  });
+  await page.goto('./#/jwt');
+  const token = page.getByLabel('トークン', { exact: true });
+  await token.fill(TOKENS.HS256);
+  await page.getByLabel('秘密鍵', { exact: true }).fill(SECRET);
+  const valid = page.getByText('署名は正しい', { exact: true });
+  await expect(valid).toBeVisible();
+  await page.evaluate(() => { (window as Window & { holdJwt?: boolean }).holdJwt = true; });
+  await token.fill(`eyJhbGciOiJIUzI1NiJ9.${base64Url('{"sub":"updated"}')}.c2ln`);
+  await expect(valid).toHaveCount(0);
+  await expect(page.locator('[data-calculation-state="pending"]')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => typeof (window as Window & { finishJwt?: unknown }).finishJwt)).toBe('function');
+  await page.getByRole('button', { name: '中断', exact: true }).click();
+  await page.evaluate(() => {
+    const w = window as Window & { holdJwt?: boolean; finishJwt?: () => void };
+    w.finishJwt?.();
+    w.holdJwt = false;
+  });
+  await expect(valid).toHaveCount(0);
+  await page.getByRole('button', { name: '再計算', exact: true }).click();
+  await expect(page.getByLabel('秘密鍵', { exact: true })).toHaveValue(SECRET);
+  await expect(page.getByText('署名が一致しない', { exact: true })).toBeVisible();
+  await token.fill(TOKENS.HS256);
+  await expect(valid).toBeVisible();
+});
+
+test('JWT：深いJSONはオブジェクト転送に失敗せず全文をコピーできる', async ({ page }) => {
+  await captureClipboard(page);
+  await page.goto('./#/jwt');
+  const json = '{"sub":' + '['.repeat(1000) + '1' + ']'.repeat(1000) + '}';
+  await page.getByLabel('トークン', { exact: true }).fill(`eyJhbGciOiJIUzI1NiJ9.${base64Url(json)}.c2ln`);
+  await page.locator('.pane-head').filter({ hasText: 'ペイロード' }).getByRole('button', { name: 'コピー', exact: true }).click();
+  await expect.poll(() => copiedText(page)).toBe(json);
+});
 
 test('JWT：長いJWKの値を抜粋しても、検証できない理由を表示する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/jwt');

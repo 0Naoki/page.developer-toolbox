@@ -2,6 +2,7 @@ import { addDays, compareYmd, dayOfWeek, daysInMonth, formatYmd, readYmd, toDayN
 import { HOLIDAY_MAX_YEAR, HOLIDAY_MIN_YEAR, holidayName } from './holidays';
 import { textPreview } from '../../lib/text/textPreview';
 import { splitLines } from '../../lib/text/lines';
+import { formatNumber } from '../../lib/number';
 
 export type Calendar = {
   /** 休みにする曜日（0=日〜6=土） */
@@ -41,8 +42,22 @@ export const MAX_INVALID_SHOWN = 20;
 /** 読めない項目1件の表示の長さ（UTF-16単位）。入力欄はプレビューに制限しているため、診断で長い1行を全文描画しない */
 export const MAX_INVALID_PREVIEW = 100;
 
-/** 読めない項目の診断。text は表示用の抜粋、length は元の長さ */
-export type InvalidHoliday = { line: number; text: string; length: number };
+/** 読めない項目の診断。text は表示用の抜粋、length は元の長さ（UTF-16 の単位。抜粋したかの判定に使う）、chars は元の文字数（コードポイント数。文言に出す） */
+export type InvalidHoliday = { line: number; text: string; length: number; chars: number };
+
+/** 文字数（コードポイント数）。配列を作らずに数える */
+function codePointCount(s: string): number {
+  let count = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = s.charCodeAt(i + 1);
+      if (d >= 0xdc00 && d <= 0xdfff) i++;
+    }
+    count++;
+  }
+  return count;
+}
 
 /**
  * 会社独自の休日の入力を読む。1行に1日付で、カンマで区切ってもよい。
@@ -69,11 +84,23 @@ export function parseExtraHolidays(text: string): { dates: string[]; invalid: In
       }
       invalidCount++;
       if (invalid.length < MAX_INVALID_SHOWN) {
-        invalid.push({ line: i + 1, text: s.length > MAX_INVALID_PREVIEW ? textPreview(s, MAX_INVALID_PREVIEW) : s, length: s.length });
+        invalid.push({ line: i + 1, text: s.length > MAX_INVALID_PREVIEW ? textPreview(s, MAX_INVALID_PREVIEW) : s, length: s.length, chars: codePointCount(s) });
       }
     }
   }
   return { dates, invalid, invalidCount };
+}
+
+/**
+ * 読めない独自休日の文言。総件数を先頭に置き、続けて先頭の項目の行番号と抜粋を並べる。
+ *
+ * @remarks
+ * 表示（1,000単位）と読み上げ（256単位）は文言を後ろで切るため、総件数を末尾に置くと、項目が長い・多いときに件数が消える。
+ */
+export function invalidHolidaysMessage({ invalid, invalidCount }: { invalid: InvalidHoliday[]; invalidCount: number }): string {
+  const items = invalid.map((item) => `${item.line}行目「${item.text}${item.text.length < item.length ? `…（全${formatNumber(item.chars)}文字）` : ''}」`);
+  const head = invalidCount > invalid.length ? `（先頭 ${formatNumber(invalid.length)} 件）` : '';
+  return `読み取れない日付が ${formatNumber(invalidCount)} 件あります${head}：${items.join('、')}`;
 }
 
 export function dayInfo(date: Ymd, cal: Calendar): DayInfo {
@@ -92,7 +119,9 @@ export function dayInfo(date: Ymd, cal: Calendar): DayInfo {
 
 const isBusinessDay = (date: Ymd, cal: Calendar) => dayInfo(date, cal).business;
 
-/** 期間の上限（年） */
+/**
+ * 期間の上限（年）。判定は日数で行い、366日 × 30 = 10,980日まで（暦の30年より約3週間長い。うるう年の位置によらず、30年の期間を必ず受け付けるため）
+ */
 export const MAX_SPAN_YEARS = 30;
 /** n営業日後・前の上限 */
 export const MAX_BUSINESS_DAYS = 3000;

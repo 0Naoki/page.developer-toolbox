@@ -25,6 +25,6 @@ for (const item of cases) {
   measurements.push({ name: item.name, inputLength: item.input.length, expectedMillis: item.expected, timings });
 }
 comparison.writeReport({
-  scope: 'Node の単一エポック解析のみ。入力文字列の準備・画面・保存は対象外。HEAD の入口も依存は作業ツリーから読む。',
+  scope: 'Node の単一エポック解析のみ。入力文字列の準備・画面・保存は対象外。依存の読み方は dependencySource に記録する。',
   cases: measurements,
 }, outputPath);

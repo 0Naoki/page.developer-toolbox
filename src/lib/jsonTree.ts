@@ -162,7 +162,7 @@ export function parseJsonSource(text: string, warnings: string[]): JsonNode {
   let line = 1;
   let p = 0;
   for (const d of duplicates) {
-    for (; p < d.pos; p++) if (endsLine(text, p)) line++;
+    for (; p < d.pos; p++) if (endsLineAt(text, p)) line++;
     /** 警告は件数を絞っても1件ずつ全文描画するため、長いキーは抜粋にする */
     warnings.push(`キー「${detailPreview(d.name)}」が重複しています（${line}行目）`);
   }
@@ -217,18 +217,12 @@ export function serializeJsonTree(node: JsonNode, unit: string | null, sortKeys:
   return chunks.join('');
 }
 
-/**
- * i の文字で行が終わるか。CR・LF・CRLF をどれも1つの改行として数える（lib/text/lines.ts の endsLineAt）。
- * 入力を正規化せずに行番号を求めるため、エラーの位置と重複キーの警告で共通に使う
- */
-const endsLine = endsLineAt;
-
 /** pos の位置の行と列（どちらも1から）。列はコードポイントで数える */
 export function lineColumn(text: string, pos: number): { line: number; column: number } {
   let line = 1;
   let lineStart = 0;
   for (let i = 0; i < pos; i++) {
-    if (!endsLine(text, i)) continue;
+    if (!endsLineAt(text, i)) continue;
     line++;
     lineStart = i + 1;
   }
@@ -240,7 +234,7 @@ export function lineColumn(text: string, pos: number): { line: number; column: n
  * 構文エラーは「○行○列目：理由」のメッセージで投げる。重複キーなどは warnings に入る
  */
 export function parseJsonTree(input: string): { root: JsonNode; warnings: string[] } {
-  const text = input.replace(/^﻿/, '');
+  const text = input.replace(/^\uFEFF/, '');
   const warnings: string[] = [];
   try {
     return { root: parseJsonSource(text, warnings), warnings };

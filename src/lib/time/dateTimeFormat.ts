@@ -8,8 +8,6 @@ export function formatOffset(minutes: number): string {
   return `${sign}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`;
 }
 
-/** 表示 */
-
 const displayFormatters = new Map<string, Intl.DateTimeFormat>();
 
 /** これより前の日時は、下の書式では年が4桁にならず、紀元前も正の年になる（タイムゾーンの差を見込んで2日の余裕をとる） */
@@ -53,13 +51,26 @@ export function formatInZone(date: Date, zone: Zone): string {
 /** 日本時間の「2026-10-02 09:00:00」の形（末尾に「JST」は付けない。見出しや表の列で JST と示す画面向け） */
 export const formatJst = (date: Date): string => formatInZone(date, JST_ZONE);
 
+/** 日本時間の UTC からのずれ（+09:00）。1888年より前の東京は地方平均時（+09:18:59）で、これと違う */
+const JST_OFFSET_MS = 9 * 3600000;
+
+/**
+ * formatJst の日時の後ろに付ける、タイムゾーンの表記。ずれが +09:00 なら「JST」、そうでなければ「+09:18:59」のようなオフセット。
+ *
+ * @remarks
+ * 日時入力（parseDateTime）は「JST」を +09:00 として読むため、1888年より前の日時に「JST」と付けると、貼り戻したときに18分59秒ずれる。
+ */
+export const jstZoneLabel = (date: Date): string =>
+  offsetMs(date.getTime(), JST_ZONE) === JST_OFFSET_MS ? 'JST' : offsetLabel(date.getTime(), JST_ZONE);
+
 /**
  * 日本時間の「2026-10-02 09:00:00 JST」の形（1つの値だけで日本時間と分かるように示す画面向け）。
- * withMillis ならミリ秒も付ける（「09:00:00.123 JST」。showsMillis で決める）
+ * withMillis ならミリ秒も付ける（「09:00:00.123 JST」。showsMillis で決める）。
+ * ずれが +09:00 でない時刻（1888年より前）は、「JST」の代わりにオフセット（「+09:18:59」）を付ける（{@link jstZoneLabel}）
  */
 export const formatJstLabeled = (date: Date, withMillis = false): string => {
   const millis = withMillis ? `.${String(((date.getTime() % 1000) + 1000) % 1000).padStart(3, '0')}` : '';
-  return `${formatJst(date)}${millis} JST`;
+  return `${formatJst(date)}${millis} ${jstZoneLabel(date)}`;
 };
 
 /**
@@ -81,11 +92,16 @@ export const hasWrittenFraction = (input: string): boolean => /:\d{2}\.\d/.test(
 export function formatWithOffset(date: Date, zone: Zone, withMillis = false): string {
   const ms = date.getTime();
   const millis = withMillis ? `.${String(((ms % 1000) + 1000) % 1000).padStart(3, '0')}` : '';
+  return `${formatInZone(date, zone)}${millis} ${offsetLabel(ms, zone)}`;
+}
+
+/** 時刻 ms での、zone の UTC からのずれを「+09:00」の形にする。秒を含むずれ（1888年より前の東京など）は「+09:18:59」 */
+function offsetLabel(ms: number, zone: Zone): string {
   const offset = offsetMs(ms, zone);
   const minutes = formatOffset(Math.floor(Math.abs(offset) / 60000)).slice(1);
   const seconds = Math.floor(Math.abs(offset) / 1000) % 60;
   const suffix = seconds ? `:${String(seconds).padStart(2, '0')}` : '';
-  return `${formatInZone(date, zone)}${millis} ${offset < 0 ? '-' : '+'}${minutes}${suffix}`;
+  return `${offset < 0 ? '-' : '+'}${minutes}${suffix}`;
 }
 
 export function relativeFrom(date: Date, now: number): string {

@@ -4,7 +4,9 @@
  *
  * - [R004] ナビゲーション：IME中のキー処理、フォーカス・スクロール、名前・選択状態の読み上げ
  */
-import { expect, test } from '@playwright/test';
+/** 画面のファイルの読込失敗を試すケースは、失敗そのもの（abort した読み込みのエラー）を扱うため、標準の test（probeTest）で期待する状態をケース内で検証する。ほかは監視付きの test を使う。 */
+import { test as probeTest } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { openPalette, TOOLS, settleRendering, openNavigation } from './app';
 
@@ -27,7 +29,7 @@ test('削除したSQL整形のURLや保存済みの履歴があっても、残�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('JSON整形');
 });
 
-test('画面のファイルを読み込めなくても、アプリ全体は消えずに再読み込みを案内する', CROSS_BROWSER, async ({ page }) => {
+probeTest('画面のファイルを読み込めなくても、アプリ全体は消えずに再読み込みを案内する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('開発者向けユーティリティ');
   /** 新しい版の公開で古いファイルが消えた状態を再現する */

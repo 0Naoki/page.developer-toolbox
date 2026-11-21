@@ -1,0 +1,65 @@
+{
+  "measuredAt": "2026-11-20T18:52:45.996Z",
+  "head": "cacf77debfda76f2686f1503b6cf68b14c295561",
+  "environment": {
+    "node": "v24.22.1",
+    "browser": "156.0.8078.4",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz"
+  },
+  "input": {
+    "subCharacters": 5000000,
+    "tokenUtf16": 6666706,
+    "source": "JSON.stringify({sub: \"a\".repeat(5000000)})をBase64URLにした合成JWT。署名検証はしない。"
+  },
+  "scope": "変更前に退避したビルドと変更後の本番ビルド。各版で予備1回、測定3回。貼り付けからペイロード表示後の2描画まで。maxFrameMsはrequestAnimationFrameの最大間隔。時間には自動化とWorkerの待機・起動・転送・描画を含む。",
+  "sources": {
+    "src/tools/jwt-decoder/index.tsx": "43f382870fff64b6f852b08b2e42ecf0f9d0e262a77b95b20c4197f8eec2893e",
+    "src/tools/jwt-decoder/calculation.ts": "c1befea6ccacfc74cfc34fd8e8dfc31c711dbf737c8108e08f2e99354ed74336",
+    "src/tools/jwt-decoder/diagnostics.ts": "917c2bfa9471283fda8e0c5ef92e6dddf155a8f4badf022bda0cecb761b66001"
+  },
+  "measurementSource": "import { chromium } from '@playwright/test';\nimport { createHash } from 'node:crypto';\nimport { readFile, readdir, writeFile } from 'node:fs/promises';\nimport { cpus, platform, release } from 'node:os';\nimport { execFileSync } from 'node:child_process';\nimport { relative, resolve } from 'node:path';\nimport { serveStyleBuild } from '../scripts/style-comparison.mjs';\n\nconst hash = (value) => createHash('sha256').update(value).digest('hex');\nasync function buildHash(dir) {\n  const paths = (await readdir(dir, { recursive: true, withFileTypes: true })).filter((file) => file.isFile())\n    .map((file) => `${file.parentPath}/${file.name}`).sort();\n  const content = [];\n  for (const path of paths) content.push([relative(resolve(dir), path).replaceAll('\\\\', '/'), hash(await readFile(path))]);\n  return hash(JSON.stringify(content));\n}\nconst versions = {};\nconst json = JSON.stringify({ sub: 'a'.repeat(5_000_000) });\nconst token = `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(json).toString('base64url')}.c2ln`;\nconst browser = await chromium.launch();\ntry {\n  for (const [version, dir] of Object.entries({ before: '.vite/jwt-review-before', after: 'dist' })) {\n    const { server, url } = await serveStyleBuild(dir);\n    try {\n      const runs = [];\n      for (let i = -1; i < 3; i++) {\n        const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });\n        await page.goto(url + '#/jwt');\n        const input = page.getByRole('textbox', { name: 'トークン', exact: true });\n        await input.waitFor();\n        await page.evaluate(() => {\n          window.__measure = { last: performance.now(), maxFrameMs: 0, running: true };\n          const frame = (now) => {\n            const state = window.__measure;\n            state.maxFrameMs = Math.max(state.maxFrameMs, now - state.last);\n            state.last = now;\n            if (state.running) requestAnimationFrame(frame);\n          };\n          requestAnimationFrame(frame);\n        });\n        await input.evaluate((element, value) => {\n          window.__measure.start = performance.now();\n          window.__measure.last = window.__measure.start;\n          window.__measure.maxFrameMs = 0;\n          const clipboardData = new DataTransfer();\n          clipboardData.setData('text/plain', value);\n          const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });\n          Object.defineProperty(event, 'clipboardData', { value: clipboardData });\n          element.dispatchEvent(event);\n        }, token);\n        await page.getByRole('region', { name: 'ペイロード', exact: true }).waitFor({ timeout: 30_000 });\n        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));\n        const run = await page.evaluate(() => {\n          const state = window.__measure;\n          state.running = false;\n          return { elapsedMs: performance.now() - state.start, maxFrameMs: state.maxFrameMs,\n            payloadShown: document.querySelector('pre[aria-label=\"ペイロード\"]').textContent.length };\n        });\n        if (i >= 0) runs.push(run);\n        await page.close();\n      }\n      versions[version] = { distSha256: await buildHash(dir), runs };\n    } finally {\n      server.closeAllConnections();\n      await new Promise((resolve) => server.close(resolve));\n    }\n  }\n  const sources = {};\n  for (const path of ['src/tools/jwt-decoder/index.tsx', 'src/tools/jwt-decoder/calculation.ts', 'src/tools/jwt-decoder/diagnostics.ts']) sources[path] = hash(await readFile(path));\n  const report = { measuredAt: new Date().toISOString(), head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),\n    environment: { node: process.version, browser: browser.version(), platform: platform(), release: release(), cpu: cpus()[0].model },\n    input: { subCharacters: 5_000_000, tokenUtf16: token.length, source: 'JSON.stringify({sub: \"a\".repeat(5000000)})をBase64URLにした合成JWT。署名検証はしない。' },\n    scope: '変更前に退避したビルドと変更後の本番ビルド。各版で予備1回、測定3回。貼り付けからペイロード表示後の2描画まで。maxFrameMsはrequestAnimationFrameの最大間隔。時間には自動化とWorkerの待機・起動・転送・描画を含む。',\n    sources, measurementSource: await readFile(new URL(import.meta.url), 'utf8'), versions };\n  await writeFile('docs/records/jwt-worker-2026-11-21.json', JSON.stringify(report, null, 2) + '\\n');\n  console.log(JSON.stringify(versions));\n} finally { await browser.close(); }\n",
+  "versions": {
+    "before": {
+      "distSha256": "f2d06e3f717f056e25b088975ed915161c3dea4bf6d2c417b51c37cccd01d788",
+      "runs": [
+        {
+          "elapsedMs": 629.5,
+          "maxFrameMs": 666.6,
+          "payloadShown": 50000
+        },
+        {
+          "elapsedMs": 463.3000000715256,
+          "maxFrameMs": 466.6,
+          "payloadShown": 50000
+        },
+        {
+          "elapsedMs": 464.3000000715256,
+          "maxFrameMs": 466.70000000000005,
+          "payloadShown": 50000
+        }
+      ]
+    },
+    "after": {
+      "distSha256": "6ead6722113026ae3229b76f6442c137d4dbc2275147571556e944d65fa5dabf",
+      "runs": [
+        {
+          "elapsedMs": 875.6000000238419,
+          "maxFrameMs": 66.69999999999999,
+          "payloadShown": 50000
+        },
+        {
+          "elapsedMs": 876.6000000238419,
+          "maxFrameMs": 66.59999999999997,
+          "payloadShown": 50000
+        },
+        {
+          "elapsedMs": 866,
+          "maxFrameMs": 66.60000000000002,
+          "payloadShown": 50000
+        }
+      ]
+    }
+  }
+}

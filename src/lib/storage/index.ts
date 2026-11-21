@@ -25,8 +25,7 @@ import { pruneStaleKeys } from './preferences';
  * 画面・フックに公開するのは、ロック付きの操作と、読み取りに使う名前だけ。
  * ロックも消去世代の記録もしない clearAppData などは公開しない（全消去や別タブの保存の決まりを迂回させない）
  */
-export { APP_PREFIX } from './io';
-export { INPUT_TOOLS, type InputToolId, type InputKey } from './inputCatalog';
+export { INPUT_TOOLS, type InputKey } from './inputCatalog';
 export { isClearingData, subscribeClearData, clearAllData } from './clear';
 export { getInputSaveFailures, hasInputSaveFailure, setInputSaveFailure, subscribeInputSaveFailures, type InputSaveFailure } from './inputSaveFailures';
 /** 表示設定は入力と違い、ロックを取らない（利用者が値を変えたときだけ、その設定のキーへ書く） */

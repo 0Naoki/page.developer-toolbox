@@ -33,6 +33,14 @@ describe('ドキュメントとコードの対応', () => {
     }
   });
 
+  it('src の直下の単体テストが、どれも TESTING の「ソースとドキュメントの検査」の表に載っている', () => {
+    /** アプリ全体を読んで確かめる検査を足したときに、何を確かめるかの説明から漏れないように */
+    const tests = Object.keys(import.meta.glob('/src/*.test.ts')).map((file) => file.slice(1));
+    expect(tests.length).toBeGreaterThan(5);
+    const rows = sectionOf(markdown['/docs/TESTING.md'] ?? '', '## ソースとドキュメントの検査').split('\n').filter((line) => line.startsWith('| '));
+    expect(tests.filter((test) => !rows.some((row) => row.includes(`\`${test}\``)))).toEqual([]);
+  });
+
   it('E2E のファイルが、どれも TESTING の回帰テストの表に載っている', () => {
     /** ファイルを分けたり足したりしたときに、残すべき検証の表から漏れないように */
     const specs = Object.keys(import.meta.glob('/e2e/*.spec.ts')).map((file) => file.slice(1));

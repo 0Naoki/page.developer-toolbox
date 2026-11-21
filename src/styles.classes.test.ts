@@ -3,6 +3,7 @@
  *
  * - ツール別の CSS（src/styles/<ツールのフォルダ名>.css）のクラスを、ほかのツール・画面で使わない
  * - 共通の CSS（部品の層）に、1つのツールやアプリの枠組みだけが使うクラスを置かない（そのツールの CSS・layout.css・home.css に置く）
+ * - どの画面・部品も使わないクラスを残さない（className と index.html の class 属性から読む。読めない使い方は DYNAMIC に理由を書く）
  *
  * - 画面幅の切り替えは src/app/breakpoints.ts の値だけを使う（JavaScript の matchMedia と同じ値）
  * - src/styles/ のどのファイルも、入口（src/styles.css）で1回だけ、番号の見出しに合った cascade layers の層に入れて読み込む
@@ -113,6 +114,40 @@ describe('CSS のクラスの置き場所', () => {
 
   it('規則の例外は、どれもまだ使われている', () => {
     expect(Object.keys(ALLOWED).filter((key) => !usedAllowances.has(key))).toEqual([]);
+  });
+});
+
+/**
+ * 使う画面のない CSS のクラスの検出で、className の読み取り（usedClasses）では見つからない使い方の例外（「ファイル .クラス」と理由）。
+ * 使わなくなった例外（実際にどこかの className から読めるようになったもの・CSS から消したもの）は検査で失敗する
+ */
+const DYNAMIC: Record<string, string> = {
+  'notice.css .good': 'Notice の tone（src/components/Notice.tsx が、props の値をそのままクラスにする）',
+  'notice.css .bad': 'Notice の tone（同上）',
+  'notice.css .warn': 'Notice の tone（同上）',
+};
+
+describe('使う画面のない CSS のクラス', () => {
+  /** index.html は className ではなく class 属性で書く（JavaScript が動かないときの案内など） */
+  const html = Object.values(import.meta.glob<string>('/index.html', { query: '?raw', import: 'default', eager: true }))[0] ?? '';
+  const htmlClasses = new Set([...html.matchAll(/\bclass="([^"]*)"/g)].flatMap((m) => (m[1] ?? '').split(/\s+/)));
+  const used = new Set<string>(htmlClasses);
+  const prefixes = new Set<string>();
+  for (const code of Object.values(sources)) {
+    const found = usedClasses(code);
+    for (const name of found.names) used.add(name);
+    for (const prefix of found.prefixes) prefixes.add(prefix);
+  }
+  const unused = Object.entries(styles).flatMap(([path, css]) => [...definedClasses(css)]
+    .filter((cls) => !used.has(cls) && ![...prefixes].some((prefix) => cls.startsWith(prefix)))
+    .map((cls) => `${fileName(path)} .${cls}`));
+
+  it('CSS に定義したクラスは、どれもどこかの画面・部品が使っている（部品を消したときに CSS を消し忘れない）', () => {
+    expect(unused.filter((key) => !(key in DYNAMIC))).toEqual([]);
+  });
+
+  it('使い方の例外は、どれもまだ className の読み取りでは見つからない使い方のまま', () => {
+    expect(Object.keys(DYNAMIC).filter((key) => !unused.includes(key))).toEqual([]);
   });
 });
 

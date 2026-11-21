@@ -53,7 +53,7 @@ CSVの具体的な入力例は [利用ガイド](USAGE.md#csv変換) を参照�
 | `src/components/` | 入力・出力・画面操作の共通部品 |
 | `src/hooks/` | 保存・計算・時刻更新の共通の React フック |
 | `src/lib/` | ツールに依存しない共通処理（ツール間でそろえる処理は「[共通の処理と決まり](#共通の処理と決まり)」）。関心ごとに `time/`（日時）・`text/`（テキスト）・`worker/`（Worker の起動と待機）・`storage/`（保存。[STORAGE.md](STORAGE.md)）・`crypto/`（証明書・JWT で共通の暗号の部品）に分ける |
-| `src/calculation/` | 大容量計算の Worker（通信型・振り分け・入口・起動）。ツールを読み込んでよい、`src/tools/` の外の唯一の場所 |
+| `src/calculation/` | 大容量計算の Worker（通信型・振り分け・入口・起動）。ツールを `import` で読み込んでよい、`src/tools/` の外の唯一の場所（静的検査あり）。例外として `src/registry.ts` は、`import.meta.glob` でツールの画面を遅延読み込みする |
 | `csp.config.ts`・`src/trustedTypes.ts` | CSP と Worker 用 Trusted Types ポリシー |
 | `src/styles.css`・`src/styles/` | CSSの層（cascade layers）と、テーマ・レイアウト・共通部品・ツール別スタイル |
 | `e2e/` | 本番ビルドのブラウザテスト |
@@ -180,7 +180,7 @@ JWTの厳密な検証と、画面・Workerで同じ拒否になることも検�
 
 大容量計算は次の順に進みます。
 
-1. JSON整形・CSV変換・文字数計算・テキスト差分・UNIX時間の一括変換・Base64（10万単位を超えるテキスト）・サブネットの集約、重複チェック、VLSM、均等分割の全件出力の画面が、入力と設定を `useCalculation` に渡す。
+1. JSON整形・CSV変換・文字数計算・テキスト差分・JWTの解析・UNIX時間の一括変換・Base64（10万単位を超えるテキスト）・サブネットの集約、重複チェック、VLSM、均等分割の全件出力の画面が、入力と設定を `useCalculation` に渡す。
 2. フックが入力上限の確認を加えて `useWorkerJob` に渡し、入力変更の待機の後、`src/calculation/createWorker.ts` の `createCalculationWorker` でWorkerを起動する。
 3. `src/calculation/worker.ts` が要求を受け取り、`src/calculation/handlers.ts` の `calculate` がツールのロジックを呼ぶ。ツールごとの処理は `HANDLERS` の表にあり（結果の形を整える処理はツールの側に置き、表は呼ぶだけにする）、要求と結果の型の組をコンパイル時に確かめる。応答にはツールの種類（`tool`）を含める。
 4. フックが現在の要求に対応する結果だけを画面へ返す（要求と違うツールの結果はエラーにする）。入力変更・中断・画面移動時はWorkerを終了する。
@@ -191,6 +191,10 @@ Worker で計算するツールを加えるときは、次の2つに足します
 - 処理：`src/calculation/handlers.ts` の `HANDLERS`。結果の形を整える処理（警告の件数・要約の文言など）が要るときは、ツールのフォルダの `calculation.ts` に置きます
 
 古い入力の結果は表示しません。例外はテキスト差分だけで、計算中に限り前回の結果を表示します。入力のたびに表示が消えて、画面が跳ねないようにするためです。ほかのツールにこの例外を広げるときは、下の「[非同期の結果を表示できる条件](#非同期の結果を表示できる条件)」の表と同じ条件（計算中の表示・コピーの無効化・中断と失敗での非表示）をそろえ、表に追記してください。
+
+JWTの解析結果は、全文をJSONの文字列で返し、ヘッダとペイロードのオブジェクトは画面・署名検証・期限判定で使う値だけに絞ります。
+深い入れ子のJSONをオブジェクトのまま転送すると、構造化複製に失敗するためです。警告は先頭5件と総数を返します。
+解析待ち・中断中は旧結果を表示せず、鍵の入力だけは画面のメモリ内に保持します。
 
 通信型は `src/calculation/protocol.ts`（型だけ）、上限は `src/lib/worker/calculationLimits.ts` にあり、画面から計算実装を実行時に読み込まずに参照できます。振り分け（`handlers.ts`）は全ツールの計算処理を読み込むため、Worker の入口だけが読み込みます（静的検査あり）。正規表現は専用のWorkerを使い、待機・タイムアウト・終了後の応答破棄・今の入力の結果だけを返すことは、大容量計算と共通の `useWorkerJob`（中で `runWorker`）で管理します。失敗の文言は `runWorker.ts` の `workerFailureMessage` でそろえ、制限時間・打ち切ったときの案内・開始前の確認・未操作状態は各呼び出し側が決めます。
 
@@ -249,13 +253,8 @@ IME変換の取消もDOM値へ反映し、確定時と同じ経路で取り込�
 
 ## 保存の流れ
 
-入力は `useInput`（sessionStorage だけ）、表示設定は `usePreference`（検証した値だけを localStorage）、トークン・鍵などの機密値は `useState`（メモリ内だけ）で持ちます。保存の処理は `src/lib/storage/` にまとめ、フォルダの外からは入口の `src/lib/storage/index.ts` だけを読み込みます（静的検査あり）。保存先・保存キー・全消去とタブ間の調整・起動時の古いキーの整理は [STORAGE.md](STORAGE.md) にあります。
+入力は `useInput`（sessionStorage だけ）、表示設定は `usePreference`（検証した値だけを localStorage）、トークン・鍵などの機密値は `useState`（メモリ内だけ）で持ちます。保存の処理の置き場所・保存先・保存キー・全消去とタブ間の調整・起動時の古いキーの整理は [STORAGE.md](STORAGE.md) にあります。
 
 ## 説明の置き場所
 
-- 操作・保存・制約：[USAGE.md](USAGE.md)
-- 保存先・全消去とタブ間の調整・起動時の古いキーの整理：[STORAGE.md](STORAGE.md)
-- 安全対策と脆弱性の報告：[SECURITY.md](../SECURITY.md)
-- コメントの書式と例：[COMMENTING.md](COMMENTING.md)
-- 検査対象と実行方法：[TESTING.md](TESTING.md)
-- 大容量処理の計測方法・過去の記録：[PERFORMANCE.md](PERFORMANCE.md)
+どの説明をどの文書に書くかは、[CONTRIBUTING.md の「ドキュメントの更新先」](../CONTRIBUTING.md#ドキュメントの更新先) にあります。

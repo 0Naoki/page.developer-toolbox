@@ -12,17 +12,21 @@ import type { TextMeasurement, Measure } from '../tools/text-count/logic';
 import type { DiagnosticKind } from '../tools/text-count/reports';
 import type { CsvConversion, CsvConversionRequest } from '../tools/csv-json/calculation';
 import type { DiffCalculation, DiffRequest } from '../tools/text-diff/calculation';
+import type { PackedRows } from '../tools/text-diff/packed';
 import type { convertEpochsInText, BulkMode } from '../tools/unix-time/epoch';
 import type { aggregateList, calculateSplit, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
 import type { Zone } from '../lib/time/timezone';
 import type { TextConversion, TextConversionRequest } from '../tools/base64/logic';
+import type { TokenCalculation } from '../tools/jwt-decoder/calculation';
 
 export type CalculationRequest =
+  | { tool: 'jwt'; input: string }
   | { tool: 'json'; input: string; indent: JsonIndent; sortKeys: boolean }
   | ({ tool: 'csv' } & CsvConversionRequest)
   | { tool: 'count'; input: string; newline: Newline; measure: Measure }
   | { tool: 'countReport'; input: string; kind: DiagnosticKind }
   | ({ tool: 'diff' } & DiffRequest)
+  | { tool: 'diffUnified'; inputSize: number; rows: PackedRows }
   | { tool: 'epoch'; input: string; zone: Zone; mode: BulkMode }
   | ({ tool: 'base64' } & TextConversionRequest)
   | { tool: 'subnetAggregate'; input: string }
@@ -32,11 +36,13 @@ export type CalculationRequest =
 
 /** ツールごとの結果の型 */
 export type CalculationResults = {
+  jwt: TokenCalculation;
   json: JsonResult;
   count: TextMeasurement;
   countReport: string;
   csv: CsvConversion;
   diff: DiffCalculation;
+  diffUnified: string;
   epoch: ReturnType<typeof convertEpochsInText>;
   base64: TextConversion;
   subnetAggregate: ReturnType<typeof aggregateList>;
@@ -55,9 +61,11 @@ export type CalculationResponse<T extends CalculationTool = CalculationTool> =
   | { [K in T]: { ok: true; tool: K; result: CalculationResults[K] } }[T]
   | { ok: false; error: string };
 
-/** 入力の上限と比べる大きさ（差分は2つの入力の合計） */
+/** 入力の上限と比べる大きさ。全文パッチでは元の本文を再送せず、2つの入力の合計長を渡す。不正な長さは上限超過として拒否する。 */
 export const calculationInputSize = (request: CalculationRequest): number =>
-  request.input.length + (request.tool === 'diff' ? request.after.length : 0);
+  request.tool === 'diffUnified'
+    ? Number.isSafeInteger(request.inputSize) && request.inputSize >= 0 ? request.inputSize : Infinity
+    : request.input.length + (request.tool === 'diff' ? request.after.length : 0);
 
 /**
  * 要求に対する応答として受け取れるか確かめる。別のツールの結果（Worker の実装の誤りなど）は、結果として扱わずにエラーにする。

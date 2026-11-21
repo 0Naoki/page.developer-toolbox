@@ -56,7 +56,7 @@
 4. 見た目は、まず共通の部品（`Pane`・`Badge`・`KvRow`・`Notice` など）と部品の層のクラスで組み立てる。ツール専用のクラスが必要なときは `src/styles/<フォルダ名>.css` に置き、`src/styles.css` の「5. ツール別」の見出しの下に `layer(tools)` を付けて読み込む。ほかのツールでも使う見た目は、部品の層の CSS（部品ごとのファイル）に置く（決まりは [ARCHITECTURE.md の「CSS の決まり」](docs/ARCHITECTURE.md#css-の決まり)。置き場所・読み込み忘れ・層の付け忘れは `src/styles.classes.test.ts` で検出されます）
 5. `src/toolCatalog.ts` の `toolCatalog` に追加する（`id`・`folder`・`name`・`description`・`category`・`tags`・`savesInput`）。画面は `folder` から自動で読み込まれ、サイドバー・トップページ・コマンドパレットにも自動で表示されます（一覧とフォルダの食い違いは `src/registry.test.ts` で検出されます）
 6. `.github/ISSUE_TEMPLATE/bug_report.yml` の「ツール」の選択肢に、ツール名を追加する（ツールの一覧の `name` と同じ表記・順番にする。食い違いは `src/registry.test.ts` で検出されます）
-7. 保存可能な入力には `useInput` を使い、ツールの一覧で `savesInput: true` にする（入力キー・表示設定のキーの先頭はツールID）。機密値を扱うツールは `false` にし、値は `useState` で保持する。表示設定には検証関数付きの `usePreference` を使う
+7. 入力・表示設定・機密値は、上の「コードの書き方」の「入力内容の保存」に従って持つ。ツールの一覧の `savesInput` は、入力欄を `useInput` で保存するツールなら `true`、使わないツールなら `false` にする（機密値は、どちらの場合も `useState` で持つ）
 8. `README.md` のツール一覧と件数、`docs/USAGE.md` の操作・制約を更新する
 9. 個別の操作・境界値のE2Eを対応する分野へ追加する。ブラウザ間の検査対象は [docs/TESTING.md](docs/TESTING.md) に従う
 

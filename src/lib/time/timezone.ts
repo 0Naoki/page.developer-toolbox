@@ -7,8 +7,6 @@ export type Zone = string;
 /** 日本時間のタイムゾーン名。各ツールの既定の表示と、cron の基準日時に使う。ツールでは直書きせずにこれを使う（静的検査あり） */
 export const JST_ZONE: Zone = 'Asia/Tokyo';
 
-/** タイムゾーン */
-
 /** タイムゾーンの一覧を取れない古いブラウザ向けの、よく使うもの */
 const FALLBACK_ZONES = [JST_ZONE, 'UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Shanghai', 'Asia/Singapore', 'Australia/Sydney'];
 
@@ -143,6 +141,34 @@ const sameWall = (a: Wall, b: Wall) => a.y === b.y && a.mo === b.mo && a.d === b
  */
 export function zonedToUtc(w: Wall, zone: Zone, strict = true): number {
   return utcOf(w) - resolveZonedOffset(w, zone, strict, false);
+}
+
+/**
+ * 夏時間への切り替えで飛ばされる壁時計 w について、飛ばされる区間の終わり（切り替えの後の最初の壁時計の日時）を返す。
+ *
+ * @remarks
+ * 区間の長さはゾーンによって違う（Australia/Lord_Howe は30分、Pacific/Apia の 2011-12-30 は丸1日）ため、
+ * 切り替えの時刻を二分探索で求める。前後1日のずれが切り替え1回分の形でないとき（w が存在する時刻のときなど）は、w をそのまま返す。
+ * 次の候補を順に試す探索（cron の次回実行など）が、区間の中の候補ごとに変換を試さずに済むようにするためのもの。
+ */
+export function nonexistentGapEnd(w: Wall, zone: Zone): Wall {
+  const guess = utcOf(w);
+  const near = (t: number) => Math.min(MAX_DATE_MS, Math.max(-MAX_DATE_MS, t));
+  const before = offsetMs(near(guess - 86400000), zone);
+  const after = offsetMs(near(guess + 86400000), zone);
+  /** w は「切り替え前のずれ」で読むと切り替えの後、「切り替え後のずれ」で読むと切り替えの前の時刻になる */
+  let lo = guess - after;
+  let hi = guess - before;
+  if (!(lo < hi) || Math.abs(lo) > MAX_DATE_MS || Math.abs(hi) > MAX_DATE_MS) return w;
+  const loOffset = offsetMs(lo, zone);
+  if (loOffset !== before || offsetMs(hi, zone) !== after) return w;
+  /** lo は切り替えの前、hi は切り替えの後の時刻のまま、間を1ミリ秒まで詰める */
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (offsetMs(mid, zone) === loOffset) lo = mid;
+    else hi = mid;
+  }
+  return wallOf(hi, zone);
 }
 
 /**

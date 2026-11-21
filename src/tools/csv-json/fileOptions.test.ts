@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { optionsForFile } from './fileOptions';
+import { optionsForFile, optionsForSwap } from './fileOptions';
+import { csvToJson, DEFAULT_CSV_TO_JSON } from './logic';
+import { DEFAULT_JSON_TO_CSV, jsonToCsv } from './writeCsv';
+
+describe('入れ替えの後の変換設定', () => {
+  it('元の向きの区切り文字を、移る先の向きに引き継ぐ', () => {
+    expect(optionsForSwap('json2csv', { csv2json: ',', json2csv: '\t' })).toEqual({ direction: 'csv2json', delimiter: '\t' });
+    expect(optionsForSwap('csv2json', { csv2json: ';', json2csv: ',' })).toEqual({ direction: 'json2csv', delimiter: ';' });
+    expect(optionsForSwap('csv2json', { csv2json: '|', json2csv: '|' })).toEqual({ direction: 'json2csv', delimiter: '|' });
+  });
+
+  it('回帰：タブ区切りで書いた CSV を入れ替えると、1列ではなく元の JSON に戻る', () => {
+    const { csv } = jsonToCsv('[{"a":1,"b":2}]', { ...DEFAULT_JSON_TO_CSV, delimiter: '\t' });
+    const next = optionsForSwap('json2csv', { csv2json: DEFAULT_CSV_TO_JSON.delimiter, json2csv: '\t' });
+    expect(JSON.parse(csvToJson(csv, { ...DEFAULT_CSV_TO_JSON, delimiter: next.delimiter }).json)).toEqual([{ a: 1, b: 2 }]);
+  });
+});
 
 describe('ファイル名からの変換設定', () => {
   const current = { direction: 'json2csv', delimiter: ';' } as const;

@@ -9,6 +9,7 @@ import { createSortableIdGenerators, inspectId, uuidV4 } from './logic';
 import { ErrorText } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
 import { Check } from '../../components/Check';
+import { KvRow } from '../../components/KvRow';
 
 type Kind = 'v4' | 'v7' | 'ulid';
 const COUNTS = [1, 5, 10, 50, 100];
@@ -116,28 +117,23 @@ export default function UuidTool() {
       {inspection?.ok && (
         <table className="kv">
           <tbody>
-            <tr>
-              <th>種類</th>
-              <td>{inspection.info.kind === 'ulid' ? 'ULID' : `UUID バージョン ${inspection.info.version}`}</td>
-            </tr>
-            {inspection.info.kind === 'uuid' && (
-              <tr>
-                <th>バリアント</th>
-                <td>{inspection.info.variant}</td>
-              </tr>
+            <KvRow label="種類" value={inspection.info.kind === 'ulid' ? 'ULID' : `UUID バージョン ${inspection.info.version}`} copy={false} mono={false} />
+            {inspection.info.kind === 'uuid' && <KvRow label="バリアント" value={inspection.info.variant} copy={false} mono={false} />}
+            <KvRow label="正規化" value={inspection.info.canonical} />
+            {inspection.info.timeStatus === 'decoded' ? (
+              <>
+                {/** 日時とミリ秒を別の行にし、それぞれ日時入力・エポック変換へそのまま貼り戻せるようにする */}
+                <KvRow label="生成日時" value={formatJstLabeled(new Date(inspection.info.time), showsMillis(new Date(inspection.info.time)))} />
+                <KvRow label="生成日時（エポックミリ秒）" value={String(inspection.info.time)} />
+              </>
+            ) : (
+              <KvRow
+                label="生成日時"
+                value={inspection.info.timeStatus === 'absent' ? 'このバージョンは時刻を含みません' : 'この形式の時刻解析には未対応です'}
+                copy={false}
+                mono={false}
+              />
             )}
-            <tr>
-              <th>正規化</th>
-              <td className="mono">{inspection.info.canonical}</td>
-            </tr>
-            <tr>
-              <th>生成日時</th>
-              <td className="mono">
-                {inspection.info.timeStatus === 'decoded'
-                  ? `${formatJstLabeled(new Date(inspection.info.time), showsMillis(new Date(inspection.info.time)))}（${inspection.info.time}）`
-                  : inspection.info.timeStatus === 'absent' ? 'このバージョンは時刻を含みません' : 'この形式の時刻解析には未対応です'}
-              </td>
-            </tr>
           </tbody>
         </table>
       )}

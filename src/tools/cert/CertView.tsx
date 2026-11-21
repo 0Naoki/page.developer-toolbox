@@ -1,3 +1,10 @@
+/**
+ * 証明書・CSR の内容、署名の検証結果、チェーンの表示。
+ *
+ * @remarks
+ * 一覧（SAN・拡張・拡張の値・属性）は先頭 LIST_PREVIEW_LIMIT 件を、1つの値は VALUE_PREVIEW_LIMIT 単位までを表示する。
+ * 件数の超過は ListRest、1つの値の長さの超過は ClippedText で示し、どちらも全件・全文をコピーで取り出せる
+ */
 import { useCallback, useMemo } from 'react';
 import { CopyButton } from '../../components/CopyButton';
 import { toUpperHex } from '../../lib/crypto/asn1';
@@ -17,14 +24,6 @@ import { validityOf } from './validity';
 import { type Certificate, type Csr } from './logic';
 import { verifyInList, type ItemVerification } from './verify';
 import type { Extension } from './extensions';
-
-/** 証明書・CSR の内容、署名の検証結果、チェーンの表示 */
-
-/**
- * 一覧（SAN・拡張・拡張の値・属性）は先頭 LIST_PREVIEW_LIMIT 件を、1つの値は VALUE_PREVIEW_LIMIT 単位までを表示する。
- * 件数の超過は ListRest、1つの値の長さの超過は ClippedText で示し、どちらも全件・全文をコピーで取り出せる
- */
-
 
 function useFingerprints(der: Uint8Array) {
   /** カードは作り直されないため、どの証明書の結果かを組で持ち、内容を変えた直後の描画でも前の値を表示しない */
@@ -90,7 +89,8 @@ function ValidityBadge({ cert }: { cert: Certificate }) {
     case 'notYet':
       return <Badge tone="bad">まだ有効ではありません</Badge>;
     case 'soon':
-      return <Badge tone="bad">あと {v.daysLeft} 日で期限切れ</Badge>;
+      /** 残りが24時間未満のときは「あと 0 日」ではなく、期限切れの側と同じく「24時間以内」と示す */
+      return <Badge tone="bad">{v.daysLeft === 0 ? '24時間以内に期限切れ' : `あと ${v.daysLeft} 日で期限切れ`}</Badge>;
     default:
       return <Badge tone="good">有効（残り {v.daysLeft} 日）</Badge>;
   }
@@ -161,6 +161,8 @@ export function CertView({ cert, certs }: { cert: Certificate; certs: Certificat
 export function CsrView({ csr }: { csr: Csr }) {
   const verification = useVerification(csr, NO_CERTS);
   const attributes = previewList(csr.hiddenAttributes, LIST_PREVIEW_LIMIT);
+  /** 一覧が変わらない間は同じ関数を渡す（CopyButton は関数が変わると、コピー中の状態を前の内容のものとして捨てるため） */
+  const copyAttributes = useCallback(() => csr.hiddenAttributes.join('\n'), [csr]);
   return (
     <>
       <table className="kv cert-table">
@@ -176,7 +178,7 @@ export function CsrView({ csr }: { csr: Csr }) {
           {attributes.rest > 0 && (
             <tr>
               <th>属性</th>
-              <td><ListRest rest={attributes.rest} shown={attributes.shown.length} copyText={csr.hiddenAttributes.join('\n')} copyLabel="すべての属性をコピー" /></td>
+              <td><ListRest rest={attributes.rest} shown={attributes.shown.length} copyText={copyAttributes} copyLabel="すべての属性をコピー" /></td>
               <td />
             </tr>
           )}
@@ -189,6 +191,8 @@ export function CsrView({ csr }: { csr: Csr }) {
 
 function SanRow({ cert }: { cert: Certificate | Csr }) {
   const san = previewList(cert.san, LIST_PREVIEW_LIMIT);
+  /** 一覧が変わらない間は同じ関数を渡す（CopyButton は関数が変わると、コピー中の状態を前の内容のものとして捨てるため） */
+  const copySan = useCallback(() => cert.san.map((g) => `${g.type}: ${g.value}`).join('\n'), [cert]);
   return (
     <tr>
       <th>SAN</th>
@@ -206,7 +210,7 @@ function SanRow({ cert }: { cert: Certificate | Csr }) {
         )}
       </td>
       <td>
-        <ListRest rest={san.rest} shown={san.shown.length} copyText={san.rest > 0 ? cert.san.map((g) => `${g.type}: ${g.value}`).join('\n') : undefined} copyLabel="すべての SAN をコピー" />
+        <ListRest rest={san.rest} shown={san.shown.length} copyText={san.rest > 0 ? copySan : undefined} copyLabel="すべての SAN をコピー" />
       </td>
     </tr>
   );
@@ -266,7 +270,7 @@ export function ChainView({ certs, positions, unreadable }: { certs: Certificate
   const result = useMemo(() => checkChain(certs, { positions, unreadable }), [certs, positions, unreadable]);
   const last = certs.at(-1);
   return (
-    <section className="cert-chain stack">
+    <section className="stack">
       <h2 className="section-title">証明書チェーン</h2>
       {result.messages.map((m, i) => (
         <Notice key={i} tone={m.level} message={m.text} />

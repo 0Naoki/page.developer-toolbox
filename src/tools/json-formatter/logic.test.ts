@@ -75,7 +75,7 @@ describe('formatJson：値を変えない', () => {
   });
 
   it('BOM付きでも読める', () => {
-    expect(out('﻿{"a":1}', 'minify')).toBe('{"a":1}');
+    expect(out('\uFEFF{"a":1}', 'minify')).toBe('{"a":1}');
   });
 });
 
@@ -139,7 +139,7 @@ describe('ツリー表示', () => {
   });
 
   it('子を先頭から上限の数だけ切り出し、総数を返す。値は元の表記のまま', () => {
-    /** "\u3042" \u306f\u30a8\u30b9\u30b1\u30fc\u30d7\u306e\u307e\u307e\uff08\u3042 \u306b\u5c55\u958b\u3057\u306a\u3044\uff09\u8868\u8a18\u3092\u4fdd\u3064\u3053\u3068\u3092\u78ba\u304b\u3081\u308b */
+    /** "\u3042" はエスケープのまま（あ に展開しない）表記を保つことを確かめる */
     const { root } = parseJsonTree('{"big":9007199254740993,"list":[1.10,"\\u3042",null],"dup":1,"dup":2}');
     const top = childrenOf(root, '$', 2);
     expect(top.total).toBe(4);

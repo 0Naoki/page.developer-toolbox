@@ -23,8 +23,6 @@ export function toView(date: Date, now: number = Date.now()): TimeView {
   };
 }
 
-/** 差と、期間の足し引き */
-
 export type Difference = {
   /** b − a（ミリ秒） */
   ms: number;
@@ -103,11 +101,12 @@ export function parseDuration(input: string): Duration {
   while (pos < s.length) {
     UNIT_PATTERN.lastIndex = pos;
     const m = UNIT_PATTERN.exec(s);
-    if (!m) throw new Error('「+1d 2h 30m」「-90分」「1年2ヶ月」の形で入力してください（単位：年 y・月 mo・週 w・日 d・時間 h・分 m・秒 s・ミリ秒 ms）');
+    if (!m) throw new Error('「+1d 2h 30m」「-90分」「1年2ヶ月」の形で入力してください（単位：年 y・ヶ月 mo・週 w・日 d・時間 h・分 m・秒 s・ミリ秒 ms）');
     const [, signText, amount = '0', unitText = ''] = m;
     if (signText) sign = signText === '-' ? -1n : 1n;
-    const unit = UNIT_SIZE[unitText.toLowerCase()] ?? UNIT_SIZE[unitText];
-    /** 単位は UNIT_PATTERN で、表にあるものだけに一致する */
+    /** 表のキーは小文字（日本語の単位は大文字小文字がない）なので、小文字にして引く */
+    const unit = UNIT_SIZE[unitText.toLowerCase()];
+    /** 単位は UNIT_PATTERN で、表にあるものだけに一致する（ここは型の絞り込みのため） */
     if (!unit) throw new Error(`単位「${unitText}」は使えません`);
     const [key, size] = unit;
     d[key] += sign * BigInt(amount) * BigInt(size);

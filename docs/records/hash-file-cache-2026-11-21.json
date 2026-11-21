@@ -1,0 +1,227 @@
+{
+  "scope": "同一FileのHMACを2つの鍵で順に計算。各3回。arrayBuffersはGC後の観測であり、最大メモリ・RSS・ブラウザの性能ではない。入力と鍵は計測用の架空データ。",
+  "cases": [
+    {
+      "fileBytes": 1048576,
+      "keysPerRun": 2,
+      "versions": {
+        "HEAD": {
+          "runs": [
+            {
+              "elapsedMs": 21.834600000000023,
+              "fileReads": 2,
+              "retainedArrayBuffers": 2097182,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "0c1856929ddbebd4d308b134ace91b155bab86f74c0e230b909ae178d75c11ab"
+            },
+            {
+              "elapsedMs": 16.672800000000052,
+              "fileReads": 2,
+              "retainedArrayBuffers": 1048591,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "0c1856929ddbebd4d308b134ace91b155bab86f74c0e230b909ae178d75c11ab"
+            },
+            {
+              "elapsedMs": 14.64409999999998,
+              "fileReads": 2,
+              "retainedArrayBuffers": 2097182,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "0c1856929ddbebd4d308b134ace91b155bab86f74c0e230b909ae178d75c11ab"
+            }
+          ]
+        },
+        "workingTree": {
+          "runs": [
+            {
+              "elapsedMs": 14.500400000000013,
+              "fileReads": 1,
+              "retainedArrayBuffers": 1048576,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "0c1856929ddbebd4d308b134ace91b155bab86f74c0e230b909ae178d75c11ab"
+            },
+            {
+              "elapsedMs": 16.41719999999998,
+              "fileReads": 1,
+              "retainedArrayBuffers": 1048606,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "0c1856929ddbebd4d308b134ace91b155bab86f74c0e230b909ae178d75c11ab"
+            },
+            {
+              "elapsedMs": 17.730699999999956,
+              "fileReads": 1,
+              "retainedArrayBuffers": 1048591,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "0c1856929ddbebd4d308b134ace91b155bab86f74c0e230b909ae178d75c11ab"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fileBytes": 8388608,
+      "keysPerRun": 2,
+      "versions": {
+        "HEAD": {
+          "runs": [
+            {
+              "elapsedMs": 105.42039999999997,
+              "fileReads": 2,
+              "retainedArrayBuffers": 25165854,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "10984030ff27e7b683c8ccb42133e054d537061ef8aea08eebafd2c5e4e5b6c6"
+            },
+            {
+              "elapsedMs": 90.69860000000006,
+              "fileReads": 2,
+              "retainedArrayBuffers": 15,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "10984030ff27e7b683c8ccb42133e054d537061ef8aea08eebafd2c5e4e5b6c6"
+            },
+            {
+              "elapsedMs": 91.66399999999999,
+              "fileReads": 2,
+              "retainedArrayBuffers": 15,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "10984030ff27e7b683c8ccb42133e054d537061ef8aea08eebafd2c5e4e5b6c6"
+            }
+          ]
+        },
+        "workingTree": {
+          "runs": [
+            {
+              "elapsedMs": 83.97929999999997,
+              "fileReads": 1,
+              "retainedArrayBuffers": 8388638,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "10984030ff27e7b683c8ccb42133e054d537061ef8aea08eebafd2c5e4e5b6c6"
+            },
+            {
+              "elapsedMs": 80.65859999999998,
+              "fileReads": 1,
+              "retainedArrayBuffers": 8388638,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "10984030ff27e7b683c8ccb42133e054d537061ef8aea08eebafd2c5e4e5b6c6"
+            },
+            {
+              "elapsedMs": 92.47979999999984,
+              "fileReads": 1,
+              "retainedArrayBuffers": 8388638,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "10984030ff27e7b683c8ccb42133e054d537061ef8aea08eebafd2c5e4e5b6c6"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fileBytes": 268435456,
+      "keysPerRun": 2,
+      "versions": {
+        "HEAD": {
+          "runs": [
+            {
+              "elapsedMs": 4170.2219,
+              "fileReads": 2,
+              "retainedArrayBuffers": 268435456,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "02e535e5a5eb74f604c6407bd1ae6c81bd43a29979f0049e8c54105b2e6de264"
+            },
+            {
+              "elapsedMs": 3425.006199999999,
+              "fileReads": 2,
+              "retainedArrayBuffers": 268435456,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "02e535e5a5eb74f604c6407bd1ae6c81bd43a29979f0049e8c54105b2e6de264"
+            },
+            {
+              "elapsedMs": 3296.156500000001,
+              "fileReads": 2,
+              "retainedArrayBuffers": 268435456,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "02e535e5a5eb74f604c6407bd1ae6c81bd43a29979f0049e8c54105b2e6de264"
+            }
+          ]
+        },
+        "workingTree": {
+          "runs": [
+            {
+              "elapsedMs": 3232.9663,
+              "fileReads": 2,
+              "retainedArrayBuffers": 268435456,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "02e535e5a5eb74f604c6407bd1ae6c81bd43a29979f0049e8c54105b2e6de264"
+            },
+            {
+              "elapsedMs": 3165.556699999999,
+              "fileReads": 2,
+              "retainedArrayBuffers": 268435456,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "02e535e5a5eb74f604c6407bd1ae6c81bd43a29979f0049e8c54105b2e6de264"
+            },
+            {
+              "elapsedMs": 3315.9231,
+              "fileReads": 2,
+              "retainedArrayBuffers": 268435456,
+              "afterClearArrayBuffers": 0,
+              "resultSha256": "02e535e5a5eb74f604c6407bd1ae6c81bd43a29979f0049e8c54105b2e6de264"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "startedAt": "2026-11-20T17:17:11.441Z",
+  "measuredAt": "2026-11-20T17:17:33.933Z",
+  "commit": "cacf77debfda76f2686f1503b6cf68b14c295561",
+  "comparison": {
+    "mode": "entry",
+    "baselineCommit": "cacf77debfda76f2686f1503b6cf68b14c295561",
+    "baselineName": "HEAD"
+  },
+  "modifiedFiles": "M docs/PERFORMANCE.md\n M docs/TESTING.md\n M docs/USAGE.md\n M e2e/calculation.spec.ts\n M e2e/hash.spec.ts\n M scripts/compare-styles.mjs\n M scripts/measure-diff-transfer.mjs\n M src/calculation/handlers.test.ts\n M src/calculation/handlers.ts\n M src/calculation/protocol.ts\n M src/components/Badge.tsx\n M src/components/Notice.tsx\n M src/tools/cert/logic.ts\n M src/tools/cron/nextRuns.ts\n M src/tools/hash/computeHashes.test.ts\n M src/tools/hash/computeHashes.ts\n M src/tools/hash/index.tsx\n M src/tools/subnet/ipv4.ts\n M src/tools/subnet/ipv6.ts\n M src/tools/text-diff/calculation.ts\n M src/tools/text-diff/index.tsx\n M src/tools/text-diff/packed.test.ts\n M src/tools/text-diff/unified.ts\n?? scripts/measure-hash-file-cache.mjs\n?? scripts/style-comparison.mjs\n?? scripts/style-comparison.test.mjs\n?? src/tools/text-diff/UnifiedOutput.tsx",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "provenance": {
+    "HEAD": {
+      "entry": "src/tools/hash/computeHashes.ts",
+      "source": "entry",
+      "files": {
+        "src/lib/bytes.ts": "ba620b20e726fe245ee4d8eba22c00f4bab2697bf20052992f5bbf05efa6ebee",
+        "src/lib/file.ts": "23703ed84d055dd2fbaae07f92fff3cb5246368fd6a58c132c8f41be888d96a2",
+        "src/lib/number.ts": "702c85b5ad84ea2240cd0f10bbdbca9416c76cd94c5186729e26faf074920dd0",
+        "src/lib/text/surrogate.ts": "6edae969f4c3f812e4b61be98232d1ce8c7e29b23effb2044f83cd4b5ab531f8",
+        "src/tools/hash/computeHashes.ts": "993eb636d8e8f0b269aa94fd9dbd733a7d759519b7f45319b9e08c21eca90098",
+        "src/tools/hash/logic.ts": "fd88f7df57489999c6a25987f564306aac88a5327e64d8c0c1a232c7b5afaead"
+      },
+      "bundleSha256": "614f8ab1623fc4cc8975b112acbce792a623af21b3890435aa6af52fa43172e9"
+    },
+    "workingTree": {
+      "entry": "src/tools/hash/computeHashes.ts",
+      "source": "workingTree",
+      "files": {
+        "src/lib/bytes.ts": "ba620b20e726fe245ee4d8eba22c00f4bab2697bf20052992f5bbf05efa6ebee",
+        "src/lib/file.ts": "23703ed84d055dd2fbaae07f92fff3cb5246368fd6a58c132c8f41be888d96a2",
+        "src/lib/number.ts": "702c85b5ad84ea2240cd0f10bbdbca9416c76cd94c5186729e26faf074920dd0",
+        "src/lib/text/surrogate.ts": "6edae969f4c3f812e4b61be98232d1ce8c7e29b23effb2044f83cd4b5ab531f8",
+        "src/tools/hash/computeHashes.ts": "fd5687c22e2ab72fab46a4ff0e43d85b568eb2f7a73162ac3990a5d77b467b40",
+        "src/tools/hash/logic.ts": "fd88f7df57489999c6a25987f564306aac88a5327e64d8c0c1a232c7b5afaead"
+      },
+      "bundleSha256": "547007fba04c7e20855dcb290a0cebc8cb2dcbe8ca5624b104ce9f78891a6a17"
+    }
+  },
+  "snapshotFiles": {
+    "package-lock.json": "7746d6021e7f83f7063294014cde814b975d37e4460255097303161e35abd3ba",
+    "scripts/benchmark.mjs": "13c66acb744a65b2195ba08cd874d3131995f4409fbed133cd7e450f4623fbbf",
+    "scripts/benchmark-sources.mjs": "4f6a5ca193ec40a60dd5300c19523b91fc9b68844ac95f7d3f4a617deeee1c6d",
+    "scripts/measure-hash-file-cache.mjs": "8ac3d8168b6487326b0f59db530ba33c322251761171cf47f01d360e509961ac",
+    "src/tools/hash/logic.ts": "fd88f7df57489999c6a25987f564306aac88a5327e64d8c0c1a232c7b5afaead",
+    "src/lib/bytes.ts": "ba620b20e726fe245ee4d8eba22c00f4bab2697bf20052992f5bbf05efa6ebee",
+    "src/lib/file.ts": "23703ed84d055dd2fbaae07f92fff3cb5246368fd6a58c132c8f41be888d96a2",
+    "src/lib/text/surrogate.ts": "6edae969f4c3f812e4b61be98232d1ce8c7e29b23effb2044f83cd4b5ab531f8",
+    "src/lib/number.ts": "702c85b5ad84ea2240cd0f10bbdbca9416c76cd94c5186729e26faf074920dd0",
+    "src/tools/hash/computeHashes.ts": "fd5687c22e2ab72fab46a4ff0e43d85b568eb2f7a73162ac3990a5d77b467b40"
+  },
+  "dependencySource": "両版とも作業ツリーの同じ依存スナップショットを使用。比較元は入口だけを固定コミットから読む。"
+}

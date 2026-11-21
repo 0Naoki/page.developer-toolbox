@@ -1,4 +1,12 @@
-/** 検査の対象：ipv4.ts・vlsm.ts・listCalculation.ts・ranges.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する。ranges.ts の IPv6 での動きは ipv6.test.ts） */
+/**
+ * 検査の対象：ipv4.ts・vlsm.ts・listCalculation.ts・ranges.ts（専用のテストファイルを置かないファイルも、ここでまとめて検査する。ranges.ts の IPv6 での動きは ipv6.test.ts）
+ *
+ * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
+ * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
+ *
+ * - [R058] サブネットの集約・重複チェック × 読めない行が大量（100万行の「x」、30万行の「10.0.0.256/24」）× IPv4・IPv6 の混在：
+ *   行ごとに例外を作らずに短い時間で終え、総数と行の順で先頭20件の文言（例外を投げる関数と同じ文言）を返す。集約は出力の上限を超えた時点で文字列を作るのをやめる
+ */
 import { describe, expect, it } from 'vitest';
 import { aggregate, binaryOf, contains, formatIpv4, kindOf, parseCidrList, parseIpv4, parseNetwork, rangeToCidrs, splitNetwork, subnetInfo } from './ipv4';
 import { allocateVlsm, parseHostRequests, MAX_VLSM_LINES, prefixForHosts } from './vlsm';
@@ -32,6 +40,74 @@ describe('一覧の改行', () => {
     const aggregated = aggregateList('10.0.0.0/24\r10.0.1.0/24\r\n2001:db8::/33\n2001:db8:8000::/33');
     expect(aggregated.output).toBe('10.0.0.0/23\n2001:db8::/32');
     expect(aggregated.errors.total).toBe(0);
+  });
+});
+
+describe('読めない行が多い一覧', () => {
+  it('回帰：読めない行が100万行あっても、行ごとに例外を作らず、件数と先頭20件の文言を返す', () => {
+    /**
+     * 以前は読めない行ごとに例外を作り、集約・重複チェックとも約10秒（下の30万行を合わせて約20秒）かかって Worker が時間切れになった。
+     * 今は単独で約2秒。ほかのテストと並行して遅くなっても誤って落ちないよう、上限は修正前と区別できる12秒にする
+     */
+    const text = 'x\n'.repeat(1_000_000);
+    const started = performance.now();
+    const aggregated = aggregateList(text);
+    const overlap = checkOverlapList(text);
+    for (const { errors } of [aggregated, overlap]) {
+      expect(errors.total).toBe(1_000_000);
+      expect(errors.items.map((error) => error.line)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    }
+    expect(aggregated.errors.items[0]?.message).toBe('「x」は IPv4 アドレスの形式（192.168.0.1 など）ではありません');
+    expect(overlap.errors.items[0]?.message).toBe('「x」は CIDR（10.0.0.0/16 など）の形式ではありません');
+    /** CIDR の形の行でも、例外を作らずに数える */
+    const cidrs = checkOverlapList('10.0.0.256/24\n'.repeat(300_000));
+    expect(cidrs.errors.total).toBe(300_000);
+    expect(cidrs.errors.items[0]?.message).toBe('「10.0.0.256」の各部は 0〜255 で指定してください');
+    expect(performance.now() - started).toBeLessThan(12_000);
+  }, 30_000);
+
+  it('IPv4 と IPv6 の誤りを行の順に合わせ、総数は両方を数える', () => {
+    /** 奇数行は読めない IPv4、偶数行は読めない IPv6。どちらも20件を超える */
+    const lines = Array.from({ length: 60 }, (_, i) => (i % 2 === 0 ? '10.0.0.256' : 'gg::1'));
+    const result = aggregateList(lines.join('\n'));
+    expect(result.errors.total).toBe(60);
+    expect(result.errors.items.map((error) => error.line)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    expect(result.errors.items[0]?.message).toBe('「10.0.0.256」の各部は 0〜255 で指定してください');
+    expect(result.errors.items[1]?.message).toBe('「gg::1」は IPv6 アドレスとして読めません（「gg」は16進数4桁までのグループではありません）');
+  });
+
+  it('読めない行の文言は、例外を投げる関数の文言と同じ（範囲の逆順・CIDR でない行・マスクの誤りを含む）', () => {
+    const messageOf = (run: () => unknown) => {
+      try { run(); } catch (e) { return (e as Error).message; }
+      throw new Error('エラーにならない');
+    };
+    const aggregated = aggregateList(['10.0.0.9 - 10.0.0.1', '10.0.0.0 255.0.255.0', '010.0.0.1', '2001:db8::/129'].join('\n'));
+    expect(aggregated.errors.items.map((error) => error.message)).toEqual([
+      '開始アドレスが終了アドレスより後ろにあります',
+      messageOf(() => parseNetwork('10.0.0.0 255.0.255.0')),
+      messageOf(() => parseIpv4('010.0.0.1')),
+      messageOf(() => parseNetwork6('2001:db8::/129')),
+    ]);
+    const overlap = checkOverlapList(['10.0.0.1', '10.0.0.0/33', '2001:db8::1'].join('\n'));
+    expect(overlap.errors.items.map((error) => error.message)).toEqual([
+      '「10.0.0.1」は CIDR（10.0.0.0/16 など）の形式ではありません',
+      messageOf(() => parseNetwork('10.0.0.0/33')),
+      '「2001:db8::1」は CIDR（2001:db8::/32 など）の形式ではありません',
+    ]);
+  });
+
+  it('範囲の先頭でない CIDR の警告も、件数と先頭20件の文言を返す', () => {
+    const result = checkOverlapList(Array.from({ length: 30 }, (_, i) => `10.0.${i}.1/24`).join('\n'));
+    expect(result.warnings.total).toBe(30);
+    expect(result.warnings.items).toHaveLength(20);
+    expect(result.warnings.items[0]?.message).toBe('10.0.0.1/24 はネットワークアドレスではないため、10.0.0.0/24 として扱いました');
+  });
+
+  it('集約は、出力の文字数が上限を超えた時点で CIDR の文字列を作るのをやめる', () => {
+    /** 「10.0.0.1/32」「10.0.0.3/32」はそれぞれ改行を含めて12文字 */
+    expect(aggregate('10.0.0.1\n10.0.0.3', 24)).toMatchObject({ cidrs: ['10.0.0.1/32', '10.0.0.3/32'], exceeded: false });
+    expect(aggregate('10.0.0.1\n10.0.0.3', 23)).toMatchObject({ cidrs: ['10.0.0.1/32'], exceeded: true });
+    expect(aggregate('10.0.0.1\n10.0.0.3', 11)).toMatchObject({ cidrs: [], exceeded: true });
   });
 });
 
@@ -241,7 +317,7 @@ describe('VLSM', () => {
   it('大きい順に割り当て、入力の順で返す', () => {
     const { requests } = parseHostRequests('営業 50\n開発 200\n管理 10');
     const r = allocateVlsm(ip('192.168.0.0'), 23, requests);
-    expect(r.map((a) => `${a.name} ${formatIpv4(a.network)}/${a.prefix} ${a.usable}`)).toEqual([
+    expect(r.map((a) => `${a.name} ${formatIpv4(a.network)}/${a.prefix} ${subnetInfo(a.network, a.prefix).usable}`)).toEqual([
       '営業 192.168.1.0/26 62',
       '開発 192.168.0.0/24 254',
       '管理 192.168.1.64/28 14',

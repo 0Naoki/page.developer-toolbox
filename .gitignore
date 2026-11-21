@@ -29,7 +29,6 @@ npm-debug.log*
 # VITE_ 付きの値はビルド成果物に埋め込まれる。秘密情報は置かない（SECURITY.md）
 .env
 .env.*
-!.env.example
 
 ############################################################
 # 秘密情報・認証情報・個人のデータ（公開リポジトリに絶対に含めない。CONTRIBUTING.md）
@@ -72,7 +71,6 @@ trace.zip
 # エディタ
 ############################################################
 .vscode/*
-!.vscode/extensions.json
 *.code-workspace
 .history/
 *.vsix
@@ -106,28 +104,6 @@ __MACOSX/
 .disk_label*
 lost+found
 .HFS+ Private Directory Data?
-
-# AFP の共有に作られるもの
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# Mac OS 6〜9
-Desktop DB
-Desktop DF
-TheFindByContentFolder
-TheVolumeSettingsFolder
-.FBCIndex
-.FBCSemaphoreFile
-.FBCLockFolder
-
-# クォータ
-.quota.group
-.quota.user
-.quota.ops.group
-.quota.ops.user
 
 # Time Machine
 Backups.backupdb
@@ -213,5 +189,4 @@ Backup of *.doc*
 ############################################################
 # ほかのバージョン管理・Git のツール
 ############################################################
-.svn/
 /.tgitconfig

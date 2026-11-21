@@ -64,12 +64,12 @@ JWTデコーダーのヘッダ・ペイロード、Base64 のデコード結果�
 | JSON整形 | <!-- limit:json.input:start -->800万単位<!-- limit:json.input:end --> | <!-- limit:json.output:start -->整形結果2,000万単位<!-- limit:json.output:end -->、<!-- limit:json.preview:start -->プレビュー先頭50,000単位<!-- limit:json.preview:end -->。重複したキーの警告は先頭5件と残りの件数を表示。<!-- limit:json.tree-input:start -->ツリー表示は入力100万単位まで<!-- limit:json.tree-input:end -->で、<!-- limit:json.tree-page:start -->子は100件ずつ表示<!-- limit:json.tree-page:end -->（それより大きい入力はテキストで表示） | <!-- limit:json.timeout:start -->Workerで10秒<!-- limit:json.timeout:end --> |
 | CSV変換 | <!-- limit:csv.input:start -->800万単位<!-- limit:csv.input:end -->、<!-- limit:csv.file:start -->ファイル24MB<!-- limit:csv.file:end -->（2,400万バイト）、<!-- limit:csv.cells:start -->展開後200万セル<!-- limit:csv.cells:end --> | <!-- limit:csv.output:start -->出力3,200万単位<!-- limit:csv.output:end -->、プレビュー先頭50,000単位 | Workerで10秒 |
 | 文字数・バイト数 | <!-- limit:count.input:start -->800万単位<!-- limit:count.input:end -->、UTF-8ファイル<!-- limit:count.file:start -->24MB<!-- limit:count.file:end -->（2,400万バイト） | 入力の通常表示は<!-- limit:count.input-preview:start -->500〜2,000単位<!-- limit:count.input-preview:end -->。全文を集計し、行別結果は<!-- limit:count.page:start -->100行ずつ<!-- limit:count.page:end -->表示。文字診断・不可視文字の集計は先頭<!-- limit:count.kinds:start -->100種類<!-- limit:count.kinds:end -->、診断の文字の形は通常先頭<!-- limit:count.glyph-preview:start -->5種類<!-- limit:count.glyph-preview:end -->、出現位置は先頭<!-- limit:count.positions:start -->100件<!-- limit:count.positions:end -->、可視化は<!-- limit:count.invisible-preview:start -->2,000単位<!-- limit:count.invisible-preview:end -->。診断一覧の全件TSVは<!-- limit:count.report:start -->3,200万単位<!-- limit:count.report:end -->まで | 通常集計・診断の全件準備はWorkerで<!-- limit:count.timeout:start -->10秒<!-- limit:count.timeout:end --> |
-| テキスト差分 | 2つの入力の<!-- limit:diff.input:start -->合計800万単位<!-- limit:diff.input:end --> | 結果は最初に1,000行、長い行は先頭2,000単位まで表示。unified形式のコピーは全文。計算中は前回の結果を表示し続ける（コピーは不可。中断・失敗のときは表示しない） | Workerで10秒。差分探索は<!-- limit:diff.search-timeout:start -->下記の2秒制限<!-- limit:diff.search-timeout:end -->も適用 |
+| テキスト差分 | 2つの入力の<!-- limit:diff.input:start -->合計800万単位<!-- limit:diff.input:end --> | 結果は最初に1,000行、長い行は先頭2,000単位まで表示。unified形式の全文は操作時に準備してコピーする。計算中は前回の結果を表示し続ける（コピーは不可。中断・失敗のときは表示しない） | Workerで10秒。差分探索は<!-- limit:diff.search-timeout:start -->下記の2秒制限<!-- limit:diff.search-timeout:end -->も適用 |
 | UNIX時間の一括変換 | <!-- limit:epoch.input:start -->800万単位<!-- limit:epoch.input:end --> | 全文を変換対象にする | <!-- limit:epoch.timeout:start -->Workerで10秒<!-- limit:epoch.timeout:end --> |
 | 正規表現 | <!-- limit:regex.pattern:start -->式1万単位<!-- limit:regex.pattern:end -->、テスト文字列・置換文字列<!-- limit:regex.text:start -->各10万単位<!-- limit:regex.text:end -->、<!-- limit:regex.groups:start -->キャプチャ50個<!-- limit:regex.groups:end --> | <!-- limit:regex.matches:start -->表示500マッチ<!-- limit:regex.matches:end -->、<!-- limit:regex.output:start -->置換結果100万単位<!-- limit:regex.output:end -->、マッチとキャプチャの合計100万単位。置換結果は先頭50,000単位を表示し、コピーは全文 | Workerで2秒。大量マッチ時は下記の制限も適用 |
 | 不可視文字検査 | 文字数・バイト数と共通 | 全文を集計。可視化は先頭2,000単位、種類別集計は100種類、位置一覧は100件 | 文字数・バイト数と共通 |
 
-正規表現を除く上記のWorker計算は、入力が150ms止まってから開始し、手動でも中断・再計算できます。プレビューを直接選択してコピーすると表示部分だけになるため、全文が必要な場合は「コピー」「入力全文をコピー」「全文を保存」を使ってください。大容量入力の「全文を編集」では、入力欄自体の表示に時間がかかる場合があります。
+上記のWorker計算は、入力が150ms止まってから開始します。正規表現を除き、手動でも中断・再計算できます。プレビューを直接選択してコピーすると表示部分だけになるため、全文が必要な場合は「コピー」「入力全文をコピー」「全文を保存」を使ってください。大容量入力の「全文を編集」では、入力欄自体の表示に時間がかかる場合があります。
 
 ### そのほかのツールの上限
 
@@ -87,7 +87,7 @@ JWTデコーダーのヘッダ・ペイロード、Base64 のデコード結果�
 | パスワード生成 | <!-- limit:password.length:start -->長さ4〜128文字<!-- limit:password.length:end -->、PIN 4〜32桁。1回に1・5・10・20件 | <!-- limit:password.config-preview:start -->記号・除外文字は先頭2,000単位<!-- limit:password.config-preview:end -->を表示（コピーと生成は全文） | — |
 | UUID / ULID | 1回に1・5・10・50・100件 | — | — |
 | ハッシュ生成 | <!-- limit:hash.file:start -->ファイル256 MiB<!-- limit:hash.file:end -->。テキストは上限なし | — | MD5 は<!-- limit:hash.chunk:start -->4 MiBずつ<!-- limit:hash.chunk:end -->処理し、そのたびに画面へ制御を返す |
-| JWTデコーダー | <!-- limit:jwt.key:start -->公開鍵65,536単位<!-- limit:jwt.key:end -->（PEM は1ブロックだけ。証明書のチェーンは、トークンに署名した鍵の証明書だけを入力する）。トークンは上限なし | ヘッダ・ペイロードと長いクレーム値は<!-- limit:jwt.preview:start -->先頭50,000単位まで表示<!-- limit:jwt.preview:end -->。時刻クレームの元の表記は<!-- limit:jwt.claim:start -->先頭2,000単位まで表示<!-- limit:jwt.claim:end -->。alg のバッジ・鍵の欄の見出し・警告やエラーに入る alg・kid・時刻は<!-- limit:jwt.detail:start -->先頭256単位の抜粋<!-- limit:jwt.detail:end -->。ヘッダ・ペイロード・各クレーム値・時刻の元の表記のコピーは全文 | — |
+| JWTデコーダー | <!-- limit:jwt.key:start -->公開鍵65,536単位<!-- limit:jwt.key:end -->（PEM は1ブロックだけ。証明書のチェーンは、トークンに署名した鍵の証明書だけを入力する）。トークン<!-- limit:jwt.input:start -->800万単位<!-- limit:jwt.input:end --> | ヘッダ・ペイロードと長いクレーム値は<!-- limit:jwt.preview:start -->先頭50,000単位まで表示<!-- limit:jwt.preview:end -->。時刻クレームの元の表記は<!-- limit:jwt.claim:start -->先頭2,000単位まで表示<!-- limit:jwt.claim:end -->。alg のバッジ・鍵の欄の見出し・警告やエラーに入る alg・kid・時刻は<!-- limit:jwt.detail:start -->先頭256単位の抜粋<!-- limit:jwt.detail:end -->。ヘッダ・ペイロード・各クレーム値・時刻の元の表記のコピーは全文 | 解析は<!-- limit:jwt.timeout:start -->Workerで10秒<!-- limit:jwt.timeout:end -->。中断・再計算が可能 |
 | 証明書デコーダー | <!-- limit:cert.input:start -->貼り付け1,048,576単位<!-- limit:cert.input:end -->、<!-- limit:cert.file:start -->ファイル1 MiB<!-- limit:cert.file:end -->、<!-- limit:cert.blocks:start -->PEMは64ブロック<!-- limit:cert.blocks:end -->まで | ブロックの解析エラーは先頭5件と総数を表示。SAN・拡張・拡張の値・属性は<!-- limit:cert.list:start -->先頭100件<!-- limit:cert.list:end -->、1つの値は<!-- limit:cert.value:start -->2,000単位まで表示<!-- limit:cert.value:end -->し、超えた値には「以降省略」と元の長さを示す（解読できた値の全件・全文はコピーで取り出す）。未知・不正・重複の拡張は先頭<!-- limit:cert.raw-preview:start -->32バイト<!-- limit:cert.raw-preview:end -->の抜粋（生バイトは全文コピー）。署名の検証に使った<!-- limit:cert.issuer:start -->発行者の名前は先頭256単位の抜粋<!-- limit:cert.issuer:end --> | <!-- limit:cert.attributes:start -->名前の属性は256個<!-- limit:cert.attributes:end -->まで |
 
 表の数値は、各ツールの上限の定数と一致することを単体テスト（`src/documentLimits.test.ts`）で確かめています。上限を変えたときは、この表も直してください。性能の計測手順は [PERFORMANCE.md](PERFORMANCE.md) を参照してください。
@@ -176,6 +176,8 @@ PINは各桁を0〜9から選び、桁数と10種類の文字から強度を計�
 
 JWT のデコード、時刻クレームの判定、署名の検証はそれぞれ別の処理です。「署名は正しい」は入力した鍵で署名が一致したことを示します。発行者や利用対象（iss・aud など）が利用先の要件に合うかは、利用先で確認する必要があります。JWE はヘッダの表示だけに対応し、復号しません。
 
+トークンの解析中・中断後は、前の入力の表示や署名判定を出しません。鍵の入力は保持し、解析後に新しいトークンを検証します。
+
 証明書・CSR の署名検証は、提示された公開鍵との一致を確かめます。有効期限は別に表示します。チェーンの順番の確認は発行者の名前・鍵識別子による候補の照合であり、信頼するルートまでのパス検証や失効確認（OCSP・CRL）は行いません。自己発行（発行者と主体の名前が同じ）と自己署名（自身の鍵で署名を検証できる）は区別します。
 
 証明書の有効期間の GeneralizedTime に小数部がある場合（`20500101000000.5Z` など）は、日時を丸めずに読み込みエラーにします。小数部を含む証明書日時は [RFC 5280 §4.1.2.5.2](https://www.rfc-editor.org/rfc/rfc5280.html#section-4.1.2.5.2) に準拠しません。
@@ -227,6 +229,10 @@ JavaScriptの文字列には、UTF-8で表せない「対になっていない�
 | HMAC・JWTのUTF-8の秘密鍵 | 別の鍵への置き換えを避けるため拒否する |
 
 ### テキスト差分・正規表現
+
+差分の全文コピーは「unified形式を準備」を押してから「unified形式でコピー」を選びます。
+表示した行の対応から全文を作るため、探索を打ち切った場合も表示と同じ差分になります。
+入力や比較条件を変えると準備済みの出力を破棄します。準備は中断・再試行でき、「unified形式の出力を閉じる」で全文を解放できます。
 
 - **テキスト差分**は、貼り付けで受け取ったCRLF・LF・CRを入力内に保持します。比較と画面の表示では改行の種類の違いを無視します。コピーするunified形式では、`patch` や `git apply` で使えるようにCRLFとLFを保持し、CRだけの改行はLFとして出力します。「空白を無視」「大文字小文字を無視」で一致とみなした行は、変更前の行を共通行として出力するため、変更後の側の空白・大文字小文字の違いはコピーした差分に含まれません。
 - **テキスト差分**は、片方にしかない行を除いて比較します。共通の行の順番が大きく異なるテキストでは2秒で差分探索を打ち切り、残りを「まとめて削除・追加」として表示します（内容は正しく、最小の差分ではない旨を画面に表示します）。

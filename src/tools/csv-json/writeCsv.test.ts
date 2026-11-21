@@ -121,7 +121,7 @@ describe('JSON→CSV で数値の表記を保つ', () => {
   it('構文エラーは位置を示す', () => {
     expect(() => jsonToCsv('[{"a":1,}]', opts)).toThrow(/1行9列目/);
     /** BOM は位置に数えない */
-    expect(() => jsonToCsv('﻿[{"a":1,}]', opts)).toThrow(/1行9列目/);
+    expect(() => jsonToCsv('\uFEFF[{"a":1,}]', opts)).toThrow(/1行9列目/);
     expect(() => jsonToCsv('[\n  {"a":1,}\n]', opts)).toThrow(/2行10列目/);
   });
 });
@@ -171,7 +171,8 @@ describe('大きなデータ（Math.max の引数の上限）', () => {
     const r = jsonToCsv(json, DEFAULT_JSON_TO_CSV);
     expect(r.rows).toBe(ROWS);
     expect(r.columns).toBe(2);
-  });
+    /** 時間は確かめない（RangeError にならないことを守る）。並行実行の負荷で vitest の既定（5秒）を超えることがあるため、枠を広げる */
+  }, 30_000);
 });
 
 describe('CSVへの展開量の制限', () => {

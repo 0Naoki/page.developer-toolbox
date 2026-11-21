@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { isIpv6Text } from './addressRange';
+import { parseCidrList } from './ipv4';
 import {
   aggregate6,
   binaryOf6,
@@ -6,8 +8,6 @@ import {
   expandIpv6,
   formatCount,
   formatIpv6,
-  isIpv6Text,
-  onlyLines,
   kindOf6,
   parseCidrList6,
   parseIpv6,
@@ -63,7 +63,8 @@ describe('IPv6一覧の改行', () => {
   for (const newline of ['\n', '\r\n', '\r']) {
     it(`改行 ${JSON.stringify(newline)} で行番号と集約結果を保つ`, () => {
       const source = ['10.0.0.0/24', '2001:db8::/33 本番', '# コメント', '2001:db8:8000::/33 支店'].join(newline);
-      expect(onlyLines(source, true)).toBe('\n2001:db8::/33 本番\n\n2001:db8:8000::/33 支店');
+      /** IPv4 の行は IPv4 の一覧だけが、IPv6 の行は IPv6 の一覧だけが読む（行番号は元の行のまま） */
+      expect(parseCidrList(source).blocks.map((block) => block.line)).toEqual([1]);
       expect(parseCidrList6(source).blocks.map((block) => block.line)).toEqual([2, 4]);
       const result = aggregate6(['2001:db8::/33', '2001:db8:8000::/33'].join(newline));
       expect(result.cidrs).toEqual(['2001:db8::/32']);
@@ -243,7 +244,8 @@ describe('一覧（重複チェック・分割・集約）', () => {
     expect(isIpv6Text('10.0.0.0/16 本番: 東京')).toBe(false);
     expect(parseCidrList6(list).errors).toEqual([]);
     expect(parseCidrList6(list).blocks.map((b) => b.line)).toEqual([3]);
-    expect(onlyLines(list, false)).toBe('10.0.0.0/16 本番: 東京\n10.0.1.0/24 拠点 10:00開始\n');
-    expect(onlyLines(list, true)).toBe('\n\n2001:db8::/32 本番');
+    /** IPv4 の一覧は、名前に : がある行も IPv4 として読み、IPv6 の行は読まない */
+    expect(parseCidrList(list).errors).toEqual([]);
+    expect(parseCidrList(list).blocks.map((b) => b.line)).toEqual([1, 2]);
   });
 });

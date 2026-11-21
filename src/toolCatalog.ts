@@ -24,7 +24,8 @@ export type ToolMeta = {
   readonly tags: readonly string[];
   /**
    * 入力欄の内容をこのタブ（sessionStorage）に保存するか（useInput を使えるか）。
-   * トークン・鍵・生成したパスワードなど、機密になり得る値を扱うツールは false にする
+   * 入力欄を useInput で保存するツールは true、使わないツールは false にする（CONTRIBUTING.md のツールの追加方法）。
+   * トークン・鍵・生成したパスワードなど、機密になり得る値は、どちらの場合も useInput ではなく useState で持つ
    */
   readonly savesInput: boolean;
 };

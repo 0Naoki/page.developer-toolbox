@@ -10,7 +10,7 @@ describe('parseCsv', () => {
   });
 
   it('BOM と末尾の改行を無視する', () => {
-    expect(parseCsv('﻿a,b\n')).toEqual([['a', 'b']]);
+    expect(parseCsv('\uFEFFa,b\n')).toEqual([['a', 'b']]);
   });
 
   it('空のフィールド', () => {

@@ -1,7 +1,8 @@
 /** 検査の対象：src/calculation/handlers.ts・protocol.ts と、そこから呼ぶツールの結果の整形（csv-json・text-diff の calculation.ts、json-formatter の formatJsonForScreen） */
 import { describe, expect, it } from 'vitest';
 import { calculate, UNKNOWN_CALCULATION } from './handlers';
-import { acceptResponse } from './protocol';
+import { calculateDiff } from '../tools/text-diff/calculation';
+import { acceptResponse, calculationInputSize } from './protocol';
 import { MAX_CALCULATION_INPUT } from '../lib/worker/calculationLimits';
 import { textPreview } from '../lib/text/textPreview';
 import { DEFAULT_CSV_TO_JSON } from '../tools/csv-json/logic';
@@ -67,15 +68,22 @@ describe('画面から分離した計算', () => {
     }
   });
 
-  it('差分と unified 形式のテキストを返し、大きさは2つの入力の合計で確かめる', () => {
+  it('差分と全文を別の要求で返し、どちらも2つの入力の合計で大きさを確かめる', () => {
     const result = calculate({ tool: 'diff', input: 'a\nb\n', after: 'a\nc\n', ignoreWhitespace: false, ignoreCase: false });
-    expect(result).toMatchObject({ added: 1, removed: 1, unified: '--- before\n+++ after\n@@ -1,2 +1,2 @@\n a\n-b\n+c\n' });
+    expect(result).toMatchObject({ added: 1, removed: 1 });
+    expect(calculate({ tool: 'diffUnified', inputSize: 8, rows: result.rows })).toBe('--- before\n+++ after\n@@ -1,2 +1,2 @@\n a\n-b\n+c\n');
     const half = ' '.repeat(MAX_CALCULATION_INPUT / 2 + 1);
     expect(() => calculate({ tool: 'diff', input: half, after: half, ignoreWhitespace: false, ignoreCase: false })).toThrow('入力が大きすぎます');
+    expect(() => calculate({ tool: 'diffUnified', inputSize: half.length * 2, rows: result.rows })).toThrow('入力が大きすぎます');
+    for (const inputSize of [-1, 0.5, NaN, Infinity]) {
+      expect(() => calculate({ tool: 'diffUnified', inputSize, rows: result.rows })).toThrow('入力が大きすぎます');
+    }
   });
 
   it('大きすぎる入力を解析前に拒否する', () => {
     expect(() => calculate({ tool: 'json', input: ' '.repeat(MAX_CALCULATION_INPUT + 1), indent: 2, sortKeys: false })).toThrow('入力が大きすぎます');
+    expect(() => calculate({ tool: 'jwt', input: ' '.repeat(MAX_CALCULATION_INPUT + 1) })).toThrow('入力が大きすぎます');
+    expect(calculate({ tool: 'jwt', input: '' })).toBeNull();
   });
 
   it('深い入れ子の整形で出力を際限なく増やさない', () => {
@@ -102,4 +110,12 @@ describe('Worker の応答の確かめ', () => {
     expect(acceptResponse({ tool: 'json' }, { ok: true, tool: 'base64', result })).toEqual({ ok: false, error: '計算結果を受け取れませんでした。画面を再読み込みしてください。' });
     expect(acceptResponse({ tool: 'json' }, { ok: false, error: 'x' })).toEqual({ ok: false, error: 'x' });
   });
+});
+it('表示応答には全文パッチを含めず、全文の要求では同じ差分と入力上限を使う', () => {
+  const input = 'a\r\nb\r\n', after = 'a\r\nB\r\n';
+  const screen = calculateDiff({ input, after, ignoreCase: false, ignoreWhitespace: false });
+  expect(screen).not.toHaveProperty('unified');
+  const request = { tool: 'diffUnified', inputSize: input.length + after.length, rows: structuredClone(screen.rows) } as const;
+  expect(calculationInputSize(request)).toBe(input.length + after.length);
+  expect(calculate(request)).toBe('--- before\n+++ after\n@@ -1,2 +1,2 @@\n a\r\n-b\r\n+B\r\n');
 });

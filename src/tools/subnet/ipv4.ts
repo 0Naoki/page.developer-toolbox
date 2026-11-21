@@ -1,27 +1,33 @@
-import { splitAddressRange } from './addressRange';
 /**
  * IPv4 のアドレス・サブネットの計算。
  * アドレスは 0 〜 2^32-1 の数（Number）で持つ。ビット演算は32ビットの符号付きになるため、結果は \>\>\> 0 で符号なしに戻す。
  */
+import { isIpv6Text, splitAddressRange } from './addressRange';
 import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
-import { aggregateIn, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Family, type ListError, type RangeBlock } from './ranges';
+import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList, type RangeBlock } from './ranges';
 
-/** 「192.168.10.1」を数にする。各部は 0〜255 の10進数。先頭の0（8進数と解釈する実装がある）は受け付けない */
-export function parseIpv4(input: string): number {
+/** 例外を投げずに parseIpv4 と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
+export function readIpv4(input: string): number | Failure {
   const s = input.trim();
   const parts = s.split('.');
   if (parts.length !== 4 || parts.some((p) => !/^\d{1,3}$/.test(p))) {
-    throw new Error(`「${detailPreview(s)}」は IPv4 アドレスの形式（192.168.0.1 など）ではありません`);
+    return () => { throw new Error(`「${detailPreview(s)}」は IPv4 アドレスの形式（192.168.0.1 など）ではありません`); };
   }
   if (parts.some((p) => p.length > 1 && p[0] === '0')) {
-    throw new Error(`「${detailPreview(s)}」の先頭の0は付けないでください（8進数として読む実装があり、意味が変わるため）`);
+    return () => { throw new Error(`「${detailPreview(s)}」の先頭の0は付けないでください（8進数として読む実装があり、意味が変わるため）`); };
   }
   const octets = parts.map(Number);
-  if (octets.some((o) => o > 255)) throw new Error(`「${detailPreview(s)}」の各部は 0〜255 で指定してください`);
+  if (octets.some((o) => o > 255)) return () => { throw new Error(`「${detailPreview(s)}」の各部は 0〜255 で指定してください`); };
   /** 4つの部分があることは上で確かめている（既定値は型のためだけ） */
   const [a = 0, b = 0, c = 0, d = 0] = octets;
   return ((a << 24) | (b << 16) | (c << 8) | d) >>> 0;
+}
+
+/** 「192.168.10.1」を数にする。各部は 0〜255 の10進数。先頭の0（8進数と解釈する実装がある）は受け付けない */
+export function parseIpv4(input: string): number {
+  const result = readIpv4(input);
+  return isFailure(result) ? result() : result;
 }
 
 export const formatIpv4 = (n: number): string => [24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.');
@@ -55,23 +61,34 @@ export type ParsedNetwork = {
  * マスクとワイルドカードマスクのどちらとも読める値（0.0.0.0・255.255.255.255）は、サブネットマスクとして読む
  */
 export function parseNetwork(input: string): ParsedNetwork {
+  const result = readNetwork(input);
+  return isFailure(result) ? result() : result;
+}
+
+/** 例外を投げずに parseNetwork と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
+function readNetwork(input: string): ParsedNetwork | Failure {
   const s = input.trim();
-  if (!s) throw new Error('アドレスを入力してください');
+  if (!s) return () => { throw new Error('アドレスを入力してください'); };
   const m = /^([\d.]+)(?:\s*\/\s*|\s+)(\S+)$/.exec(s);
-  if (!m) return { ip: parseIpv4(s), prefix: 32, notation: 'host' };
+  if (!m) {
+    const ip = readIpv4(s);
+    return isFailure(ip) ? ip : { ip, prefix: 32, notation: 'host' };
+  }
   const [, ipText = '', second = ''] = m;
-  const ip = parseIpv4(ipText);
+  const ip = readIpv4(ipText);
+  if (isFailure(ip)) return ip;
   if (/^\d{1,2}$/.test(second)) {
     const prefix = Number(second);
-    if (prefix > 32) throw new Error('プレフィックス長は 0〜32 で指定してください');
+    if (prefix > 32) return () => { throw new Error('プレフィックス長は 0〜32 で指定してください'); };
     return { ip, prefix, notation: 'cidr' };
   }
-  const value = parseIpv4(second);
+  const value = readIpv4(second);
+  if (isFailure(value)) return value;
   const asMask = prefixOfMask(value);
   if (asMask !== null) return { ip, prefix: asMask, notation: 'mask' };
   const asWildcard = prefixOfMask(~value >>> 0);
   if (asWildcard !== null) return { ip, prefix: asWildcard, notation: 'wildcard' };
-  throw new Error(`「${detailPreview(second)}」はサブネットマスクとしてもワイルドカードマスクとしても使えません（1 と 0 が途中で入れ替わっています）`);
+  return () => { throw new Error(`「${detailPreview(second)}」はサブネットマスクとしてもワイルドカードマスクとしても使えません（1 と 0 が途中で入れ替わっています）`); };
 }
 
 /** アドレスの種別 */
@@ -194,7 +211,7 @@ export type Block = RangeBlock<number>;
  * 1行に1つずつ書いた CIDR を読む。行の残りは名前（「10.0.0.0/16 本番VPC」）、# の後ろはコメント。
  * ネットワークアドレスでない値（192.168.1.5/24）は、ネットワーク（192.168.1.0/24）に直して読み、warnings に入れる
  */
-export const parseCidrList = (text: string): { blocks: Block[]; errors: ListError[]; warnings: ListError[] } => parseCidrListIn(IPV4, text);
+export const parseCidrList = (text: string): ParsedCidrList<number> => parseCidrListIn(IPV4, text);
 
 /** 分割 */
 
@@ -213,9 +230,9 @@ export const rangeToCidrs = (start: number, end: number): { network: number; pre
 
 /**
  * CIDR・アドレスの範囲（「10.0.0.0 - 10.0.0.255」）・アドレスを1行ずつ書いた一覧を、
- * 重なりや隣り合う範囲をまとめた最小個数の CIDR にする
+ * 重なりや隣り合う範囲をまとめた最小個数の CIDR にする（outputBudget は ranges.ts の aggregateIn）
  */
-export const aggregate = (text: string): { cidrs: string[]; addresses: number; errors: ListError[] } => aggregateIn(IPV4, text);
+export const aggregate = (text: string, outputBudget?: number): Aggregated<number> => aggregateIn(IPV4, text, outputBudget);
 
 /** IPv4 のアドレスの種類としての違い（範囲と CIDR の共通の計算 ranges.ts に渡す） */
 const IPV4: Family<number> = {
@@ -226,15 +243,18 @@ const IPV4: Family<number> = {
   sub: (a, b) => a - b,
   pow2: (n) => 2 ** n,
   aligned: (a, n) => a % 2 ** n === 0,
-  parseAddress: parseIpv4,
-  parseRange: (text) => {
-    const { ip, prefix } = parseNetwork(text);
+  readAddress: readIpv4,
+  readRange: (text) => {
+    const parsed = readNetwork(text);
+    if (isFailure(parsed)) return parsed;
+    const { ip, prefix } = parsed;
     const info = subnetInfo(ip, prefix);
     return { ip, prefix, first: info.network, last: info.broadcast };
   },
   format: formatIpv4,
   splitRange: (text) => splitAddressRange(text, false),
-  accepts: () => true,
+  /** IPv6 の行（先頭の値に : がある行）は ipv6.ts が読むので、それ以外の行を読む */
+  accepts: (line) => !isIpv6Text(line),
   cidrExample: '10.0.0.0/16',
   notAlignedWarning: (cidr, normalized) => `${cidr} はネットワークアドレスではないため、${normalized} として扱いました`,
 };

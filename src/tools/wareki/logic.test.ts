@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageOn, erasOfYear, eto, parseDateAny, parseWareki, toWareki } from './logic';
+import { ageFrom, ageOn, erasOfYear, eto, parseDateAny, parseWareki, toWareki } from './logic';
 
 describe('toWareki', () => {
   it('改元日の前後', () => {
@@ -68,6 +68,43 @@ describe('erasOfYear / eto / ageOn', () => {
     const birth = { y: 1993, m: 10, d: 27 };
     expect(ageOn(birth, { y: 2026, m: 10, d: 26 })).toBe(32);
     expect(ageOn(birth, { y: 2026, m: 10, d: 27 })).toBe(33);
+  });
+});
+
+describe('ageFrom（生年月日の入力から満年齢）', () => {
+  const today = { y: 2026, m: 1, d: 1 };
+
+  it('西暦・和暦のどちらの入力も読み、基準日が空なら今日で数える', () => {
+    expect(ageFrom('H5.4.1', 'R8.3.31', today)).toEqual({ age: 32, on: { y: 2026, m: 3, d: 31 }, birthText: '平成5年4月1日' });
+    expect(ageFrom('2000-01-01', '  ', today)).toMatchObject({ age: 26, on: today });
+  });
+
+  it('2月29日生まれは、うるう年でない年は3月1日に1歳増える（誕生日の日付で数える）', () => {
+    expect(ageFrom('2000-02-29', '2001-02-28', today).age).toBe(0);
+    expect(ageFrom('2000-02-29', '2001-03-01', today).age).toBe(1);
+    expect(ageFrom('2000-02-29', '2004-02-29', today).age).toBe(4);
+  });
+
+  it('生年月日が基準日より後、または和暦にできない日付（1873年より前）はエラー', () => {
+    expect(() => ageFrom('2026-01-02', '', today)).toThrow('生年月日が基準日より後になっています');
+    expect(() => ageFrom('1872-12-31', '2000-01-01', today)).toThrow('明治6年（1873年）1月1日より前');
+  });
+});
+
+describe('和暦の境界', () => {
+  it('年が0（令和0年など）は受け付けない', () => {
+    expect(() => parseWareki('令和0年1月1日')).toThrow('年は1（元年）以上で入力してください');
+    expect(() => parseWareki('平成0年5月1日')).toThrow('年は1（元年）以上で入力してください');
+  });
+
+  it('明治5年は旧暦の期間なので受け付けず、明治6年1月1日から読む', () => {
+    expect(() => parseWareki('明治5年1月1日')).toThrow('旧暦のため対応していません');
+    expect(parseWareki('明治6年1月1日').date).toEqual({ y: 1873, m: 1, d: 1 });
+  });
+
+  it('西暦9999年までを和暦にし、それより後の年は日付として読まない', () => {
+    expect(toWareki({ y: 9999, m: 12, d: 31 }).text).toBe('令和7981年12月31日');
+    expect(() => parseDateAny('10000-01-01')).toThrow();
   });
 });
 

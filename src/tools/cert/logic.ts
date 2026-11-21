@@ -1,4 +1,4 @@
-import { readName, sameBytes, sameName, type ParsedName } from './name';
+import { keyIdsCompatible, readName, sameBytes, sameName, type ParsedName } from './name';
 import { type DerItem } from './pem';
 import { oidName, readExtensions, type ExtensionSummary } from './extensions';
 import { errorMessage } from '../../lib/errors';
@@ -28,8 +28,6 @@ import {
 
 /** RSA の公開指数の長さの上限（通常は 65537 の3バイト。表示するだけなので、4096ビットの鍵と同じ長さまで読む） */
 const MAX_EXPONENT_BYTES = 512;
-
-/** 名前の対応表 */
 
 const SIGNATURE_ALGORITHMS: Record<string, string> = {
   '1.2.840.113549.1.1.4': 'MD5 + RSA（危険）',
@@ -136,7 +134,8 @@ export type Certificate = {
   notAfter: Date;
   publicKey: PublicKeyInfo;
   /**
-   * 自己署名（ルート証明書など）。発行者とサブジェクトが同じで、鍵識別子（AKI と SKI）が異ならないもの。
+   * 自己発行（ルート証明書など）。発行者とサブジェクトが同じで、鍵識別子（AKI と SKI）が異ならないもの。
+   * 署名を自分の鍵で検証できるか（自己署名か）は、この値では判定しない
    * 名前が同じでも鍵識別子が異なる証明書（CA の鍵の更新で、古い鍵で新しい鍵に署名したもの）は含めない
    */
   selfIssued: boolean;
@@ -192,13 +191,12 @@ export function parseCertificate(der: Uint8Array): Certificate {
     notAfter: time(validity.children[1]),
     publicKey,
     selfIssued:
-      sameName(issuer, subject) &&
-      !(extensions.authorityKeyId && extensions.subjectKeyId && extensions.authorityKeyId !== extensions.subjectKeyId),
+      sameName(issuer, subject) && keyIdsCompatible(extensions.authorityKeyId, extensions.subjectKeyId),
     ...extensions,
   };
 }
 
-export function parseCsr(der: Uint8Array): Csr {
+function parseCsr(der: Uint8Array): Csr {
   const root = parseDerExact(der);
   const info = assertTag(root.children[0], TAG.SEQUENCE, 'CSR の本体');
   assertTag(info.children[0], TAG.INTEGER, 'CSR のバージョン');

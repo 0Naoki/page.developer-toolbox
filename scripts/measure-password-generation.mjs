@@ -29,6 +29,6 @@ for (const { symbols, ...shape } of passwordInputs()) {
 }
 comparison.writeReport({
   input: '同じ文字の反復と、すべて異なる補助平面のUnicodeスカラー。他は DEFAULT_OPTIONS。結果のパスワードは記録しない。',
-  scope: 'preparationは検証と生成計画の準備、generationFromPlanは準備済み計画からの生成、batchはgenerateMany全体。計画APIのない版は個別区間をnullとする。重複する区間を合算しない。入力作成・描画・設定保存は除外。HEAD の入口と作業ツリーの依存を使用。',
+  scope: 'preparationは検証と生成計画の準備、generationFromPlanは準備済み計画からの生成、batchはgenerateMany全体。計画APIのない版は個別区間をnullとする。重複する区間を合算しない。入力作成・描画・設定保存は除外。依存の読み方は dependencySource に記録する。',
   cases,
 }, outputPath);

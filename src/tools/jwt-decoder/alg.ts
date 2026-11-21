@@ -8,7 +8,7 @@ import type { WebCryptoHash } from '../../lib/crypto/signature';
 type HashName = Exclude<WebCryptoHash, 'SHA-1'>;
 
 export type AlgSpec =
-  | { family: 'hmac'; hash: HashName; bytes: number }
+  | { family: 'hmac'; hash: HashName }
   | { family: 'rsa'; hash: HashName }
   | { family: 'pss'; hash: HashName; saltLength: number }
   | { family: 'ecdsa'; hash: HashName; curve: WebCryptoCurve; size: number }
@@ -33,7 +33,7 @@ export function algSpec(alg: unknown): AlgSpec {
     if (curve === undefined) throw new Unsupported('署名アルゴリズムのビット数を読めません');
     const hash = `SHA-${m[2]}` as HashName;
     const bytes = Number(m[2]) / 8;
-    if (m[1] === 'HS') return { family: 'hmac', hash, bytes };
+    if (m[1] === 'HS') return { family: 'hmac', hash };
     if (m[1] === 'RS') return { family: 'rsa', hash };
     /** RFC 7518 3.5：ソルト長はハッシュの長さと同じ */
     if (m[1] === 'PS') return { family: 'pss', hash, saltLength: bytes };

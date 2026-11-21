@@ -39,7 +39,11 @@ if (countRenderProfile && countBudget) throw new Error('--count-render-profile �
 const countDiagnosticsOnly = args.includes('--count-diagnostics') || countRenderProfile || countBudget;
 if ([subnetOnly, diffOnly, passwordOnly, countDiagnosticsOnly].filter(Boolean).length > 1) throw new Error('--subnet・--diff・--password・--count-diagnostics は同時に指定できません');
 const distHashOnly = args.includes('--dist-hash');
-const [outputPath] = args.filter((arg) => !['--subnet', '--diff', '--password', '--count-diagnostics', '--count-render-profile', '--count-budget', '--dist-hash'].includes(arg));
+const FLAGS = ['--subnet', '--diff', '--password', '--count-diagnostics', '--count-render-profile', '--count-budget', '--dist-hash'];
+/** 知らない -- の引数は止める（「--subent」のような打ち間違いを出力先のファイル名として扱い、その名前のファイルに書かないように） */
+const unknownFlags = args.filter((arg) => arg.startsWith('--') && !FLAGS.includes(arg));
+if (unknownFlags.length > 0) throw new Error(`知らない引数です：${unknownFlags.join(' ')}（使える引数：${FLAGS.join(' ')}）`);
+const [outputPath] = args.filter((arg) => !FLAGS.includes(arg));
 
 /** git の出力。git がない環境でも計測は続ける */
 const git = (...args) => {

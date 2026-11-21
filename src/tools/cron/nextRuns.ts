@@ -1,6 +1,6 @@
 import { WEEKDAYS_JA, dayOfWeek, daysInMonth } from '../../lib/time/date';
 import { formatInZone, formatWithOffset } from '../../lib/time/dateTimeFormat';
-import { DateRangeError, NonexistentTimeError, wallOf, zonedToUtc, type Wall, type Zone } from '../../lib/time/timezone';
+import { DateRangeError, NonexistentTimeError, nonexistentGapEnd, utcOf, wallOf, zonedToUtc, type Wall, type Zone } from '../../lib/time/timezone';
 import { fieldOf, isDayOrWeekday, type CronExpression, type CronField, type FieldName } from './parse';
 
 /** この年数の先まで探して見つからなければ「実行されない」とする（2月29日と曜日の組み合わせや、年の指定も見つかる長さ） */
@@ -58,6 +58,12 @@ export function nextRuns(cron: CronExpression, zone: Zone, from: number, count: 
   const hours = valuesOf('hour', []);
   const minutes = valuesOf('minute', []);
   const seconds = valuesOf('second', [0]);
+  /**
+   * 夏時間で飛ばされる区間の終わり（壁時計を UTC とみなしたミリ秒）。これより前の候補は変換を試さずに飛ばす。
+   * 候補ごとに変換を試すと、区間の中のすべての候補（毎秒の式なら1時間で3,600件）で重い変換を繰り返し、
+   * 全候補が飛ばされる式（America/New_York の「* * 2 ? 3 SUN#2」など）では200年分を試して画面が止まるため
+   */
+  let skipUntil = -Infinity;
   for (let y = start.y; y <= start.y + SEARCH_YEARS; y++) {
     if (years && !years.includes(y)) continue;
     for (const mo of months) {
@@ -69,12 +75,20 @@ export function nextRuns(cron: CronExpression, zone: Zone, from: number, count: 
           for (const mi of minutes) {
             for (const s of seconds) {
               if (!isAfter({ y, mo, d, h, mi, s }, start)) continue;
+              const wall: Wall = { y, mo, d, h, mi, s, ms: 0 };
+              if (utcOf(wall) < skipUntil) continue;
               let time: number;
               try {
-                time = zonedToUtc({ y, mo, d, h, mi, s, ms: 0 }, zone);
+                time = zonedToUtc(wall, zone);
               } catch (error) {
-                /** 夏時間で飛ばされる時刻だけを飛ばす */
-                if (error instanceof NonexistentTimeError) continue;
+                /**
+                 * 夏時間で飛ばされる時刻を飛ばす。同じ区間の残りの候補もまとめて飛ばす
+                 * （区間の長さはゾーンで違うため、同じ「時」を飛ばすのではなく、区間の終わりまでを飛ばす）
+                 */
+                if (error instanceof NonexistentTimeError) {
+                  skipUntil = utcOf(nonexistentGapEnd(wall, zone));
+                  continue;
+                }
                 /**
                  * Date で表せる範囲を超えたら、それより後の候補もすべて範囲外なので探索を終える
                  * （範囲外の候補を200年分試し続けると、同期の計算で画面が止まるため）
@@ -100,7 +114,7 @@ export function nextRuns(cron: CronExpression, zone: Zone, from: number, count: 
  *
  * @remarks
  * 基準日時の欄（日本時間として読む）に貼り戻しても同じ時刻になるよう、日本時間以外の表示には withOffset で
- * UTC からのずれを付ける（「2026-10-04 20:00:00 -04:00（日）」）。曜日の添え書きは、日時の入力（parseDateTime）が読み飛ばす。
+ * UTC からのずれを付ける（「2026-10-04 20:00:00 -04:00（日）」）。parseDateTimeは曜日と日付の一致を検証してから、曜日の添え書きを取り除く。
  */
 export function formatRun(ms: number, zone: Zone, withOffset = false): string {
   const { y, mo, d } = wallOf(ms, zone);

@@ -9,10 +9,11 @@ import { formatJsonForScreen } from '../tools/json-formatter/logic';
 import { measureText } from '../tools/text-count/logic';
 import { createDiagnosticReport } from '../tools/text-count/reports';
 import { convertCsvRequest } from '../tools/csv-json/calculation';
-import { calculateDiff } from '../tools/text-diff/calculation';
+import { calculateDiff, unifiedFromPacked } from '../tools/text-diff/calculation';
 import { convertEpochsInText } from '../tools/unix-time/epoch';
 import { aggregateList, calculateSplit, calculateVlsm, checkOverlapList } from '../tools/subnet/listCalculation';
 import { convertText } from '../tools/base64/logic';
+import { decodeTokenForScreen } from '../tools/jwt-decoder/calculation';
 import { INPUT_TOO_LARGE, MAX_CALCULATION_INPUT } from '../lib/worker/calculationLimits';
 import { calculationInputSize, type CalculationRequestOf, type CalculationResults, type CalculationTool } from './protocol';
 
@@ -21,6 +22,7 @@ import { calculationInputSize, type CalculationRequestOf, type CalculationResult
  * （別のツールの結果を返す実装の誤りを、コンパイル時に見つけるため）
  */
 const HANDLERS: { [T in CalculationTool]: (request: CalculationRequestOf<T>) => CalculationResults[T] } = {
+  jwt: (request) => decodeTokenForScreen(request.input),
   json: (request) => formatJsonForScreen(request.input, request.indent, request.sortKeys),
   count: (request) => measureText(request.input, request),
   countReport: (request) => createDiagnosticReport(request.input, request.kind),
@@ -31,6 +33,7 @@ const HANDLERS: { [T in CalculationTool]: (request: CalculationRequestOf<T>) => 
   subnetSplit: (request) => calculateSplit(request.input, request.newPrefix),
   subnetVlsm: (request) => calculateVlsm(request.input, request.network, request.prefix, request.cloud),
   diff: (request) => calculateDiff(request),
+  diffUnified: (request) => unifiedFromPacked(request.rows),
   csv: (request) => convertCsvRequest(request),
 };
 
