@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 /** Viteの設定読み込みに対応するため、ローカルのTypeScriptには拡張子を付ける。 */
 import { CSP } from './csp.config.ts';
 import packageJson from './package.json' with { type: 'json' };
+import { thirdPartyLicenseText } from './scripts/third-party-licenses.mjs';
 
 /**
  * 画面に表示する版（src/buildInfo.ts）。package.json の version と、ビルドしたコミット（GitHub Actions の GITHUB_SHA の先頭7文字）。
@@ -31,6 +32,9 @@ function cspMeta(): Plugin {
 }
 
 const WORKER_SOURCE = '?worker-source';
+
+/** Worker のバンドルに入ったモジュール。Worker のコードは文字列として本体に埋め込むため、本体のバンドルの一覧には現れない（thirdPartyLicenses で使う） */
+const workerModuleIds = new Set<string>();
 
 /**
  * `import source from './worker?worker-source'` で、Worker のコードを1つにまとめた文字列を返す。
@@ -60,8 +64,31 @@ function workerSource(): Plugin {
       const chunks = (Array.isArray(output) ? output : [output]).flatMap((o) => o.output);
       const chunk = chunks.find((c): c is Rolldown.OutputChunk => c.type === 'chunk' && c.isEntry);
       if (!chunk || chunks.length !== 1) throw new Error(`Worker を1つのファイルにまとめられません：${entry}`);
-      for (const file of chunk.moduleIds) this.addWatchFile(file);
+      for (const file of chunk.moduleIds) {
+        this.addWatchFile(file);
+        workerModuleIds.add(file);
+      }
       return `export default ${JSON.stringify(chunk.code)};`;
+    },
+  };
+}
+
+/**
+ * 配布物に含まれる第三者のパッケージ（React など）のライセンスを、dist/THIRD_PARTY_LICENSES.txt に書き出す。
+ * 圧縮でライセンスのコメントが消え、MIT ライセンスが求める著作権表示が配布物に残らないため。
+ * 本文の作り方は scripts/third-party-licenses.mjs。依存パッケージを増やさないよう、ライセンスを集めるプラグインは使わない
+ */
+function thirdPartyLicenses(): Plugin {
+  let root = '';
+  return {
+    name: 'third-party-licenses',
+    apply: 'build',
+    configResolved(config) {
+      root = config.root;
+    },
+    generateBundle(_options, bundle) {
+      const ids = Object.values(bundle).flatMap((item) => (item.type === 'chunk' ? item.moduleIds : []));
+      this.emitFile({ type: 'asset', fileName: 'THIRD_PARTY_LICENSES.txt', source: thirdPartyLicenseText([...ids, ...workerModuleIds], root) });
     },
   };
 }
@@ -76,7 +103,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
     __APP_COMMIT__: JSON.stringify(BUILD_COMMIT),
   },
-  plugins: [workerSource(), react(), cspMeta()],
+  plugins: [workerSource(), react(), cspMeta(), thirdPartyLicenses()],
   build: {
     /** ソースマップは公開しない（ソースは GitHub で公開済みだが、ビルド成果物を小さく保つ） */
     sourcemap: false,

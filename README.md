@@ -81,3 +81,5 @@ JWT・証明書の署名の一致は、利用先での受け入れや証明書�
 ## ライセンス
 
 [MIT](LICENSE)
+
+公開するサイトに含まれる第三者のソフトウェア（React など）のライセンスは、ビルドのときに `THIRD_PARTY_LICENSES.txt` として配布物に同梱します（公開ページの `THIRD_PARTY_LICENSES.txt`）。

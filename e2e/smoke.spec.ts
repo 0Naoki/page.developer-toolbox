@@ -2,7 +2,7 @@
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
- * - [R001] 全ツールの表示：ツールの一覧（src/toolCatalog.ts）の全項目の見出し、外部通信・CSP違反・実行時エラー。不具合の報告に書く版の表示
+ * - [R001] 全ツールの表示：ツールの一覧（src/toolCatalog.ts）の全項目の見出し、外部通信・CSP違反・実行時エラー。不具合の報告に書く版の表示。配布物に同梱する第三者のライセンス
  */
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
@@ -23,6 +23,17 @@ test('サイドバーの末尾に、不具合の報告に書く版を表示す�
   await page.goto('./');
   /** CI のビルドはコミットの先頭7文字、手元のビルドは local */
   await expect(page.getByText(/^版：v\d+\.\d+\.\d+（(?:[0-9a-f]{7}|local)）$/)).toBeVisible();
+});
+
+test('配布物に、React などの第三者のライセンス（著作権表示）を同梱する', async ({ request }) => {
+  const response = await request.get('./THIRD_PARTY_LICENSES.txt');
+  expect(response.ok()).toBe(true);
+  const text = await response.text();
+  /** 画面のコードに入る依存パッケージ（package.json の dependencies）と、その著作権表示 */
+  for (const name of ['react', 'react-dom', 'react-router']) {
+    expect(text.split('\n').some((line) => new RegExp(`^${name}@\\d+\\.\\d+\\.\\d+（MIT）$`).test(line)), name).toBe(true);
+  }
+  expect(text).toContain('Copyright (c) Meta Platforms, Inc. and affiliates.');
 });
 
 /** 「サンプル」のボタンで、入力の例を入れて結果まで表示できる（入力の値は各ツールの画面のファイルにある架空の値） */

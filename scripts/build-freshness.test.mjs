@@ -18,7 +18,7 @@ test('ソース・公開資産・ビルド設定・依存定義の更新を両�
   const { root, write } = temporaryRepository(t);
   write('dist/index.html', 'built');
   utimesSync(join(root, 'dist/index.html'), 3000, 3000);
-  for (const path of ['src/app.ts', 'public/icon.svg', 'index.html', 'vite.config.ts', 'csp.config.ts', 'tsconfig.json', 'package.json', 'package-lock.json']) {
+  for (const path of ['src/app.ts', 'public/icon.svg', 'index.html', 'vite.config.ts', 'csp.config.ts', 'scripts/third-party-licenses.mjs', 'tsconfig.json', 'package.json', 'package-lock.json']) {
     write(path, 'source');
     utimesSync(join(root, path), 2000, 2000);
     assert.doesNotThrow(() => assertFreshBuild(root));
