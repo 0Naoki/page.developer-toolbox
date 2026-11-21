@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Stat } from '../../components/Stat';
 import { useInput } from '../../hooks/useInput';
 import { daysInMonth, formatYmd, parseYmd, type Ymd } from '../../lib/time/date';
@@ -19,14 +19,15 @@ const sameOffDay = (a: OffDay, b: OffDay) => a.reason === b.reason && a.date.y =
  * @remarks
  * 期間の外の独自休日を足すなど、暦が変わっても休みの一覧が同じことがある。全件コピーの関数を内容が変わったときだけ作り直し、
  * コピー中の状態を捨てないようにする（CopyButton は関数が変わると、コピー中の状態を前の内容のものとして捨てる）。
- * 比べるのは日付と理由だけで、全件の文字列は作らない
+ * 比べるのは日付と理由だけで、全件の文字列は作らない。
+ * 前の一覧は ref ではなく state に持つ（描画中に ref を書き換えると、捨てられた描画の一覧が残るため）。内容が変わったときの
+ * 描画中の setState は、React の「前の描画の情報を保存する」書き方で、捨てられた描画ではこの更新も捨てられる
  */
 function useSameList(list: readonly OffDay[] | null): readonly OffDay[] | null {
-  const ref = useRef(list);
-  const prev = ref.current;
-  const same = list === prev || (list !== null && prev !== null && list.length === prev.length && list.every((x, i) => sameOffDay(x, prev[i]!)));
-  if (!same) ref.current = list;
-  return ref.current;
+  const [kept, setKept] = useState(list);
+  const same = list === kept || (list !== null && kept !== null && list.length === kept.length && list.every((x, i) => sameOffDay(x, kept[i]!)));
+  if (!same) setKept(list);
+  return same ? kept : list;
 }
 
 export function RangeTab({ cal, today }: { cal: Calendar; today: Ymd }) {
