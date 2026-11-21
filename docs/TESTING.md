@@ -30,6 +30,8 @@ CIは `check` の後にE2Eを実行し、ビルドを重複させません。
 
 単体テストはVitest、E2EはPlaywrightを使います。E2Eは本番ビルドを、GitHub Pagesと同じくサブパス（`/dev-toolbox/`）の配下で配信し、CSPを含めて検査します。パスの名前は公開先のリポジトリ名と異なりますが、`base: './'` のため結果は変わりません。コントラストの検査も単体テストに含まれます。
 
+パーサー（cron・サブネット・CSV・JWT）には、個別の入力の期待値を並べるテストに加えて、fast-check で入力を生成し、どの入力でも成り立つ性質（読み直すと元に戻る、範囲をすき間なく覆う、読めない入力は文言付きの Error で拒否する など）を確かめるプロパティテスト（各ツールの `property.test.ts`）があります。入力は実行のたびに変わります。失敗したときは、表示された `seed` と `path` を `fc.assert` の第2引数（`{ seed, path }`）に足すと、同じ入力で再現できます。見つかった入力は、個別のテスト（`logic.test.ts` など）にも足してください。
+
 配布物に同梱する第三者のライセンス（`dist/THIRD_PARTY_LICENSES.txt`。作り方は `scripts/third-party-licenses.mjs`）は、`scripts/third-party-licenses.test.mjs`（`npm run test:scripts`）と `e2e/smoke.spec.ts` で確かめます。ライセンスの本文が見つからないパッケージがバンドルに入ると、ビルドが失敗します。
 
 調査中は対象を絞れます。これらは全件検査の代わりではありません。
