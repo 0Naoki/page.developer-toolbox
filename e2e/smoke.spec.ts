@@ -7,6 +7,7 @@
 import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { TOOLS, settleRendering } from './app';
+import { ANNOUNCE_DELAY_MS, PUBLISH_DELAY_MS } from '../src/lib/announcements';
 
 for (const [id, title] of TOOLS) {
   test(`${title} が表示され、エラー・CSP違反・外部通信がない`, CROSS_BROWSER, async ({ page }) => {
@@ -92,6 +93,24 @@ test.describe('サンプルの入力', () => {
 /** エラーと判定の結果を、画面に1つだけある読み上げの領域（aria-live）で、入力が止まってから読む（src/components/LiveAnnouncer.tsx） */
 test.describe('読み上げ', () => {
   const liveRegion = (page: import('@playwright/test').Page) => page.locator('[data-live-region]');
+
+  test('公開待ちの間に直したエラーは読み上げず、次のエラーは読める', CROSS_BROWSER, async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+    await page.goto('./#/radix');
+    const input = page.getByRole('textbox', { name: '10進数', exact: true });
+    await input.waitFor();
+    await page.clock.pauseAt(new Date('2026-01-01T00:01:00Z'));
+    await input.fill('12x');
+    await expect(page.locator('.error-text')).toHaveCount(1);
+    await page.clock.runFor(ANNOUNCE_DELAY_MS);
+    await input.fill('12');
+    await expect(page.locator('.error-text')).toHaveCount(0);
+    await page.clock.runFor(PUBLISH_DELAY_MS);
+    await expect(liveRegion(page)).toHaveText('');
+    await input.fill('13x');
+    await page.clock.runFor(ANNOUNCE_DELAY_MS + PUBLISH_DELAY_MS);
+    await expect(liveRegion(page)).toHaveText(/^エラー：/);
+  });
 
   test('入力のエラーを、入力が止まってから読み上げる', async ({ page }) => {
     await page.goto('./#/radix');

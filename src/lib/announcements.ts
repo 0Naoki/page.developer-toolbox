@@ -11,6 +11,9 @@ import { formatNumber } from './number';
 export class PendingAnnouncements {
   private readonly bySource = new Map<symbol, string>();
 
+  /** 待機中の通知元の数。同じ文言でも、取り消せるよう通知元は別々に保持する。 */
+  get size(): number { return this.bySource.size; }
+
   /** source の文言を、読み上げを待つ最新の文言にする（前の文言は読まない） */
   set(source: symbol, text: string): void {
     /** 入れ直した文言を後ろに並べる（Map は最初に入れた順を保つため） */
@@ -45,7 +48,9 @@ const MAX_ITEMS = 3;
  * @param show - 読み上げの領域の文言を書き換える関数。
  */
 export class Announcer {
-  private readonly pending = new PendingAnnouncements();
+  private pending = new PendingAnnouncements();
+  /** 公開まで通知元を保つ。待ち行列から移した後も、取り消しと更新を反映するため。 */
+  private publishing: PendingAnnouncements | null = null;
   /** 入力が止まるのを待つタイマー。新しい文言が出るたびに数え直す */
   private waitTimer: ReturnType<typeof setTimeout> | undefined;
   /**
@@ -62,6 +67,7 @@ export class Announcer {
 
   /** source の文言を読み上げを待つ文言にし、待ち時間を最初から数え直す */
   announce(source: symbol, text: string): void {
+    this.publishing?.cancel(source);
     this.pending.set(source, text);
     clearTimeout(this.waitTimer);
     this.waitTimer = setTimeout(() => this.flush(), ANNOUNCE_DELAY_MS);
@@ -70,18 +76,27 @@ export class Announcer {
   /** source の、まだ読んでいない文言を取り消す */
   cancel(source: symbol): void {
     this.pending.cancel(source);
+    this.publishing?.cancel(source);
   }
 
   private flush(): void {
-    const items = this.pending.take();
     /** 待つ間に、どの文言も消えた（エラーを直した）ときは読まない */
-    if (items.length === 0) return;
-    const rest = items.length - MAX_ITEMS;
-    const text = items.slice(0, MAX_ITEMS).join('。') + (rest > 0 ? `。ほか ${formatNumber(rest)} 件` : '');
+    if (this.pending.size === 0) return;
+    const batch = this.pending;
+    this.pending = new PendingAnnouncements();
+    this.publishing = batch;
     /** 前と同じ文言でも読み直すよう、いったん空にしてから入れる */
     this.show('');
     /** 次の読み上げは最後の文言から ANNOUNCE_DELAY_MS 後で、この予約より後になるため、通常は重ならない（念のため前の予約は消す） */
     clearTimeout(this.publishTimer);
-    this.publishTimer = setTimeout(() => this.show(text), PUBLISH_DELAY_MS);
+    this.publishTimer = setTimeout(() => {
+      this.publishing = null;
+      /** 公開直前までの取り消しを反映してから、重複の除去と件数の制限を行う。 */
+      const items = batch.take();
+      if (items.length === 0) return;
+      const rest = items.length - MAX_ITEMS;
+      const text = items.slice(0, MAX_ITEMS).join('。') + (rest > 0 ? `。ほか ${formatNumber(rest)} 件` : '');
+      this.show(text);
+    }, PUBLISH_DELAY_MS);
   }
 }
