@@ -35,7 +35,7 @@
 
 - React 19 + TypeScript 7 + Vite 8
 - React Router 7（HashRouter：GitHub Pages でのリロード時 404 を回避）
-- Vitest（ロジックの単体テスト）、Playwright（本番ビルドのブラウザテスト）
+- Vitest（ロジックの単体テスト）、fast-check（パーサーのプロパティテスト）、Playwright（本番ビルドのブラウザテスト）、axe-core（アクセシビリティの自動検査）
 - GitHub Actions：CI・CodeQL・Dependency review・GitHub Pages への自動デプロイ、Dependabot による依存更新
 
 ## 起動する
