@@ -32,6 +32,8 @@ CIは `check` の後にE2Eを実行し、ビルドを重複させません。
 
 パーサー（cron・サブネット・CSV・JWT）には、個別の入力の期待値を並べるテストに加えて、fast-check で入力を生成し、どの入力でも成り立つ性質（読み直すと元に戻る、範囲をすき間なく覆う、読めない入力は文言付きの Error で拒否する など）を確かめるプロパティテスト（各ツールの `property.test.ts`）があります。入力は実行のたびに変わります。失敗したときは、表示された `seed` と `path` を `fc.assert` の第2引数（`{ seed, path }`）に足すと、同じ入力で再現できます。見つかった入力は、個別のテスト（`logic.test.ts` など）にも足してください。
 
+アクセシビリティは `e2e/a11y.spec.ts` で、axe-core（`@axe-core/playwright`）を使い、全ツールの最初の表示と「サンプル」の結果の表示を、ライト・ダークの両方で WCAG 2.1 の A・AA の規則で検査します。axe は表示している要素だけを検査するため、タブの切り替えの先や操作の後にだけ出る表示は対象外です。読み上げの順序や、読み上げソフトでの実際の聞こえ方も自動では確かめられません。
+
 配布物に同梱する第三者のライセンス（`dist/THIRD_PARTY_LICENSES.txt`。作り方は `scripts/third-party-licenses.mjs`）は、`scripts/third-party-licenses.test.mjs`（`npm run test:scripts`）と `e2e/smoke.spec.ts` で確かめます。ライセンスの本文が見つからないパッケージがバンドルに入ると、ビルドが失敗します。
 
 調査中は対象を絞れます。これらは全件検査の代わりではありません。
@@ -146,6 +148,7 @@ IDは説明文を変えても維持してください。テストを移すとき
 | 設定・opener <!-- regression:R003 --> | `e2e/security.spec.ts` |
 | ナビゲーション <!-- regression:R004 --> | `e2e/navigation.spec.ts` |
 | スマートフォンのメニュー <!-- regression:R005 --> | `e2e/mobile-navigation.spec.ts` |
+| アクセシビリティ（WCAG 2.1 AA）<!-- regression:R059 --> | `e2e/a11y.spec.ts` |
 
 ### 保存
 

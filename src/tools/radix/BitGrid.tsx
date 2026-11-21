@@ -23,7 +23,8 @@ export function BitGrid({ unsigned, width, onToggle }: { unsigned: bigint; width
                   type="button"
                   className={on ? 'bit on' : 'bit'}
                   aria-pressed={on}
-                  aria-label={`ビット${i}`}
+                  /** 表示している 0・1 を名前に含める（WCAG 2.5.3。表示の文字で音声操作できるように） */
+                  aria-label={`ビット${i}：${on ? '1' : '0'}`}
                   onClick={() => onToggle(i)}
                 >
                   {on ? '1' : '0'}
