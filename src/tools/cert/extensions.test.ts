@@ -13,6 +13,18 @@ it('未知の拡張の生バイトを表示用の抜粋と別に保持する', (
   expect(ext.raw.buffer).toBe(der.buffer);
 });
 
+it('基本制約の大きな整数を丸めずに表示する', () => {
+  for (const value of [0n, 9007199254740991n, 9007199254740993n, 9223372036854775807n]) {
+    const digits = value.toString(16);
+    const hex = digits.padStart(Math.ceil(digits.length / 2) * 2, '0');
+    const integer = Uint8Array.from(hex.match(/../g)!.map((byte) => parseInt(byte, 16)));
+    const result = readExtensions(parseDerExact(tlv(48, tlv(48,
+      tlv(6, Uint8Array.of(85, 29, 19)), tlv(4, tlv(48, tlv(1, Uint8Array.of(255)), tlv(2, integer))),
+    ))));
+    expect(result.extensions[0]?.values).toEqual(['CA：はい', `下位の CA の段数の上限：${value}`]);
+  }
+});
+
 describe('不正な拡張値', () => {
   const read = (id: number, value: number[]) => readExtensions(parseDerExact(tlv(48,
     tlv(48, tlv(6, Uint8Array.of(85, 29, id)), tlv(4, Uint8Array.from(value))),

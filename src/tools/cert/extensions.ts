@@ -99,7 +99,6 @@ export type ExtensionSummary = {
   extKeyUsage: string[];
   /** 基本制約がなければ null */
   ca: boolean | null;
-  pathLen: number | null;
   subjectKeyId: string | null;
   authorityKeyId: string | null;
 };
@@ -111,7 +110,6 @@ export function readExtensions(list: Node | undefined): ExtensionSummary {
     keyUsage: [],
     extKeyUsage: [],
     ca: null,
-    pathLen: null,
     subjectKeyId: null,
     authorityKeyId: null,
   };
@@ -162,8 +160,9 @@ function readExtensionValue(oid: string, value: Uint8Array, s: ExtensionSummary)
       const seq = node();
       s.ca = isUniversal(seq.children[0], TAG.BOOLEAN) ? readBoolean(seq.children[0]) : false;
       const last = seq.children[seq.children.length - 1];
-      s.pathLen = isUniversal(last, TAG.INTEGER) ? Number(readInteger(last, SMALL_INTEGER_BYTES)) : null;
-      return [`CA：${s.ca ? 'はい' : 'いいえ'}`, ...(s.pathLen !== null ? [`下位の CA の段数の上限：${s.pathLen}`] : [])];
+      /** 表示までBigIntのまま保つ。Numberにすると、受け付ける8バイトの整数が丸められる。 */
+      const pathLen = isUniversal(last, TAG.INTEGER) ? readInteger(last, SMALL_INTEGER_BYTES) : null;
+      return [`CA：${s.ca ? 'はい' : 'いいえ'}`, ...(pathLen !== null ? [`下位の CA の段数の上限：${pathLen}`] : [])];
     }
     case '2.5.29.15': {
       const { bytes } = readBitString(node());
