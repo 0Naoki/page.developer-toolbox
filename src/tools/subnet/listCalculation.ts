@@ -37,8 +37,8 @@ function firstMessages(messages: ListError[], total = messages.length) {
 
 /** VLSM の表示には先頭の行だけを返し、コピーには入力順の割り当てをすべて返す。 */
 export function calculateVlsm(text: string, network: number, prefix: number, cloud: boolean) {
-  const { requests, errors } = parseHostRequests(text);
-  const diagnostics = firstMessages(errors);
+  const { requests, errors, errorTotal } = parseHostRequests(text);
+  const diagnostics = firstMessages(errors, errorTotal);
   let allocations: ReturnType<typeof allocateVlsm>;
   try {
     allocations = allocateVlsm(network, prefix, requests, cloud);

@@ -65,7 +65,7 @@ export function reasonOf(failure: Failure): string {
 export const MAX_LIST_MESSAGES = 20;
 
 /** 一覧の誤り・警告の、行の順で先頭 MAX_LIST_MESSAGES 件の文言と、総数 */
-function messageList() {
+export function messageList() {
   const items: ListError[] = [];
   let total = 0;
   return {

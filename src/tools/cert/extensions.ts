@@ -1,4 +1,4 @@
-import { assertTag, isContext, isUniversal, parseDer, rawOf, readBitString, readBoolean, readInteger, SMALL_INTEGER_BYTES, readOid, readString, TAG, toUpperHex, valueOf, type Node } from '../../lib/crypto/asn1';
+import { assertTag, isContext, isUniversal, parseDerExact, rawOf, readBitString, readBoolean, readInteger, SMALL_INTEGER_BYTES, readOid, readString, TAG, toUpperHex, valueOf, type Node } from '../../lib/crypto/asn1';
 import { readName } from './name';
 import { formatIpv6Groups } from '../../lib/ipv6';
 
@@ -97,7 +97,7 @@ export type ExtensionSummary = {
   san: GeneralName[];
   keyUsage: string[];
   extKeyUsage: string[];
-  /** 基本制約がなければ null */
+  /** 基本制約がないか、読めなければ null */
   ca: boolean | null;
   subjectKeyId: string | null;
   authorityKeyId: string | null;
@@ -132,7 +132,9 @@ export function readExtensions(list: Node | undefined): ExtensionSummary {
     } else {
       seen.add(oid);
       try {
-        values = readExtensionValue(oid, value, summary);
+        const decoded = readExtensionValue(oid, value);
+        values = decoded.values;
+        Object.assign(summary, decoded.summary);
       } catch {
         values = [`（読めない値：${hexPreview(value)}）`];
       }
@@ -150,58 +152,79 @@ function hexPreview(value: Uint8Array): string {
   return toUpperHex(value.subarray(0, HEX_PREVIEW_BYTES)) + (value.length > HEX_PREVIEW_BYTES ? '…' : '');
 }
 
-function readExtensionValue(oid: string, value: Uint8Array, s: ExtensionSummary): string[] {
-  const node = () => parseDer(value);
+type DecodedExtension = { values: string[]; summary?: Partial<Omit<ExtensionSummary, 'extensions'>> };
+
+/** 既知の拡張は値全体を1要素として読み、期待する型とprimitive・constructedの区別を確かめる。 */
+function extensionNode(value: Uint8Array, tag: number): Node {
+  const node = assertTag(parseDerExact(value), tag, '拡張の値');
+  if (node.constructed !== (tag === TAG.SEQUENCE)) throw new Error('拡張の値の構造が不正です');
+  return node;
+}
+
+/** 表示値と要約の変更分を返す。共有の要約は変更せず、全項目を読めたときだけ呼び出し側で反映する。 */
+function readExtensionValue(oid: string, value: Uint8Array): DecodedExtension {
+  const sequence = () => extensionNode(value, TAG.SEQUENCE);
   switch (oid) {
-    case '2.5.29.17':
-      s.san = node().children.map(readGeneralName);
-      return s.san.map((g) => `${g.type}: ${g.value}`);
+    case '2.5.29.17': {
+      const san = sequence().children.map(readGeneralName);
+      return { values: san.map((g) => `${g.type}: ${g.value}`), summary: { san } };
+    }
     case '2.5.29.19': {
-      const seq = node();
-      s.ca = isUniversal(seq.children[0], TAG.BOOLEAN) ? readBoolean(seq.children[0]) : false;
-      const last = seq.children[seq.children.length - 1];
+      const items = sequence().children;
+      const hasCa = isUniversal(items[0], TAG.BOOLEAN);
+      const ca = hasCa ? readBoolean(items[0]!) : false;
+      const path = items[hasCa ? 1 : 0];
+      if (items.length > (hasCa ? 2 : 1) || (path && (!ca || !isUniversal(path, TAG.INTEGER)))) {
+        throw new Error('基本制約の項目が不正です');
+      }
       /** 表示までBigIntのまま保つ。Numberにすると、受け付ける8バイトの整数が丸められる。 */
-      const pathLen = isUniversal(last, TAG.INTEGER) ? readInteger(last, SMALL_INTEGER_BYTES) : null;
-      return [`CA：${s.ca ? 'はい' : 'いいえ'}`, ...(pathLen !== null ? [`下位の CA の段数の上限：${pathLen}`] : [])];
+      const pathLen = path ? readInteger(path, SMALL_INTEGER_BYTES) : null;
+      /** DER の INTEGER は最短の表現だけ（X.690 8.3.2）。00 80 のように、符号を保つための先頭の 00 は必要なので受け付ける */
+      const pathBytes = path ? valueOf(path) : null;
+      const nonMinimal = pathBytes !== null && pathBytes.length > 1 && pathBytes[0] === 0 && (pathBytes[1]! & 0x80) === 0;
+      if (pathBytes && (pathBytes.length === 0 || nonMinimal || pathLen! < 0n)) throw new Error('基本制約の段数が不正です');
+      return { values: [`CA：${ca ? 'はい' : 'いいえ'}`, ...(pathLen !== null ? [`下位の CA の段数の上限：${pathLen}`] : [])], summary: { ca } };
     }
     case '2.5.29.15': {
-      const { bytes } = readBitString(node());
-      s.keyUsage = KEY_USAGES.filter((_, i) => (bytes[i >> 3] ?? 0) & (0x80 >> (i & 7)));
-      return s.keyUsage;
+      const { bytes } = readBitString(extensionNode(value, TAG.BIT_STRING));
+      const keyUsage = KEY_USAGES.filter((_, i) => (bytes[i >> 3] ?? 0) & (0x80 >> (i & 7)));
+      return { values: keyUsage, summary: { keyUsage } };
     }
-    case '2.5.29.37':
-      s.extKeyUsage = node().children.map((c) => oidName(EXT_KEY_USAGES, readOid(c)));
-      return s.extKeyUsage;
-    case '2.5.29.14':
-      s.subjectKeyId = toUpperHex(valueOf(node()), ':');
-      return [s.subjectKeyId];
+    case '2.5.29.37': {
+      const extKeyUsage = sequence().children.map((c) => oidName(EXT_KEY_USAGES, readOid(assertTag(c, TAG.OID, '拡張鍵用途'))));
+      return { values: extKeyUsage, summary: { extKeyUsage } };
+    }
+    case '2.5.29.14': {
+      const subjectKeyId = toUpperHex(valueOf(extensionNode(value, TAG.OCTET_STRING)), ':');
+      return { values: [subjectKeyId], summary: { subjectKeyId } };
+    }
     case '2.5.29.35': {
-      const keyId = node().children.find((c) => isContext(c, 0));
-      s.authorityKeyId = keyId ? toUpperHex(valueOf(keyId), ':') : null;
-      return s.authorityKeyId ? [s.authorityKeyId] : ['（鍵識別子なし）'];
+      const keyId = sequence().children.find((c) => isContext(c, 0));
+      const authorityKeyId = keyId ? toUpperHex(valueOf(keyId), ':') : null;
+      return { values: authorityKeyId ? [authorityKeyId] : ['（鍵識別子なし）'], summary: { authorityKeyId } };
     }
     case '2.5.29.31':
       /** DistributionPoint の distributionPoint [0] → fullName [0] → GeneralName */
-      return node().children.flatMap((dp) =>
+      return { values: sequence().children.flatMap((dp) =>
         (dp.children.find((c) => isContext(c, 0))?.children.find((c) => isContext(c, 0))?.children ?? []).map((g) => {
           const name = readGeneralName(g);
           return `${name.type}: ${name.value}`;
         }),
-      );
+      ) };
     case '1.3.6.1.5.5.7.1.1':
-      return node().children.map((ad) => {
+      return { values: sequence().children.map((ad) => {
         const method = readOid(assertTag(ad.children[0], TAG.OID, 'アクセス方式'));
         const label = method === '1.3.6.1.5.5.7.48.1' ? 'OCSP' : method === '1.3.6.1.5.5.7.48.2' ? 'CA の証明書' : method;
         return `${label}: ${readGeneralName(ad.children[1]).value}`;
-      });
+      }) };
     case '2.5.29.32':
-      return node().children.map((p) => {
+      return { values: sequence().children.map((p) => {
         const id = readOid(assertTag(p.children[0], TAG.OID, '証明書ポリシー'));
         return POLICIES[id] ? `${POLICIES[id]}（${id}）` : id;
-      });
+      }) };
     case '1.3.6.1.4.1.11129.2.4.2':
-      return ['（内容は表示しません）'];
+      return { values: ['（内容は表示しません）'] };
     default:
-      return [toUpperHex(value.subarray(0, HEX_PREVIEW_BYTES), ' ') + (value.length > HEX_PREVIEW_BYTES ? ' …' : '')];
+      return { values: [toUpperHex(value.subarray(0, HEX_PREVIEW_BYTES), ' ') + (value.length > HEX_PREVIEW_BYTES ? ' …' : '')] };
   }
 }

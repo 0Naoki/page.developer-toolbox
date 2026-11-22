@@ -5,8 +5,7 @@
  * PEM・JWK の形の入力は受け付けない。鍵の形式を UTF-8 にしたときは、PEM の本文だけを貼るなど、鍵の形に見えない入力は見分けられない
  * （Base64 を選んだときは、復号したバイト列が公開鍵の形なら keys.ts が断る）。
  */
-import { base64ToBytes, bytesToBase64 } from '../../lib/bytes';
-import { isRecord } from '../../lib/settings';
+import { prepareJws, type PreparedJws } from './jws';
 import { algSpec, neededKey, type AlgSpec, type KeyType } from './alg';
 import { keyTypeOf, type PublicKey } from './keys';
 import { errorMessage } from '../../lib/errors';
@@ -26,41 +25,6 @@ export type VerifyKey = { kind: 'secret'; bytes: Uint8Array<ArrayBuffer> } | { k
 const INVALID = SIGNATURE_MISMATCH;
 
 /**
- * JWS の Base64URL（RFC 7515）を読む。base64ToBytes は緩いため、空白・パディング・標準の Base64 の記号や、
- * 余りのビットだけが違う書き換えも同じバイト列になる。読み直して元の文字列に戻るものだけを受け付ける
- */
-function jwsBytes(part: string): Uint8Array<ArrayBuffer> {
-  const bytes = base64ToBytes(part);
-  if (part === '' || bytesToBase64(bytes, { urlSafe: true }) !== part) throw new Error('Base64URL の形式ではありません');
-  return bytes;
-}
-
-/**
- * 署名の対象（「ヘッダ.ペイロード」）が JWS として無効なら、その理由を返す。
- * 表示用のデコードは緩く読むため、検証ではここで Base64URL と UTF-8 を厳密に確かめる。
- * crit に挙げられた拡張を理解できない JWS は無効で（RFC 7515 4.1.11）、このツールは拡張を実装していないため、crit があれば拒否する。
- * b64 が true 以外（RFC 7797）なら、ペイロードは Base64URL をデコードしない文字列そのものを意味する。標準の読み方で検証すると、
- * 別の内容のペイロードを「正しい」と表示するため、crit がなくても拒否する（RFC 7797 では、b64 を使うなら crit にも書く必要がある）
- */
-function signingInputProblem(signingInput: string): string | null {
-  const [head = '', payload = ''] = signingInput.split('.');
-  let header: unknown;
-  try {
-    const bytes = jwsBytes(head);
-    jwsBytes(payload);
-    header = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  } catch {
-    return 'ヘッダまたはペイロードを Base64URL として読めません';
-  }
-  if (!isRecord(header)) return null;
-  if ('crit' in header) return 'ヘッダの crit に挙げられた拡張に対応していないため、このトークンは無効です';
-  if ('b64' in header && header.b64 !== true) return B64_PROBLEM;
-  return null;
-}
-
-const B64_PROBLEM = 'ヘッダの b64 が true 以外です。ペイロードを Base64URL にしない形式（RFC 7797）には対応していないため、このトークンは無効です';
-
-/**
  * 入力した鍵で JWS の署名を検証する。
  *
  * @remarks
@@ -74,9 +38,27 @@ const B64_PROBLEM = 'ヘッダの b64 が true 以外です。ペイロードを
  * @param subtle - Web Crypto API。省略時はブラウザの実装を使う。
  * @returns 署名の一致・不正・未対応と、その説明。
  */
-export async function verifyJwt(
+export function verifyJwt(
   signingInput: string,
   signature: string,
+  alg: unknown,
+  key: VerifyKey,
+  subtle: SubtleCrypto = crypto.subtle,
+): Promise<SignatureVerification> {
+  return verifyPreparedJws(prepareJws(signingInput, signature), alg, key, subtle);
+}
+
+/**
+ * {@link prepareJws} で準備した JWS の署名を検証する。鍵を変えたときに、トークン全体の読み直しを繰り返さない。
+ *
+ * @param jws - トークンごとに1回だけ準備した、署名の対象と署名のバイト列。
+ * @param alg - デコードしたヘッダの署名アルゴリズム。
+ * @param key - HMAC の共通鍵、または検証用の公開鍵。
+ * @param subtle - Web Crypto API。省略時はブラウザの実装を使う。
+ * @returns 署名の一致・不正・未対応と、その説明。
+ */
+export async function verifyPreparedJws(
+  jws: PreparedJws,
   alg: unknown,
   key: VerifyKey,
   subtle: SubtleCrypto = crypto.subtle,
@@ -88,15 +70,8 @@ export async function verifyJwt(
     return { status: 'unsupported', message: errorMessage(e) };
   }
 
-  let sig: Uint8Array<ArrayBuffer>;
-  try {
-    sig = jwsBytes(signature);
-  } catch {
-    return { status: 'invalid', message: '署名の部分を Base64URL として読めません' };
-  }
-  const problem = signingInputProblem(signingInput);
-  if (problem) return { status: 'invalid', message: problem };
-  const data = new TextEncoder().encode(signingInput);
+  if (jws.problem !== null) return { status: 'invalid', message: jws.problem };
+  const { data, signature: sig } = jws;
 
   if (spec.family === 'hmac') {
     if (key.kind !== 'secret') return { status: 'invalid', message: `${alg as string} は秘密鍵（共通鍵）で検証します。公開鍵では検証できません` };

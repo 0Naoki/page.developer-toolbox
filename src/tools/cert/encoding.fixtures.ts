@@ -21,6 +21,9 @@ export const certificateWithSubject = (tag: number, value: number[]) => modified
 /** 未知の拡張 1.2.3 の生バイトを指定する。 */
 export const certificateWithRawExtension = (value: number[]) => modifiedCertificate('extension', 4, value);
 
+/** 基本制約の生バイトを指定する。不正な値をCAと表示しないことを検査する。 */
+export const certificateWithBasicConstraints = (value: number[]) => modifiedCertificate('extension', 4, value, Uint8Array.of(85, 29, 19));
+
 /** 基本制約の段数を指定する。大きな整数の表示を検査するため、Numberを経由せずDERにする。 */
 export function certificateWithPathLength(value: bigint): string {
   const digits = value.toString(16);
@@ -28,5 +31,5 @@ export function certificateWithPathLength(value: bigint): string {
   const bytes = hex.match(/../g)!.map((byte) => parseInt(byte, 16));
   if (bytes[0]! >= 128) bytes.unshift(0);
   const body = tlv(48, tlv(1, Uint8Array.of(255)), tlv(2, Uint8Array.from(bytes)));
-  return modifiedCertificate('extension', 4, [...body], Uint8Array.of(85, 29, 19));
+  return certificateWithBasicConstraints([...body]);
 }

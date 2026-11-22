@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { aggregate, binaryOf, contains, formatIpv4, kindOf, parseCidrList, parseIpv4, parseNetwork, rangeToCidrs, splitNetwork, subnetInfo } from './ipv4';
 import { allocateVlsm, parseHostRequests, MAX_VLSM_LINES, prefixForHosts } from './vlsm';
-import { findOverlaps, MAX_ROWS } from './ranges';
+import { findOverlaps, MAX_LIST_MESSAGES, MAX_ROWS } from './ranges';
 import { parseCidrList6, parseNetwork6 } from './ipv6';
 import { LINE_BREAK_CASES, withValues } from '../../lib/text/lines.fixtures';
 import { DETAIL_PREVIEW_LIMIT, MESSAGE_LIMIT } from '../../lib/text/textPreview';
@@ -333,10 +333,17 @@ describe('VLSM', () => {
     expect(parseHostRequests('営業\n開発 0').errors.map((e) => e.line)).toEqual([1, 2]);
   });
 
+  it('読めない行が大量でも、エラーは行の順で先頭 MAX_LIST_MESSAGES 件と総数だけを持つ', () => {
+    const { requests, errors, errorTotal } = parseHostRequests('A 2\n' + 'x\n'.repeat(MAX_VLSM_LINES - 1));
+    expect(requests).toHaveLength(1);
+    expect(errors.map((e) => e.line)).toEqual(Array.from({ length: MAX_LIST_MESSAGES }, (_, i) => i + 2));
+    expect(errorTotal).toBe(MAX_VLSM_LINES - 1);
+  });
+
   it('VLSMは行数を制限し、最終行を閉じる改行は行数に含めない', () => {
     for (const newline of ['\n', '\r\n', '\r']) {
       const atLimit = ('#' + newline).repeat(MAX_VLSM_LINES);
-      expect(parseHostRequests(atLimit)).toEqual({ requests: [], errors: [] });
+      expect(parseHostRequests(atLimit)).toEqual({ requests: [], errors: [], errorTotal: 0 });
       expect(() => parseHostRequests(atLimit + 'A 2')).toThrow('入力を分割');
     }
   });

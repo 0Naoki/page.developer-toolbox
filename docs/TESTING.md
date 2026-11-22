@@ -15,7 +15,7 @@ E2Eだけ実行するときは `npm run e2e` でビルドから実行できま�
 
 `e2e:run` は、古いビルドを検査しないよう、ビルドの結果を変えるファイルが `dist` より新しければ、実行の前に止めて `npm run build` を案内します。
 `e2e/globalSetup.mjs` とブラウザ性能計測は、`scripts/build-freshness.mjs` の同じ確認を使います。
-対象は `src`・`public`・`index.html`・`vite.config.ts`・`csp.config.ts`・`tsconfig.json`・`package.json`・`package-lock.json` で、テストからだけ使うファイルは除きます。
+対象は `src`・`public`・`index.html`・`vite.config.ts`・`csp.config.ts`・`scripts/third-party-licenses.mjs`・`tsconfig.json`・`package.json`・`package-lock.json` で、テストからだけ使うファイルは除きます。
 更新時刻による検査のため、ファイル削除や、更新時刻を保存したコピーによる内容変更のすべては検出できません。
 対象の版でビルドし直す手順と、成果物のハッシュの記録も維持してください。
 CIは `check` の後にE2Eを実行し、ビルドを重複させません。
@@ -29,6 +29,12 @@ CIは `check` の後にE2Eを実行し、ビルドを重複させません。
 単体テストは、変換結果をファイルに残すキャッシュ（Vitest の `fsModuleCache`）を使いません。テストのファイルが同じなら `import.meta.glob` で集めるソースの一覧も前回のままになり、静的検査が新しく足したファイルを見逃すためです（`vite.config.ts`）。
 
 単体テストはVitest、E2EはPlaywrightを使います。E2Eは本番ビルドを、GitHub Pagesと同じくサブパス（`/dev-toolbox/`）の配下で配信し、CSPを含めて検査します。パスの名前は公開先のリポジトリ名と異なりますが、`base: './'` のため結果は変わりません。コントラストの検査も単体テストに含まれます。
+
+パーサー（cron・サブネット・CSV・JWT）には、個別の入力の期待値を並べるテストに加えて、fast-check で入力を生成し、どの入力でも成り立つ性質（読み直すと元に戻る、範囲をすき間なく覆う、読めない入力は文言付きの Error で拒否する など）を確かめるプロパティテスト（各ツールの `property.test.ts`）があります。入力は実行のたびに変わります。失敗したときは、表示された `seed` と `path` を `fc.assert` の第2引数（`{ seed, path }`）に足すと、同じ入力で再現できます。見つかった入力は、個別のテスト（`logic.test.ts` など）にも足してください。
+
+アクセシビリティは `e2e/a11y.spec.ts` で、axe-core（`@axe-core/playwright`）を使い、全ツールの最初の表示と「サンプル」の結果の表示を、ライト・ダークの両方で WCAG 2.1 の A・AA の規則で検査します。axe は表示している要素だけを検査するため、タブの切り替えの先や操作の後にだけ出る表示は対象外です。読み上げの順序や、読み上げソフトでの実際の聞こえ方も自動では確かめられません。
+
+配布物に同梱する第三者のライセンス（`dist/THIRD_PARTY_LICENSES.txt`。作り方は `scripts/third-party-licenses.mjs`）は、`scripts/third-party-licenses.test.mjs`（`npm run test:scripts`）と `e2e/smoke.spec.ts` で確かめます。ライセンスの本文が見つからないパッケージがバンドルに入ると、ビルドが失敗します。
 
 調査中は対象を絞れます。これらは全件検査の代わりではありません。
 
@@ -142,6 +148,7 @@ IDは説明文を変えても維持してください。テストを移すとき
 | 設定・opener <!-- regression:R003 --> | `e2e/security.spec.ts` |
 | ナビゲーション <!-- regression:R004 --> | `e2e/navigation.spec.ts` |
 | スマートフォンのメニュー <!-- regression:R005 --> | `e2e/mobile-navigation.spec.ts` |
+| アクセシビリティ（WCAG 2.1 AA）<!-- regression:R059 --> | `e2e/a11y.spec.ts` |
 
 ### 保存
 
@@ -176,7 +183,7 @@ IDは説明文を変えても維持してください。テストを移すとき
 | 正規表現 <!-- regression:R022 --> | `e2e/regex.spec.ts`・`src/tools/regex/logic.test.ts` |
 | ハッシュ <!-- regression:R023 --> | `e2e/hash.spec.ts` |
 | JWT <!-- regression:R024 --> | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts` |
-| 証明書 <!-- regression:R025 --> | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts` |
+| 証明書 <!-- regression:R025 --> | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts`・`src/tools/cert/extensions.test.ts` |
 | JSON整形・和暦・テキスト差分 <!-- regression:R026 --> | `e2e/tools.spec.ts` |
 | 独自休日の診断 <!-- regression:R027 --> | `src/tools/business-days/logic.test.ts` |
 | UNIX時間の入力単位 <!-- regression:R028 --> | `e2e/unix-time.spec.ts`・`src/tools/unix-time/logic.test.ts` |

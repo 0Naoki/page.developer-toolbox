@@ -7,6 +7,15 @@ const context = () => ({ isCancelled: () => false, report: vi.fn() });
 afterEach(() => vi.restoreAllMocks());
 
 describe('入力ごとのハッシュ計算', () => {
+  it('UTF-8にできないHMAC鍵は、ファイルを読み込む前に拒否する', async () => {
+    const file = new File(['abc'], 'input.txt');
+    const read = vi.spyOn(file, 'arrayBuffer');
+    const computer = createHashComputer();
+    await expect(computer.run({ source: 'file', file, useHmac: true, key: '\ud800' }, context())).rejects.toThrow('サロゲート');
+    expect(read).not.toHaveBeenCalled();
+    expect((await computer.run({ source: 'file', file, useHmac: true, key: 'valid' }, context())).rows).toHaveLength(4);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
   it('同じ小さいファイルのHMACは読込を共有し、鍵ごとの結果を返す。消去後は読み直す', async () => {
     const computer = createHashComputer();
     const file = new File(['abc'], 'cached.txt');

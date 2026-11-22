@@ -118,7 +118,8 @@ export default function WarekiTool() {
 
         <section className="panel">
           <h2 className="panel-title">早見表</h2>
-          <div className="year-table-wrap" ref={wrapRef}>
+          {/* 枠の中だけをスクロールするため、キーボードでもスクロールできるようにフォーカスを受け取る */}
+          <div className="year-table-wrap" ref={wrapRef} role="region" aria-label="和暦の早見表" tabIndex={0}>
             <table className="year-table">
               <thead>
                 <tr>

@@ -1,0 +1,145 @@
+{
+  "scope": "合成Fileと対になっていないサロゲート1単位の鍵で、拒否までの読込回数と時間を比較。各版で予備実行1回・計測3回。File生成・GCは計測外。Nodeの関数呼出しであり、ブラウザの操作時間やピークメモリの計測ではない。",
+  "cases": [
+    {
+      "fileBytes": 1048576,
+      "versions": {
+        "HEAD": {
+          "runs": [
+            {
+              "elapsedMs": 1.1137999999998556,
+              "fileReads": 1,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 1.1808000000000902,
+              "fileReads": 1,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 1.1340999999999894,
+              "fileReads": 1,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            }
+          ]
+        },
+        "workingTree": {
+          "runs": [
+            {
+              "elapsedMs": 0.14079999999989923,
+              "fileReads": 0,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 0.10179999999991196,
+              "fileReads": 0,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 0.1068000000000211,
+              "fileReads": 0,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fileBytes": 268435456,
+      "versions": {
+        "HEAD": {
+          "runs": [
+            {
+              "elapsedMs": 221.3352,
+              "fileReads": 1,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 204.2505000000001,
+              "fileReads": 1,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 246.39640000000009,
+              "fileReads": 1,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            }
+          ]
+        },
+        "workingTree": {
+          "runs": [
+            {
+              "elapsedMs": 0.14219999999977517,
+              "fileReads": 0,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 0.1329000000000633,
+              "fileReads": 0,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            },
+            {
+              "elapsedMs": 0.1386000000002241,
+              "fileReads": 0,
+              "message": "秘密鍵の1 文字目（U+D800）が対になっていないサロゲートのため、UTF-8 にできません"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "startedAt": "2026-11-22T03:59:29.282Z",
+  "measuredAt": "2026-11-22T03:59:32.029Z",
+  "commit": "4b7adb6869073c69d4009038b6f7a53866bd6ec1",
+  "comparison": {
+    "mode": "entry",
+    "baselineCommit": "4b7adb6869073c69d4009038b6f7a53866bd6ec1",
+    "baselineName": "HEAD"
+  },
+  "modifiedFiles": "M e2e/cert.spec.ts\n M src/tools/cert/encoding.fixtures.ts\n M src/tools/cert/extensions.test.ts\n M src/tools/cert/extensions.ts\n M src/tools/hash/computeHashes.test.ts\n M src/tools/hash/computeHashes.ts\n M src/tools/jwt-decoder/logic.ts\n?? scripts/measure-hash-invalid-key.mjs",
+  "node": "v24.22.1",
+  "os": "win32 10.0.26200",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "repetitions": 3,
+  "provenance": {
+    "HEAD": {
+      "entry": "src/tools/hash/computeHashes.ts",
+      "source": "entry",
+      "files": {
+        "src/lib/bytes.ts": "ba620b20e726fe245ee4d8eba22c00f4bab2697bf20052992f5bbf05efa6ebee",
+        "src/lib/file.ts": "23703ed84d055dd2fbaae07f92fff3cb5246368fd6a58c132c8f41be888d96a2",
+        "src/lib/number.ts": "702c85b5ad84ea2240cd0f10bbdbca9416c76cd94c5186729e26faf074920dd0",
+        "src/lib/text/surrogate.ts": "6edae969f4c3f812e4b61be98232d1ce8c7e29b23effb2044f83cd4b5ab531f8",
+        "src/tools/hash/computeHashes.ts": "fd5687c22e2ab72fab46a4ff0e43d85b568eb2f7a73162ac3990a5d77b467b40",
+        "src/tools/hash/logic.ts": "fd88f7df57489999c6a25987f564306aac88a5327e64d8c0c1a232c7b5afaead"
+      },
+      "bundleSha256": "547007fba04c7e20855dcb290a0cebc8cb2dcbe8ca5624b104ce9f78891a6a17"
+    },
+    "workingTree": {
+      "entry": "src/tools/hash/computeHashes.ts",
+      "source": "workingTree",
+      "files": {
+        "src/lib/bytes.ts": "ba620b20e726fe245ee4d8eba22c00f4bab2697bf20052992f5bbf05efa6ebee",
+        "src/lib/file.ts": "23703ed84d055dd2fbaae07f92fff3cb5246368fd6a58c132c8f41be888d96a2",
+        "src/lib/number.ts": "702c85b5ad84ea2240cd0f10bbdbca9416c76cd94c5186729e26faf074920dd0",
+        "src/lib/text/surrogate.ts": "6edae969f4c3f812e4b61be98232d1ce8c7e29b23effb2044f83cd4b5ab531f8",
+        "src/tools/hash/computeHashes.ts": "b2d94e66748293dca185448ea52a2c4c8d124deb06529996b71eb8bf1cc22611",
+        "src/tools/hash/logic.ts": "fd88f7df57489999c6a25987f564306aac88a5327e64d8c0c1a232c7b5afaead"
+      },
+      "bundleSha256": "d2e0f676b9cceda885a1bb698eaa05407ff3a067161671212584209f01e8f2e1"
+    }
+  },
+  "snapshotFiles": {
+    "package-lock.json": "23d2b248227f941d55697961dfc9d1e0df7d15c6e7985a1ad265522d1cc9e2a7",
+    "scripts/benchmark.mjs": "13c66acb744a65b2195ba08cd874d3131995f4409fbed133cd7e450f4623fbbf",
+    "scripts/benchmark-sources.mjs": "4f6a5ca193ec40a60dd5300c19523b91fc9b68844ac95f7d3f4a617deeee1c6d",
+    "scripts/measure-hash-invalid-key.mjs": "c5fe0435bb20a9ad8cfa44d98947bf35506bb04e6b9d761e1a70923fe91b7b33",
+    "src/tools/hash/logic.ts": "fd88f7df57489999c6a25987f564306aac88a5327e64d8c0c1a232c7b5afaead",
+    "src/lib/bytes.ts": "ba620b20e726fe245ee4d8eba22c00f4bab2697bf20052992f5bbf05efa6ebee",
+    "src/lib/file.ts": "23703ed84d055dd2fbaae07f92fff3cb5246368fd6a58c132c8f41be888d96a2",
+    "src/lib/number.ts": "702c85b5ad84ea2240cd0f10bbdbca9416c76cd94c5186729e26faf074920dd0",
+    "src/lib/text/surrogate.ts": "6edae969f4c3f812e4b61be98232d1ce8c7e29b23effb2044f83cd4b5ab531f8",
+    "src/tools/hash/computeHashes.ts": "b2d94e66748293dca185448ea52a2c4c8d124deb06529996b71eb8bf1cc22611"
+  },
+  "dependencySource": "両版とも作業ツリーの同じ依存スナップショットを使用。比較元は入口だけを固定コミットから読む。"
+}

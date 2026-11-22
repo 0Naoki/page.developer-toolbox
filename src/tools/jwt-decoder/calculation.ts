@@ -1,11 +1,16 @@
 import { decodeJwe, parseJwt, type ParsedJwt } from './logic';
 import { isNumericDate } from './diagnostics';
+import { jwsProblem } from './jws';
 
-/** 画面が使うヘッダと期限の値だけを持つ。深いJSONオブジェクトをWorkerから転送しない。全文はJSONの文字列で保つ。 */
+/**
+ * 画面が使うヘッダと期限の値だけを持つ。深いJSONオブジェクトをWorkerから転送しない。全文はJSONの文字列で保つ。
+ * jwsProblem は、署名の検証に使う厳密な読み取りの結果。鍵に依存せず、全文の読み直しで重いため、Workerで1回だけ行う。
+ */
 export type JwtDisplay = Omit<ParsedJwt, 'header' | 'payload'> & {
   header: { alg?: string; kid?: string };
   payload: { exp?: number | null; nbf?: number | null };
   warningTotal: number;
+  jwsProblem: string | null;
 };
 
 export type TokenCalculation = { kind: 'jwt'; data: JwtDisplay } | { kind: 'jwe'; headerJson: string } | null;
@@ -25,6 +30,7 @@ export function decodeTokenForScreen(input: string): TokenCalculation {
       header: { alg: typeof header.alg === 'string' ? header.alg : undefined, kid: typeof header.kid === 'string' ? header.kid : undefined },
       payload: { exp: timeValue(payload.exp), nbf: timeValue(payload.nbf) },
       warnings: warnings.slice(0, 5), warningTotal: warnings.length,
+      jwsProblem: jwsProblem(display.signingInput, display.signature),
     },
   };
 }

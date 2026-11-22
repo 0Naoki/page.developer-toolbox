@@ -53,6 +53,7 @@
 @import './styles/uuid.css' layer(tools);
 @import './styles/hash.css' layer(tools);
 @import './styles/cert.css' layer(tools);
+@import './styles/jwt-decoder.css' layer(tools);
 
 /* 6. 縦の並びの余白（親が決める。最後の層なので、部品の側に書いた上下のマージンより優先される） */
 @import './styles/stack.css' layer(stack);

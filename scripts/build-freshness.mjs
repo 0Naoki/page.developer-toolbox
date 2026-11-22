@@ -2,7 +2,7 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** ビルド結果を変える入力。テスト専用のファイルは配信対象にならないため除外する。 */
-const BUILD_INPUTS = ['src', 'public', 'index.html', 'vite.config.ts', 'csp.config.ts', 'tsconfig.json', 'package.json', 'package-lock.json'];
+const BUILD_INPUTS = ['src', 'public', 'index.html', 'vite.config.ts', 'csp.config.ts', 'scripts/third-party-licenses.mjs', 'tsconfig.json', 'package.json', 'package-lock.json'];
 const TEST_ONLY = /\.(?:test|testing|fixtures)\.ts$|[\\/]fixtures\.ts$/;
 
 /** 配信対象のファイルのうち、いちばん新しい更新時刻を調べる。 */
