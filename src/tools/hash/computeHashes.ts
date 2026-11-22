@@ -41,11 +41,12 @@ export function createHashComputer() {
 
 /** 1つの入力（テキストかファイル、鍵）の、すべてのアルゴリズムのハッシュを求める */
 export async function computeHashes(input: HashInput, { isCancelled, report }: AsyncContext<number>, readFile = (file: File) => readFileWithin(file, MAX_FILE)): Promise<HashResult> {
-  /** 選んだ後にファイルが移動・削除されたときは、ブラウザの例外ではなく共通の文言で知らせる */
   const { useHmac, key } = input;
+  /** 鍵だけで拒否できる入力では、ファイルの読み込みやテキストの符号化を始めない。 */
+  const keyBytes = useHmac ? hmacKeyBytes(key) : utf8('');
+  /** 選んだ後にファイルが移動・削除されたときは、ブラウザの例外ではなく共通の文言で知らせる */
   const data = input.source === 'text' ? utf8(input.text) : await readFile(input.file);
   if (isCancelled()) return CANCELLED;
-  const keyBytes = useHmac ? hmacKeyBytes(key) : utf8('');
   const rows: Row[] = [];
   /** SHA 系は Web Crypto API（非同期・別スレッド）で計算する */
   for (const algorithm of ALGORITHMS) {

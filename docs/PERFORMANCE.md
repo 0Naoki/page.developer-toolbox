@@ -203,6 +203,15 @@ node --expose-gc scripts/measure-hash-file-cache.mjs docs/records/hash-file-cach
 保持は画面内の小さいファイル1件だけに限ります。大容量ファイルはキャッシュせず、入力元の変更や画面移動では解放します。
 GC後の観測値であり、最大メモリ・RSS・ブラウザの性能ではありません。
 
+不正な鍵で読込を省く変更は、次のコマンドで拒否までの時間と読込回数を比較します。
+
+```powershell
+node --expose-gc scripts/measure-hash-invalid-key.mjs docs/records/hash-invalid-key-YYYY-MM-DD.json
+```
+
+1 MiB・256 MiBの合成Fileと、対になっていないサロゲート1単位の鍵を使います。各版で予備実行1回の後に3回測ります。
+Fileの生成とGCは計測外です。ブラウザの操作時間やピークメモリの計測ではありません。
+
 ### テキスト差分の応答
 
 ```powershell
