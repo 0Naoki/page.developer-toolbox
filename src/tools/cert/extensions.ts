@@ -179,7 +179,10 @@ function readExtensionValue(oid: string, value: Uint8Array): DecodedExtension {
       }
       /** 表示までBigIntのまま保つ。Numberにすると、受け付ける8バイトの整数が丸められる。 */
       const pathLen = path ? readInteger(path, SMALL_INTEGER_BYTES) : null;
-      if (path && (valueOf(path).length === 0 || pathLen! < 0n)) throw new Error('基本制約の段数が不正です');
+      /** DER の INTEGER は最短の表現だけ（X.690 8.3.2）。00 80 のように、符号を保つための先頭の 00 は必要なので受け付ける */
+      const pathBytes = path ? valueOf(path) : null;
+      const nonMinimal = pathBytes !== null && pathBytes.length > 1 && pathBytes[0] === 0 && (pathBytes[1]! & 0x80) === 0;
+      if (pathBytes && (pathBytes.length === 0 || nonMinimal || pathLen! < 0n)) throw new Error('基本制約の段数が不正です');
       return { values: [`CA：${ca ? 'はい' : 'いいえ'}`, ...(pathLen !== null ? [`下位の CA の段数の上限：${pathLen}`] : [])], summary: { ca } };
     }
     case '2.5.29.15': {
