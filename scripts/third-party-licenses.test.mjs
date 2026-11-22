@@ -43,4 +43,9 @@ test('ライセンスの本文や種類がないパッケージがあれば、�
   write('node_modules/nolicense/package.json', JSON.stringify({ name: 'nolicense', version: '1.0.0' }));
   write('node_modules/nolicense/LICENSE', 'text');
   assert.throws(() => thirdPartyLicenseText([`${root}/node_modules/nolicense/index.js`], root), /name・version・license がありません/);
+  for (const [name, body] of [['emptylicense', ''], ['blanklicense', ' \r\n\t\n']]) {
+    write(`node_modules/${name}/package.json`, pkg(name, '1.0.0'));
+    write(`node_modules/${name}/LICENSE`, body);
+    assert.throws(() => thirdPartyLicenseText([`${root}/node_modules/${name}/index.js`], root), new RegExp(`${name}@1\\.0\\.0 のライセンスの本文（LICENSE）が空です`));
+  }
 });

@@ -43,7 +43,7 @@ export function packageDirOf(id, root) {
  * パッケージの名前・版・ライセンスの種類と本文を読む。
  *
  * @param {string} dir - パッケージのフォルダ。
- * @throws package.json の名前・版・ライセンスの種類か、ライセンスの本文のファイルがない場合。
+ * @throws package.json の名前・版・ライセンスの種類か、ライセンスの本文のファイルがない場合。本文が空（空白だけ）の場合。
  */
 function readPackage(dir) {
   const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
@@ -53,7 +53,10 @@ function readPackage(dir) {
   }
   const file = readdirSync(dir).filter((name) => LICENSE_FILE.test(name)).sort()[0];
   if (!file) throw new Error(`${pkg.name}@${pkg.version} のライセンスの本文（LICENSE など）が見つかりません。配布物に著作権表示を含められないため、ビルドを止めます`);
-  return { name: pkg.name, version: pkg.version, license, text: readFileSync(join(dir, file), 'utf8').replace(/\r\n?/g, '\n').trim() };
+  const text = readFileSync(join(dir, file), 'utf8').replace(/\r\n?/g, '\n').trim();
+  /** ファイルがあっても本文が空なら、著作権表示を含められない */
+  if (!text) throw new Error(`${pkg.name}@${pkg.version} のライセンスの本文（${file}）が空です。配布物に著作権表示を含められないため、ビルドを止めます`);
+  return { name: pkg.name, version: pkg.version, license, text };
 }
 
 /**
