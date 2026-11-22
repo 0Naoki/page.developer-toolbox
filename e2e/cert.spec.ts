@@ -7,7 +7,7 @@
  *   チェーンの診断の「n 枚目」を、読めないブロックや CSR が間にあってもカードの番号とそろえ、読めないブロックがあれば「正しい順番」と言わないこと。
  *   壊れた同じ拡張が大量に並んでも解析で画面を止めず、重複した拡張で SAN などを上書きしないこと（あわせて `src/tools/cert/logic.test.ts`）
  *   不正なUTF8String・BMPString・UniversalStringを正常な名前として表示せず、有効な値への編集で復旧すること。未知の拡張の先頭32バイト以降も、生バイトを全文コピーできること
- *   基本制約の大きな整数を丸めずに表示すること。
+ *   基本制約の大きな整数を丸めずに表示し、型・末尾・段数が不正ならCA判定を残さないこと。
  * - [R041] 証明書の開始・終了日時 × GeneralizedTime の小数秒・小数分：小数部を黙って切り捨てずに拒否する。通常の秒単位の日時は保ち、画面でエラーを表示した後も修正して解析を再開できる（あわせて `src/tools/cert/logic.test.ts`）
  */
 import { expect, test } from './fixtures';
@@ -16,7 +16,7 @@ import { CROSS_BROWSER } from './tags';
 import { LEAF, ROLLOVER_NEW_CA, ROLLOVER_OLD_CA, ROOT_CA } from '../src/tools/cert/certificates.fixtures';
 import { TOKENS } from '../src/tools/jwt-decoder/tokens.fixtures';
 import { certificateWithTime } from '../src/tools/cert/time.fixtures';
-import { certificateWithSubject, certificateWithRawExtension, certificateWithPathLength } from '../src/tools/cert/encoding.fixtures';
+import { certificateWithSubject, certificateWithRawExtension, certificateWithPathLength, certificateWithBasicConstraints } from '../src/tools/cert/encoding.fixtures';
 import { settleRendering, openNavigation } from './app';
 import { pasteLargeInput } from './paste';
 import { pickFile } from './files';
@@ -42,6 +42,25 @@ test('証明書：基本制約の大きな整数を丸めずに表示する', CR
   await page.getByLabel('証明書または CSR（PEM）').fill(certificateWithPathLength(9223372036854775807n));
   await page.locator('summary', { hasText: 'すべての拡張' }).click();
   await expect(page.locator('details .cert-table')).toContainText('下位の CA の段数の上限：9223372036854775807');
+});
+
+test('証明書：不正な基本制約はCAと表示せず、有効な値に直すと復旧する', CROSS_BROWSER, async ({ page }) => {
+  await page.goto('./#/cert');
+  const input = page.getByLabel('証明書または CSR（PEM）');
+  for (const bytes of [
+    [48, 3, 1, 1, 255, 0],
+    [49, 3, 1, 1, 255],
+    [48, 14, 1, 1, 255, 2, 9, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+  ]) {
+    await input.fill(certificateWithBasicConstraints(bytes));
+    await expect(page.getByText('CA 証明書', { exact: true })).toHaveCount(0);
+    const table = page.locator('details .cert-table');
+    if (!(await table.isVisible())) await page.locator('summary', { hasText: 'すべての拡張' }).click();
+    await expect(table).toContainText('読めない値');
+  }
+  await input.fill(certificateWithPathLength(1n));
+  await expect(page.getByText('CA 証明書', { exact: true })).toBeVisible();
+  await expect(page.locator('details .cert-table')).not.toContainText('読めない値');
 });
 
 test('証明書：未知の拡張は抜粋を表示し、生バイトを末尾までコピーできる', CROSS_BROWSER, async ({ page }) => {

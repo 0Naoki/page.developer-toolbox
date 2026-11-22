@@ -183,7 +183,7 @@ IDは説明文を変えても維持してください。テストを移すとき
 | 正規表現 <!-- regression:R022 --> | `e2e/regex.spec.ts`・`src/tools/regex/logic.test.ts` |
 | ハッシュ <!-- regression:R023 --> | `e2e/hash.spec.ts` |
 | JWT <!-- regression:R024 --> | `e2e/jwt.spec.ts`・`e2e/cert.spec.ts`・`src/tools/jwt-decoder/verify.test.ts` |
-| 証明書 <!-- regression:R025 --> | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts` |
+| 証明書 <!-- regression:R025 --> | `e2e/cert.spec.ts`・`src/tools/cert/logic.test.ts`・`src/tools/cert/extensions.test.ts` |
 | JSON整形・和暦・テキスト差分 <!-- regression:R026 --> | `e2e/tools.spec.ts` |
 | 独自休日の診断 <!-- regression:R027 --> | `src/tools/business-days/logic.test.ts` |
 | UNIX時間の入力単位 <!-- regression:R028 --> | `e2e/unix-time.spec.ts`・`src/tools/unix-time/logic.test.ts` |
