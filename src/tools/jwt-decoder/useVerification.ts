@@ -4,10 +4,11 @@ import { usePreference } from '../../hooks/usePreference';
 import { oneOf } from '../../lib/settings';
 import { errorMessage } from '../../lib/errors';
 import type { SignatureVerification } from '../../lib/crypto/signature';
-import type { ParsedJwt } from './logic';
+import type { JwtDisplay } from './calculation';
 import { isHmacAlg } from './alg';
 import { readPublicKey, secretBytes, shortSecretWarning, type SecretEncoding } from './keys';
-import { verifyJwt, type VerifyKey } from './verify';
+import { prepareJws, type PreparedJws } from './jws';
+import { verifyPreparedJws, type VerifyKey } from './verify';
 
 /** 署名の検証の欄の状態。鍵の入力と、読み込み・検証の結果 */
 export type VerificationState = {
@@ -26,7 +27,10 @@ export type VerificationState = {
 };
 
 /** 署名の検証の対象。結果と一緒に持ち、今の入力に対する結果かを確かめる */
-type VerifyTarget = { key: VerifyKey; signingInput: string; signature: string; alg: string | undefined };
+type VerifyTarget = { key: VerifyKey; jws: PreparedJws; alg: string | undefined };
+
+/** 検証に使うトークンの値。jwsProblem は Worker で確かめた結果 */
+type VerifyToken = Pick<JwtDisplay, 'header' | 'signingInput' | 'signature' | 'jwsProblem'>;
 
 /** 読み込んだ鍵と、読み込みのエラー・警告 */
 type LoadedKey = { key: VerifyKey | null; error: string; warning: string | null; source: string };
@@ -41,8 +45,9 @@ const NO_KEY: LoadedKey = { key: null, error: '', warning: null, source: '' };
  * 鍵の読み込みは描画中に行うため、例外はここで受け止めて keyError にする。
  * 検証の結果は、どの鍵・トークンの結果かを組で持ち（useAsyncFor）、入力を変えた直後の描画でも前の結果を表示しない。
  * data が null の間は検証を止め、鍵の入力は保持する。Worker解析中の旧トークンを検証しないため。
+ * 検証に使うバイト列はトークンごとに1回だけ作り、鍵を変えたときはトークン全体を読み直さない（巨大なトークンで画面が止まらないように）。
  */
-export function useVerification(data: ParsedJwt | null): VerificationState {
+export function useVerification(data: VerifyToken | null): VerificationState {
   const [keyText, setKeyText] = useState('');
   const [encoding, setEncoding] = usePreference<SecretEncoding>('jwt:secret-encoding', 'utf-8', oneOf('utf-8', 'base64'));
   /** alg・kidがオブジェクトのときは検証に使わず、再計算の判断も文字列の値だけで行う。 */
@@ -66,10 +71,14 @@ export function useVerification(data: ParsedJwt | null): VerificationState {
     }
   }, [keyText, encoding, hmac, alg, kid]);
 
-  const target = useMemo((): VerifyTarget | null => (data && key.key ? { key: key.key, signingInput: data.signingInput, signature: data.signature, alg } : null), [key, data?.signingInput, data?.signature, alg]);
+  const signingInput = data?.signingInput;
+  const signature = data?.signature;
+  const problem = data?.jwsProblem;
+  const jws = useMemo(() => (signingInput === undefined || signature === undefined || problem === undefined ? null : prepareJws(signingInput, signature, problem)), [signingInput, signature, problem]);
+  const target = useMemo((): VerifyTarget | null => (jws && key.key ? { key: key.key, jws, alg } : null), [key, jws, alg]);
   const verified = useAsyncFor(
     target,
-    (t) => verifyJwt(t.signingInput, t.signature, t.alg, t.key),
+    (t) => verifyPreparedJws(t.jws, t.alg, t.key),
     (error): SignatureVerification => ({ status: 'unsupported', message: errorMessage(error) }),
   );
   const result = verified.ready ? verified.value : null;

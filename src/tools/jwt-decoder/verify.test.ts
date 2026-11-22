@@ -4,7 +4,9 @@ import { ED25519, LEAF, ROOT_CA } from '../cert/certificates.fixtures';
 import { LEAF_JWK, P384_JWK, P521_PUBLIC_PEM, RSA_JWK, RSA_PUBLIC_PEM, RSA_PUBLIC_PKCS1_PEM, SECRET, SECRET_BASE64, TOKENS, base64Url, decodeJwt } from './tokens.fixtures';
 import { readPublicKey, secretBytes, shortSecretWarning } from './keys';
 import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../../lib/bytes.fixtures';
-import { verifyJwt, type VerifyKey } from './verify';
+import { verifyJwt, verifyPreparedJws, type VerifyKey } from './verify';
+import { decodeTokenForScreen } from './calculation';
+import { prepareJws } from './jws';
 import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
 import { limitMessage, MESSAGE_LIMIT } from '../../lib/text/textPreview';
 
@@ -422,5 +424,31 @@ describe('サンプルのトークン', () => {
     expect(SAMPLE_TOKEN).toBe(TOKENS.HS256);
     expect(SAMPLE_SECRET).toBe(SECRET);
     expect(await verify(SAMPLE_TOKEN, secret(SAMPLE_SECRET))).toMatchObject({ status: 'valid' });
+  });
+});
+
+describe('verifyPreparedJws：Worker で確かめた結果を使う', () => {
+  /** Worker の解析結果（structuredClone で転送したもの）から検証する */
+  const viaWorker = (token: string, key: VerifyKey) => {
+    const response = structuredClone(decodeTokenForScreen(token));
+    if (response?.kind !== 'jwt') throw new Error('JWTを読めません');
+    const { signingInput, signature, jwsProblem, header } = response.data;
+    return verifyPreparedJws(prepareJws(signingInput, signature, jwsProblem), header.alg, key);
+  };
+  const [head = '', body = '', signature = ''] = TOKENS.HS256.split('.');
+
+  it('正しい署名・改ざん・Base64URL でない部分を、verifyJwt と同じに判定する', async () => {
+    for (const token of [TOKENS.HS256, tampered(TOKENS.HS256), `${head}.${body.slice(0, 4)} ${body.slice(4)}.${signature}`, `${head}.${body}.${signature}=`]) {
+      const [h = '', b = '', s = ''] = token.split('.');
+      const expected = await verifyJwt(`${h}.${b}`, s, 'HS256', secret(SECRET));
+      expect(await viaWorker(token, secret(SECRET)), token).toEqual(expected);
+    }
+    expect(await viaWorker(TOKENS.HS256, secret(SECRET))).toMatchObject({ status: 'valid' });
+    expect(await viaWorker(`${head}.${body.slice(0, 4)} ${body.slice(4)}.${signature}`, secret(SECRET))).toMatchObject({ status: 'invalid', message: expect.stringContaining('ペイロード') });
+    expect(await viaWorker(`${head}.${body}.${signature}=`, secret(SECRET))).toMatchObject({ status: 'invalid', message: expect.stringContaining('署名の部分') });
+  });
+
+  it('対応していない alg は、JWS の形式より先に「未対応」と判定する', async () => {
+    expect(await verifyPreparedJws(prepareJws('a.b', 'c2ln', '無効'), 'XX999', secret(SECRET))).toMatchObject({ status: 'unsupported' });
   });
 });
