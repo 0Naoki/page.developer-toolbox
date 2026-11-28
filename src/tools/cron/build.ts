@@ -1,5 +1,3 @@
-import type { Dialect } from './parse';
-
 /**
  * cron式の組み立て（画面の「式を組み立てる」）。選んだ頻度と時刻から、形式ごとの書き方の式を作る。
  *
@@ -7,6 +5,7 @@ import type { Dialect } from './parse';
  * 曜日は、形式によって数字の数え方が違う（標準は 0 が日曜、Quartz・EventBridge は 1 が日曜）ため、どの形式でも同じ意味になる名前（MON など）で書く。
  * Quartz・EventBridge は日と曜日のどちらか一方を ? にする。Quartz は先頭に秒、EventBridge は末尾に年を足す。
  */
+import { WEEKDAY_NAMES, type Dialect } from './parse';
 
 export type Frequency = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly';
 
@@ -23,9 +22,6 @@ export type CronSpec = {
   /** 日（monthly のとき。1〜31。31 日がない月は実行しない） */
   day: number;
 };
-
-/** 曜日の名前（0 が日曜）。どの形式でも読める */
-const WEEKDAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
 
 const inRange = (value: number, min: number, max: number) => Number.isInteger(value) && value >= min && value <= max;
 

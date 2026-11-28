@@ -2,8 +2,8 @@
  * 営業日計算のファイルの分担。この画面はタブと、タブ間で共有する暦の設定（週末・祝日・独自休日）を担当する。
  * - `logic.ts`：営業日の判定・数え上げと期間の集計
  * - `holidays.ts`：日本の祝日の計算
- * - `numericInput.ts`：用途ごとの整数入力と範囲の検証
- * - `RangeTab.tsx`・`AddTab.tsx`・`MonthTab.tsx`・`HolidaysTab.tsx`：各タブの画面（`tabFields.tsx` はタブで共通の入力欄）
+ * - `numericInput.ts`：用途ごとの整数入力と範囲の検証（年の選択肢を含む）
+ * - `RangeTab.tsx`・`AddTab.tsx`・`MonthTab.tsx`・`HolidaysTab.tsx`：各タブの画面（`tabFields.tsx` はタブで共通の入力欄・年の選択）
  */
 import { LargeTextInput } from '../../components/LargeTextInput';
 import { useMemo } from 'react';
@@ -31,7 +31,7 @@ export default function BusinessDays() {
   const [weekend, setWeekend] = usePreference<number[]>('bizdays:weekend', DEFAULT_CALENDAR.weekend, arrayOf(integerBetween(0, 6), 7));
   const [useHolidays, setUseHolidays] = usePreference('bizdays:holidays', true, isBoolean);
   const [yearEnd, setYearEnd] = usePreference('bizdays:yearEnd', false, isBoolean);
-  /** 会社独自の休日は利用者が貼り付ける業務データなので、表示設定ではなく入力内容として保存設定に従わせる */
+  /** 会社独自の休日は利用者が貼り付ける業務データなので、表示設定（localStorage）ではなく入力として useInput（このタブの sessionStorage）で持つ */
   const [extraText, setExtraText] = useInput('bizdays:extra');
 
   const extra = useMemo(() => parseExtraHolidays(extraText), [extraText]);

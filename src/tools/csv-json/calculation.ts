@@ -1,10 +1,12 @@
 import { csvToJson, isEmptyConversionInput, type CsvToJsonOptions } from './logic';
 import { jsonToCsv, type JsonToCsvOptions } from './writeCsv';
+import { formatNumber } from '../../lib/number';
+import type { Direction } from './csvFormat';
 
 /** 計算 Worker で変換するときの要求。両方向の設定を持ち、変換の方向（direction）で使う側を選ぶ */
 export type CsvConversionRequest = {
   input: string;
-  direction: 'csv2json' | 'json2csv';
+  direction: Direction;
   csvOptions: CsvToJsonOptions;
   jsonOptions: JsonToCsvOptions;
 };
@@ -24,7 +26,7 @@ export function convertCsvRequest(request: CsvConversionRequest): CsvConversion 
     : jsonToCsv(request.input, request.jsonOptions);
   return {
     output: 'json' in result ? result.json : result.csv,
-    summary: `${result.rows}行 × ${result.columns}列`,
+    summary: `${formatNumber(result.rows)}行 × ${formatNumber(result.columns)}列`,
     warnings: 'warnings' in result ? result.warnings : [],
   };
 }

@@ -9,7 +9,7 @@
 # セキュリティ方針
 # - 使用する Action はタグではなくコミットSHAで固定（タグの付け替えによるすり替えを防ぐ）。更新は Dependabot が行う
 # - 権限は既定ですべて無効にし、必要なジョブにだけ最小限を付与する
-# - checkout で認証情報を残さない（persist-credentials: false）
+# - checkout で認証情報を残さない（persist-credentials: false。checkout は検査の checks.yml で行う）
 name: Deploy to GitHub Pages
 
 on:

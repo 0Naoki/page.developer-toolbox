@@ -35,7 +35,7 @@ export function CommandPalette({ open, onClose }: Props) {
   useEffect(() => {
     if (!scrollToActive.current) return;
     scrollToActive.current = false;
-    document.getElementById(`${listId}-option-${active}`)?.scrollIntoView({ block: 'nearest' });
+    document.getElementById(optionId(active))?.scrollIntoView({ block: 'nearest' });
   }, [active, listId]);
 
   if (!open) return null;

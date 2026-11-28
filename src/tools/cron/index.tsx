@@ -42,7 +42,6 @@ const PRESETS: { label: string; values: Record<Exclude<Dialect, 'kubernetes'>, s
   { label: '毎月1日', values: { unix: '0 0 1 * *', quartz: '0 0 0 1 * ?', aws: '0 0 1 * ? *' } },
 ];
 
-
 export default function CronTool() {
   const [input, setInput] = useInput('cron');
   const [base, setBase] = useInput('cron:base');

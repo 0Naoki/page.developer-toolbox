@@ -23,7 +23,7 @@ import { ToolShell } from '../../components/ToolShell';
 import { detailPreview, TEXT_PREVIEW_LIMIT } from '../../lib/text/textPreview';
 import { useNow } from '../../hooks/useNow';
 import { judgeJwt, type DecodedJwt } from './logic';
-import type { JwtDisplay } from './calculation';
+import { WARNINGS_SHOWN, type JwtDisplay } from './calculation';
 import { isHmacAlg } from './alg';
 import type { SecretEncoding } from './keys';
 import { useVerification, type VerificationState } from './useVerification';
@@ -87,8 +87,8 @@ function Decoded({ parsed, verification }: { parsed: JwtDisplay; verification: V
   /** 期限切れの判定と「あと何時間」を、貼り付けた時点で止めずに更新する。トークンの解析は毎秒やり直さない */
   const now = useNow();
   const data = useMemo(() => judgeJwt(parsed, now), [parsed, now]);
-  /** 重複したキーなどの警告は多くなり得るため、先頭5件と残りの件数にする */
-  const warnings = previewList(data.warnings, 5, parsed.warningTotal);
+  /** Worker から届くのは先頭の警告だけで、warningTotal に総数が入る */
+  const warnings = previewList(data.warnings, WARNINGS_SHOWN, parsed.warningTotal);
 
   return (
     <>

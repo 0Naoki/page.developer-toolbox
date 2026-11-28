@@ -1,7 +1,6 @@
+/** 入力順の証明書の名前と鍵識別子による接続の評価。署名は verify.ts で検証する。 */
 import type { Certificate } from './logic';
 import { keyIdsCompatible, sameName } from './name';
-
-/** 入力順の証明書の名前と鍵識別子による接続の評価。署名は verify.ts で検証する。 */
 
 export type ChainResult = {
   /** i 番目の証明書の発行者が、i+1 番目の証明書のサブジェクトと一致するか */
@@ -9,7 +8,7 @@ export type ChainResult = {
   messages: { level: 'good' | 'warn' | 'bad'; text: string }[];
 };
 
-/** i が j に発行されたか（発行者とサブジェクトの一致、鍵識別子があればその一致） */
+/** child が parent に発行されたか（発行者とサブジェクトの一致、鍵識別子があればその一致） */
 function issuedBy(child: Certificate, parent: Certificate): { ok: boolean; reason?: string } {
   if (!sameName(child.issuer, parent.subject)) return { ok: false, reason: '発行者とサブジェクトが一致しません' };
   if (!keyIdsCompatible(child.authorityKeyId, parent.subjectKeyId)) {

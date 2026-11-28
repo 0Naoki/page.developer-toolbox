@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { countText } from './count';
 import { countInputPreviewLimit } from './characterDetails';
-import { eucjpBytesOf, reasonOf, sjisBytesOf, vendorKindOf } from './encoding';
+import { eucjpBytesOf, reasonOf, sjisBytesOf, utf8Length, vendorKindOf } from './encoding';
 import { decodeInspectionFile, inspectInvisible } from './invisible';
 import { analysisOf, linesPage, measureText, measureOf, splitByEncodable, type PageOptions, type TextAnalysis } from './logic';
 
@@ -327,5 +327,13 @@ describe('splitByEncodable', () => {
     ]);
     expect(splitByEncodable('丂', 'eucjp')).toEqual([{ text: '丂', bad: false }]);
     expect(splitByEncodable('', 'sjis')).toEqual([]);
+  });
+});
+
+describe('utf8Length', () => {
+  it('TextEncoder で変換したバイト数と同じ（不完全なサロゲートは U+FFFD の3バイト）', () => {
+    for (const text of ['', 'abc', '\u00e9', '日本語', '😀', 'a😀b', '\uD800', '\uDC00x', '\uD800\uD800\uDC00', '\r\n\t']) {
+      expect(utf8Length(text), JSON.stringify(text)).toBe(new TextEncoder().encode(text).length);
+    }
   });
 });

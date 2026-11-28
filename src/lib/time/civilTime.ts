@@ -1,6 +1,6 @@
 /**
  * 暦の中間計算（通算日と年月日の変換）。Date・Intl に依存させず、壁時計の年月日と実際の時刻（エポックミリ秒）を区別して扱う。
- * src/lib/time/date.ts と src/lib/time/timezone.ts の addZonedElapsed も、この計算を使う。
+ * 日付の計算（date.ts）、壁時計と時刻の変換（timezone.ts の utcOf・addZonedElapsed）、UNIX時間の期間計算が、この計算を使う。
  */
 
 /**

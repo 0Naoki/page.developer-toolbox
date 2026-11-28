@@ -3,7 +3,7 @@ import { PrivacySettings } from './PrivacySettings';
 import { Segmented } from '../components/Segmented';
 import { toolsByCategory, type ToolDef } from '../registry';
 import { focusMainHeading, type useAppNavigation } from './useAppNavigation';
-import { isMac } from './platform';
+import { SEARCH_SHORTCUT } from './platform';
 import type { Theme } from './useTheme';
 import { VERSION_LABEL } from '../buildInfo';
 
@@ -56,7 +56,7 @@ export function Sidebar({ navigation, favoriteTools, theme, setTheme }: {
           }}
         >
           <span>ツールを検索</span>
-          <kbd>{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+          <kbd>{SEARCH_SHORTCUT}</kbd>
         </button>
         <nav className="nav" aria-label="ツール一覧">
           {favoriteTools.length > 0 && (

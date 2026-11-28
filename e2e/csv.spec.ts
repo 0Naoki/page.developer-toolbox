@@ -1,4 +1,6 @@
 /**
+ * CSV変換の画面（ファイルの読み込みの競合・失敗、区切り文字、展開量の上限）の E2E。編集は csv-file-edit.spec.ts。
+ *
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  * - `report-tsv`・`report-json`・`report.csv.bak` では現在の変換方向と区切り文字を変えないこと（あわせて `src/tools/csv-json/fileOptions.test.ts`）。
@@ -13,8 +15,6 @@ import { type Page } from '@playwright/test';
 import { CROSS_BROWSER } from './tags';
 import { openNavigation, settleRendering } from './app';
 import { pickFile } from './files';
-
-/** CSV変換の画面（ファイルの読み込みの競合・失敗、区切り文字、展開量の上限）の E2E。編集は csv-file-edit.spec.ts */
 
 test('CSV変換：重複した親キーは展開前に拒否し、修正したJSONを変換できる', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/csv');

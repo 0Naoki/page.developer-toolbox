@@ -3,9 +3,8 @@ import { base64ToBytes, bytesToBase64 } from '../../lib/bytes';
 import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../../lib/bytes.fixtures';
 import {
   bytesToText,
-  decode,
-  decodeBase64,
   decodeInput,
+  decodeUrl,
   encode,
   encodeBase64,
   hexDump,
@@ -17,6 +16,8 @@ import {
 import { findLoneSurrogate } from '../../lib/text/surrogate';
 
 const text = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
+/** 画面と同じく、Base64 をバイト列に復号してから UTF-8 として読む。UTF-8 として読めなければ null */
+const decodeBase64 = (input: string) => bytesToText(decodeInput(input).bytes, 'utf-8');
 
 describe('Base64', () => {
   it.each(VALID_BASE64_PADDING)('有効なパディングと完全省略を読む：%s', (input, expected) => {
@@ -66,7 +67,7 @@ describe('Base64', () => {
 
   it('UTF-8 のテキストでないバイト列は、バイト列としてならデコードできる', () => {
     expect(Array.from(base64ToBytes('/w=='))).toEqual([0xff]);
-    expect(() => decodeBase64('/w==')).toThrow('UTF-8のテキストではありません');
+    expect(decodeBase64('/w==')).toBeNull();
   });
 });
 
@@ -249,11 +250,11 @@ describe('toDataUri', () => {
 describe('URLエンコード', () => {
   it('相互変換できる', () => {
     expect(encode('a b&c=日本', 'url')).toBe('a%20b%26c%3D%E6%97%A5%E6%9C%AC');
-    expect(decode('a+b%26c', 'url')).toBe('a b&c');
+    expect(decodeUrl('a+b%26c')).toBe('a b&c');
   });
 
   it('不正な形式はエラーにする', () => {
-    expect(() => decode('%E3%81', 'url')).toThrow();
+    expect(() => decodeUrl('%E3%81')).toThrow('URLエンコードとして不正な形式です');
   });
 });
 

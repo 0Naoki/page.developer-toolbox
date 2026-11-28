@@ -1,9 +1,6 @@
-import {
-  type Width,
-} from './logic';
+import type { Width } from './logic';
 
 /** クリックで切り替えられるビットの表示 */
-
 export function BitGrid({ unsigned, width, onToggle }: { unsigned: bigint; width: Exclude<Width, 0>; onToggle: (i: number) => void }) {
   const bytes = Array.from({ length: width / 8 }, (_, b) => width / 8 - 1 - b); /** 上位バイトから */
   return (

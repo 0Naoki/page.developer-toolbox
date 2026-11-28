@@ -7,7 +7,7 @@
  * - `reportText.ts`：出力予算の検査と、一定量ずつの文字列化
  * - `DiagnosticOutput.tsx`：操作時にWorkerで全件を準備し、コピー・保存
  * - `invisible.ts`：不可視文字の検査と、ファイルの読み取り
- * - `characterDetails.ts`：一覧に並べる文字の種類・位置
+ * - `characterDetails.ts`：文字のコードポイントの表記と、一覧の件数・入力欄・文字の形の表示上限
  * - `logic.ts`：Worker から呼ぶ測定処理と、行別の結果のページ分割
  * - `useTextCount.ts`：画面の状態（入力・表示設定・ファイルの読み込み・ページ）と計算の結果をまとめるフック
  * - `InvisibleCharacters.tsx`：不可視文字の表示
@@ -113,7 +113,7 @@ export default function TextCount() {
         title="Shift_JIS で表現できない文字があります"
         note="バイト数は2バイトとして概算しています"
         issues={r.unsupported}
-        total={analysis.issueTotals.unsupported}
+        total={analysis.counts.issueTotals.unsupported}
       />
       <CharIssues
         input={text} kind="unsupportedEuc" label="EUC-JP診断"
@@ -121,7 +121,7 @@ export default function TextCount() {
         title="EUC-JP で表現できない文字があります"
         note="バイト数は2バイトとして概算しています"
         issues={r.unsupportedEuc}
-        total={analysis.issueTotals.unsupportedEuc}
+        total={analysis.counts.issueTotals.unsupportedEuc}
       />
       <CharIssues
         input={text} kind="vendor" label="機種依存文字の診断"
@@ -129,7 +129,7 @@ export default function TextCount() {
         title="機種依存文字があります"
         note="Shift_JIS（Windows の CP932）では表現できますが、JIS X 0208 だけに対応した環境（ISO-2022-JP のメール、古いシステムなど）では文字化けするおそれがあります"
         issues={r.vendor}
-        total={analysis.issueTotals.vendor}
+        total={analysis.counts.issueTotals.vendor}
       />
       </>}
       </section>}
@@ -163,7 +163,7 @@ export default function TextCount() {
         {limit !== null && (
           <>
             {analysis && <Badge tone={overCount > 0 ? 'bad' : 'good'}>
-              {overCount > 0 ? `${overCount}行が上限超過` : 'すべて上限以内'}
+              {overCount > 0 ? `${formatNumber(overCount)}行が上限超過` : 'すべて上限以内'}
             </Badge>}
             <Check label="超過行だけ表示" checked={onlyOver} onChange={setOnlyOver} />
           </>
@@ -187,8 +187,8 @@ export default function TextCount() {
                 <tr key={l.no} className={l.over ? 'over' : undefined}>
                   <td className="right mono muted">{l.no}</td>
                   <td className="right mono">
-                    {l.value}
-                    {l.over && limit !== null && <span className="over-by">+{l.value - limit}</span>}
+                    {formatNumber(l.value)}
+                    {l.over && limit !== null && <span className="over-by">+{formatNumber(l.value - limit)}</span>}
                   </td>
                   <td className="line-text">
                     {l.text ? <LineText text={l.text} segments={l.segments} /> : <span className="muted">（空行）</span>}
@@ -199,7 +199,7 @@ export default function TextCount() {
             </tbody>
           </table>
           <p className="hint">
-            {filtering ? '上限を超えた行のうち、' : ''}{page * LINE_PAGE_SIZE + 1}〜{Math.min((page + 1) * LINE_PAGE_SIZE, analysis.matchingLines)}行を表示しています（全 {formatNumber(analysis.matchingLines)} 行）
+            {filtering ? '上限を超えた行のうち、' : ''}{formatNumber(page * LINE_PAGE_SIZE + 1)}〜{formatNumber(Math.min((page + 1) * LINE_PAGE_SIZE, analysis.matchingLines))}行を表示しています（全 {formatNumber(analysis.matchingLines)} 行）
           </p>
           {analysis.matchingLines > LINE_PAGE_SIZE && <div className="toolbar">
             <button type="button" className="btn btn-ghost" disabled={page === 0} onClick={() => setPage((value) => value - 1)}>前の{LINE_PAGE_SIZE}行</button>
@@ -226,7 +226,7 @@ function CharIssues({ tone, title, note, issues, total, input, kind, label }: {
             <span className="char-glyph">{showGlyphs || index < ISSUE_GLYPH_PREVIEW ? u.char : '…'}</span>
             <span className="mono muted">
               {u.codePoint}
-              {u.count > 1 && ` ×${u.count}`}
+              {u.count > 1 && ` ×${formatNumber(u.count)}`}
             </span>
             <span className="muted">
               {u.reason && `${u.reason}・`}

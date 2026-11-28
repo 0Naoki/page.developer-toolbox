@@ -1,4 +1,6 @@
 /**
+ * Base64・URLエンコードの画面（ファイルの読み込み順序、Worker での変換、16進ダンプ）の E2E。
+ *
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
@@ -11,8 +13,6 @@ import { CROSS_BROWSER } from './tags';
 import { pickFile } from './files';
 import { captureClipboard, copiedLines } from './clipboard';
 import { pasteLargeInput } from './paste';
-
-/** Base64・URLエンコードの画面（ファイルの読み込み順序、Worker での変換、16進ダンプ）の E2E */
 
 test('Base64：不正なパディングは通常入力・data: URI・Workerでも復号せず、修正後に復旧する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/base64');

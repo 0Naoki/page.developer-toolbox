@@ -5,7 +5,7 @@
 import { isIpv6Text, splitAddressRange } from './addressRange';
 import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
-import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList, type RangeBlock } from './ranges';
+import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList } from './ranges';
 
 /** 例外を投げずに parseIpv4 と同じ規則で読む。読めなければ、理由の文言で例外を投げる関数を返す（一覧の読み取り用） */
 export function readIpv4(input: string): number | Failure {
@@ -204,8 +204,6 @@ export function subnetInfo(ip: number, prefix: number, cloud = false): SubnetInf
 export const contains = (network: number, prefix: number, ip: number): boolean => ((ip & maskOf(prefix)) >>> 0) === network;
 
 /** 一覧の読み取り */
-
-export type Block = RangeBlock<number>;
 
 /**
  * 1行に1つずつ書いた CIDR を読む。行の残りは名前（「10.0.0.0/16 本番VPC」）、# の後ろはコメント。

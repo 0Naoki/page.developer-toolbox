@@ -82,9 +82,8 @@ export function parseWareki(input: string): FromWareki {
   if (year < 1) throw new Error('年は1（元年）以上で入力してください');
   const date = { y: era.start.y + year - 1, m: Number(monthText), d: Number(dayText) };
   if (date.y > 9999) throw new Error('西暦9999年まで入力できます');
-  if (!isValidYmd(date)) throw new Error('存在しない日付です');
-  if (compareYmd(date, MIN_DATE) < 0) throw new Error('明治6年（1873年）1月1日より前は旧暦のため対応していません');
 
+  /** 存在しない日付と、明治6年より前の日付は toWareki が拒否する */
   const actual = toWareki(date);
   let warning: string | undefined;
   if (actual.era.name !== era.name) {

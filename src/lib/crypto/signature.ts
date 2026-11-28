@@ -25,6 +25,15 @@ export const SIGNATURE_MISMATCH = '署名が一致しません（内容が書き
 export type PublicKeyData = { format: 'spki'; der: Uint8Array } | { format: 'jwk'; jwk: JsonWebKey };
 
 const copy = (v: Uint8Array) => new Uint8Array(v);
+
+/**
+ * Web Crypto API の例外（DOMException）の種類の名前（NotSupportedError・DataError など）。読めなければ 'Error'。
+ * 例外の文言は英語で、ブラウザによっても違うため、画面には種類の名前だけを示す（証明書と JWT の検証で共通）
+ */
+export const cryptoErrorName = (e: unknown): string => {
+  const name = (e as { name?: unknown } | null)?.name;
+  return typeof name === 'string' ? name : 'Error';
+};
 const algorithmName = (alg: AlgorithmIdentifier | { name: string }) => (typeof alg === 'string' ? alg : alg.name);
 
 /**
@@ -58,9 +67,7 @@ export async function verifyWithPublicKey(
       ? await subtle.importKey('jwk', key.jwk, importAlg, false, ['verify'])
       : await subtle.importKey('spki', copy(key.der), importAlg, false, ['verify']);
   } catch (e) {
-    /** Web Crypto API は DOMException を投げ、その名前（NotSupportedError・DataError など）が理由を表す */
-    const name = (e as { name?: unknown } | null)?.name;
-    const reason = typeof name === 'string' ? name : 'Error';
+    const reason = cryptoErrorName(e);
     if (algorithmName(importAlg) === 'Ed25519' && reason === 'NotSupportedError') {
       return { status: 'unsupported', message: 'このブラウザは Ed25519 の署名の検証に対応していません' };
     }

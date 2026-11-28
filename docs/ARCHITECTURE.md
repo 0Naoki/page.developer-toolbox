@@ -51,7 +51,7 @@ CSVの具体的な入力例は [利用ガイド](USAGE.md#csv変換) を参照�
 | `src/App.tsx`・`src/app/` | アプリの入口と枠組み（ホーム・ツールページ・サイドバー・起動時の案内・テーマ・ナビゲーション） |
 | `src/tools/<フォルダ名>/` | ツールごとの画面（`index.tsx`）・計算処理・専用のフック。フォルダ名はツールIDと別（`text-diff` と `diff` など。対応はツールの一覧の `folder`） |
 | `src/components/` | 入力・出力・画面操作の共通部品 |
-| `src/hooks/` | 保存・計算・時刻更新の共通の React フック |
+| `src/hooks/` | 保存・計算・非同期の結果・ファイルの読み込み・時刻更新などの共通の React フック |
 | `src/lib/` | ツールに依存しない共通処理（ツール間でそろえる処理は「[共通の処理と決まり](#共通の処理と決まり)」）。関心ごとに `time/`（日時）・`text/`（テキスト）・`worker/`（Worker の起動と待機）・`storage/`（保存。[STORAGE.md](STORAGE.md)）・`crypto/`（証明書・JWT で共通の暗号の部品）に分ける |
 | `src/calculation/` | 大容量計算の Worker（通信型・振り分け・入口・起動）。ツールを `import` で読み込んでよい、`src/tools/` の外の唯一の場所（静的検査あり）。例外として `src/registry.ts` は、`import.meta.glob` でツールの画面を遅延読み込みする |
 | `csp.config.ts`・`src/trustedTypes.ts` | CSP と Worker 用 Trusted Types ポリシー |
@@ -131,7 +131,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 画面の非同期の結果（署名の検証・指紋・ハッシュなど） | `src/hooks/useAsyncFor.ts`（計算処理に渡す型は `src/lib/asyncContext.ts` の `AsyncContext`） | 静的検査（取り消しの印 `cancelled` を画面で直接持たない） |
 | ファイルの読み込み | `src/hooks/useFileLoader.ts`（ツールの画面の入口）・`src/lib/file.ts`（`readFileWithin`・上限超過と読み込み失敗の文言） | 静的検査（`arrayBuffer` と上限超過の文言を直接書かない）・`src/lib/file.test.ts` |
 | テキストの行 | `src/lib/text/lines.ts`（`splitLines`。CRLF・LF・CR とその混在を区切りにする。行の文字列を作らずに走査するときは、同じ規則の `eachLineRange`（行の範囲）・`endsLineAt`（位置で行が終わるか）） | 静的検査（`split` に改行を直接渡さない）・`src/lib/text/lines.test.ts` |
-| UTF-8 にできない文字の検出 | `src/lib/text/surrogate.ts`（`findLoneSurrogate`・`describeAt`・`replacementWarning`。拒否と警告の使い分けは [USAGE.md](USAGE.md#utf-8に変換できない文字)） | 使う側の単体テスト（CSV・Base64・ハッシュ・署名） |
+| UTF-8 にできない文字の検出・文字数 | `src/lib/text/surrogate.ts`（`findLoneSurrogate`・`describeAt`・`replacementWarning`・配列を作らずに数える `codePointCount`。拒否と警告の使い分けは [USAGE.md](USAGE.md#utf-8に変換できない文字)） | `src/lib/text/surrogate.test.ts`・使う側の単体テスト（CSV・Base64・ハッシュ・署名） |
 | 長い出力の表示 | `src/components/FormattedOutput.tsx` の `TextOutputPreview` | 静的検査（ツールの画面で `textPreview` を直接呼ばない。差分の行は除く） |
 | 長い1つの値（表のマス・一覧の項目） | `src/components/ClippedText.tsx` | E2E |
 | 項目名と値の表の行 | `src/components/KvRow.tsx` | E2E |
@@ -151,7 +151,7 @@ CSS は `src/styles/` に置き、入口の `src/styles.css` から読み込み�
 | 日時の解析と表示 | 解析は `src/lib/time/dateTimeInput.ts`、表示は `src/lib/time/dateTimeFormat.ts`、変換と範囲の判定は `src/lib/time/timezone.ts`（範囲外は `DateRangeError`、夏時間で飛ばされる時刻は `NonexistentTimeError`。日本時間は `JST_ZONE`） | 静的検査（`'Asia/Tokyo'` を直接書かない。`getHours` などの現地時刻のメソッドを使わない）・`src/lib/time/dateTimeInput.test.ts`・`src/lib/time/dateTimeFormat.test.ts`・`src/lib/time/timezone.test.ts` |
 | 数の書式（件数・文字数・バイト数の3桁区切り） | `src/lib/number.ts` の `formatNumber` | 静的検査（`toLocaleString` を直接呼ばない）・`src/lib/number.test.ts` |
 | 今日の日付 | `src/hooks/useTodayJst.ts` | `src/lib/time/date.test.ts` |
-| 暦の中間計算 | `src/lib/time/civilTime.ts`（`src/lib/time/date.ts` と `src/lib/time/timezone.ts` の `addZonedElapsed` も同じ計算を使う） | `src/lib/time/civilTime.test.ts` |
+| 暦の中間計算 | `src/lib/time/civilTime.ts`（日付・時刻の変換と期間の計算は、ここの通算日の計算を使う。使う側は先頭のコメントにある） | `src/lib/time/civilTime.test.ts` |
 
 ### Base64を読むときの検証
 

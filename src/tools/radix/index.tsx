@@ -1,7 +1,7 @@
 /**
  * 進数変換・ビット演算のファイルの分担。
  * - `logic.ts`：整数の進数変換とビット演算
- * - `float.ts`：IEEE754 の丸め・四則演算・内部表現（整数の処理とは独立させる）
+ * - `float.ts`：IEEE754 の丸め・四則演算・内部表現（整数の処理とは、2の整数乗だけを共有する）
  * - `BitGrid.tsx`・`BitOperation.tsx`・`FloatView.tsx`：ビットの表示・ビット演算・浮動小数点の画面
  */
 import { useMemo } from 'react';
@@ -38,11 +38,10 @@ const WIDTHS: { value: Width; label: string }[] = [
   { value: 0, label: '制限なし' },
 ];
 
-
 export default function RadixTool() {
   const [text, setText] = useInput('radix:text');
   const [sourceText, setSourceText] = useInput('radix:base', '10');
-  const [width, setWidth] = usePreference<Width>('radix:width', 32, oneOf(0, 8, 16, 32, 64));
+  const [width, setWidth] = usePreference<Width>('radix:width', 32, oneOf(...WIDTHS.map(({ value }) => value)));
   /** 保存値を手で書き換えられても、対応する基数（2・8・10・16）以外は10進数として扱う（「7」で英語の例外の文言が出ないように） */
   const source: Base = BASES.find((b) => String(b) === sourceText) ?? 10;
 
@@ -151,4 +150,3 @@ export default function RadixTool() {
     </ToolShell>
   );
 }
-

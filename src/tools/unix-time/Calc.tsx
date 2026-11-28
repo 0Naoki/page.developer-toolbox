@@ -10,7 +10,6 @@ import { ErrorText } from '../../components/ErrorMessage';
 import { attempt } from '../../lib/errors';
 
 /** 日時の差と、期間の足し引きのパネル */
-
 export function Calc({ now, zones, inputZone, inputZones, setZone }: ZoneProps) {
   const [fromText, setFromText] = useInput('time:diff-from');
   const [toText, setToText] = useInput('time:diff-to');

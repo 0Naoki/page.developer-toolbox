@@ -1,6 +1,4 @@
-import type { Delimiter } from './csvFormat';
-
-export type Direction = 'csv2json' | 'json2csv';
+import type { Delimiter, Direction } from './csvFormat';
 
 /**
  * 入れ替え（出力を入力に移して向きを反転する）の後の変換方向と、移る先の向きの設定に使う区切り文字。

@@ -30,10 +30,10 @@ import {
   HEX_DUMP_MAX,
   MAX_FILE,
   type Charset,
+  type Direction,
   type EncodeMode,
 } from './logic';
-
-import { type Direction, type Source } from './conversion';
+import type { Source } from './conversion';
 import { decodedResultText, presentResult, savedFileOf, type View } from './presentation';
 import { useBase64File } from './useBase64File';
 import { OpenInToolButton } from '../../components/OpenInToolButton';

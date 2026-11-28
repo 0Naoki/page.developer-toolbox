@@ -1,8 +1,7 @@
 import { bytesToBase64 } from '../../lib/bytes';
 import { errorMessage } from '../../lib/errors';
-import { sniffType, toDataUri, type EncodeMode, type TextConversion } from './logic';
+import { sniffType, toDataUri, type Direction, type EncodeMode, type TextConversion } from './logic';
 
-export type Direction = 'encode' | 'decode';
 export type Source = 'text' | 'file';
 /** ファイルの中身はメモリ内だけで扱う。 */
 export type InputFile = { name: string; type: string; bytes: Uint8Array<ArrayBuffer> };

@@ -25,7 +25,8 @@ type FieldSpec = {
 };
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+/** 曜日の名前（0 が日曜の並び）。式の組み立て（build.ts）でも使う */
+export const WEEKDAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
 
 export const SPECS: Record<FieldName, FieldSpec> = {
   second: { label: '秒', min: 0, max: 59, suffix: '秒', every: '秒' },
@@ -33,7 +34,7 @@ export const SPECS: Record<FieldName, FieldSpec> = {
   hour: { label: '時', min: 0, max: 23, suffix: '時', every: '時間' },
   day: { label: '日', min: 1, max: 31, suffix: '日', every: '日' },
   month: { label: '月', min: 1, max: 12, suffix: '月', every: 'か月', names: MONTHS },
-  weekday: { label: '曜日', min: 1, max: 7, suffix: '曜日', every: '日', names: WEEKDAYS },
+  weekday: { label: '曜日', min: 1, max: 7, suffix: '曜日', every: '日', names: WEEKDAY_NAMES },
   year: { label: '年', min: 1970, max: 2199, suffix: '年', every: '年' },
 };
 

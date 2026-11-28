@@ -150,8 +150,8 @@ export default function TextDiff() {
                 <Badge tone="good">差分はありません</Badge>
               ) : (
                 <>
-                  <Badge tone="add">+{result.added} 行</Badge>
-                  <Badge tone="del">−{result.removed} 行</Badge>
+                  <Badge tone="add">+{formatNumber(result.added)} 行</Badge>
+                  <Badge tone="del">−{formatNumber(result.removed)} 行</Badge>
                 </>
               )}
               <span className="spacer" />
@@ -219,7 +219,7 @@ function FoldCell({ count, from, colSpan, onExpand }: { count: number; from: num
     <tr className="diff-fold">
       <td colSpan={colSpan}>
         <button type="button" className="link-btn" onClick={() => onExpand(from)}>
-          ⋯ 変更のない {count} 行を表示
+          ⋯ 変更のない {formatNumber(count)} 行を表示
         </button>
       </td>
     </tr>

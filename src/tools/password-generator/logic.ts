@@ -52,7 +52,7 @@ export function isPasswordOptions(value: unknown): value is PasswordOptions {
   if (!isRecord(value) || !integerBetween(MIN_LENGTH, MAX_LENGTH)(value.length) ||
       !isString(value.symbolSet) || !isString(value.exclude) ||
       !['upper', 'lower', 'digits', 'symbols', 'excludeAmbiguous', 'requireEach'].every((key) => isBoolean(value[key]))) return false;
-  return validate(value as PasswordOptions) === null;
+  return createPasswordPlan(value as PasswordOptions).ok;
 }
 
 /**
@@ -89,18 +89,6 @@ function selectedPools(o: PasswordOptions): string[][] {
   return pools;
 }
 
-/** オプションから使用できる文字種ごとの文字集合を作る（除外文字を反映済み） */
-export function buildPools(o: PasswordOptions): string[] {
-  const error = alphabetError(o);
-  if (error) throw new Error(error);
-  return selectedPools(o).filter((p) => p.length > 0).map((p) => p.join(''));
-}
-
-/** 設定の問題点を返す。問題なければ null */
-export function validate(o: PasswordOptions): string | null {
-  return alphabetError(o) ?? validatePools(o, selectedPools(o));
-}
-
 /** 用意した文字集合を使って、長さと必須の文字種の条件を確かめる。 */
 function validatePools(o: PasswordOptions, selected: string[][]): string | null {
   if (!Number.isInteger(o.length) || o.length < MIN_LENGTH || o.length > MAX_LENGTH) {
@@ -115,16 +103,14 @@ function validatePools(o: PasswordOptions, selected: string[][]): string | null 
   return null;
 }
 
-/** パスワードを1つ生成する */
-export function generatePassword(o: PasswordOptions, rng: Rng = cryptoRng): string {
-  const plan = createPasswordPlan(o);
-  if (!plan.ok) throw new Error(plan.error);
-  return plan.generate(rng);
-}
-
 export type PasswordPlan =
   | { ok: false; error: string; bits: 0 }
-  | { ok: true; error: null; bits: number; generate: (rng?: Rng) => string };
+  | {
+    ok: true; error: null; bits: number;
+    /** 選んだ文字種ごとの文字集合（除外を反映し、空の集合は除く）。1文字（コードポイント）ずつの配列 */
+    pools: readonly (readonly string[])[];
+    generate: (rng?: Rng) => string;
+  };
 
 /**
  * 検証・文字集合・生成方法・強度の前提を1回で確定する。乱数や生成結果は保持しない。
@@ -151,7 +137,7 @@ export function createPasswordPlan(o: PasswordOptions): PasswordPlan {
     (requireEach ? pools.reduce((sum, p) => sum + Math.log2(p.length), 0) : 0);
   const generate = (rng: Rng = cryptoRng) => {
     /** randomInt は 0 以上 s.length 未満を返す（?? '' は型のためだけ） */
-    const pick = (s: string[]) => s[randomInt(s.length, rng)] ?? '';
+    const pick = (s: readonly string[]) => s[randomInt(s.length, rng)] ?? '';
     const chars: string[] = [];
     if (requireEach) for (const p of pools) chars.push(pick(p));
     while (chars.length < length) chars.push(pick(all));
@@ -164,7 +150,7 @@ export function createPasswordPlan(o: PasswordOptions): PasswordPlan {
     }
     return chars.join('');
   };
-  return { ok: true, error: null, bits, generate };
+  return { ok: true, error: null, bits, pools, generate };
 }
 
 export function generateMany(o: PasswordOptions, count: number, rng: Rng = cryptoRng): string[] {
@@ -174,15 +160,16 @@ export function generateMany(o: PasswordOptions, count: number, rng: Rng = crypt
   return Array.from({ length: count }, () => plan.generate(rng));
 }
 
+/** PIN の桁数の範囲（画面の入力欄・保存値の検証と生成で同じ値を使う） */
+export const MIN_PIN_LENGTH = 4;
+export const MAX_PIN_LENGTH = 32;
+
 /** PIN（数字のみ）を生成する */
 export function generatePin(length: number, rng: Rng = cryptoRng): string {
-  if (!Number.isInteger(length) || length < 4 || length > 32) throw new Error('PINの桁数は4〜32で指定してください');
+  if (!Number.isInteger(length) || length < MIN_PIN_LENGTH || length > MAX_PIN_LENGTH) {
+    throw new Error(`PINの桁数は${MIN_PIN_LENGTH}〜${MAX_PIN_LENGTH}で指定してください`);
+  }
   return Array.from({ length }, () => String(randomInt(10, rng))).join('');
-}
-
-/** 生成計画と同じ保守的な強度（ビット）。無効な設定は0。 */
-export function entropyBits(o: PasswordOptions): number {
-  return createPasswordPlan(o).bits;
 }
 
 /** PIN のエントロピー（ビット）の目安 = 桁数 × log2(10)。パスワードと同じ式で、文字の種類数は数字の10 */

@@ -5,14 +5,12 @@
  * PEM・JWK の形の入力は受け付けない。鍵の形式を UTF-8 にしたときは、PEM の本文だけを貼るなど、鍵の形に見えない入力は見分けられない
  * （Base64 を選んだときは、復号したバイト列が公開鍵の形なら keys.ts が断る）。
  */
-import { prepareJws, type PreparedJws } from './jws';
+import type { PreparedJws } from './jws';
 import { algSpec, neededKey, type AlgSpec, type KeyType } from './alg';
 import { keyTypeOf, type PublicKey } from './keys';
 import { errorMessage } from '../../lib/errors';
 import { detailPreview } from '../../lib/text/textPreview';
-import { SIGNATURE_MISMATCH, verifyWithPublicKey, type PublicKeyData, type SignatureVerification } from '../../lib/crypto/signature';
-
-/** 検証 */
+import { cryptoErrorName, SIGNATURE_MISMATCH, verifyWithPublicKey, type PublicKeyData, type SignatureVerification } from '../../lib/crypto/signature';
 
 /** Web Crypto API に渡す JWK（公開鍵の値だけ。alg・key_ops などは自分で確かめる） */
 function cleanJwk(jwk: Record<string, unknown>): JsonWebKey {
@@ -22,34 +20,12 @@ function cleanJwk(jwk: Record<string, unknown>): JsonWebKey {
 
 export type VerifyKey = { kind: 'secret'; bytes: Uint8Array<ArrayBuffer> } | { kind: 'public'; key: PublicKey };
 
-const INVALID = SIGNATURE_MISMATCH;
-
 /**
- * 入力した鍵で JWS の署名を検証する。
+ * jws.ts の prepareJws で準備した JWS の署名を検証する。鍵を変えたときに、トークン全体の読み直しを繰り返さない。
  *
  * @remarks
  * 鍵の種類とアルゴリズムの一致、署名形式、未対応のヘッダ拡張も確認する。
  * クレームの受け入れや鍵の信頼性は判定しない。
- *
- * @param signingInput - Base64URL 表記のままの「ヘッダ.ペイロード」。
- * @param signature - Base64URL 表記の署名部分。
- * @param alg - デコードしたヘッダの署名アルゴリズム。
- * @param key - HMAC の共通鍵、または検証用の公開鍵。
- * @param subtle - Web Crypto API。省略時はブラウザの実装を使う。
- * @returns 署名の一致・不正・未対応と、その説明。
- */
-export function verifyJwt(
-  signingInput: string,
-  signature: string,
-  alg: unknown,
-  key: VerifyKey,
-  subtle: SubtleCrypto = crypto.subtle,
-): Promise<SignatureVerification> {
-  return verifyPreparedJws(prepareJws(signingInput, signature), alg, key, subtle);
-}
-
-/**
- * {@link prepareJws} で準備した JWS の署名を検証する。鍵を変えたときに、トークン全体の読み直しを繰り返さない。
  *
  * @param jws - トークンごとに1回だけ準備した、署名の対象と署名のバイト列。
  * @param alg - デコードしたヘッダの署名アルゴリズム。
@@ -79,9 +55,9 @@ export async function verifyPreparedJws(
     try {
       const k = await subtle.importKey('raw', key.bytes, { name: 'HMAC', hash: spec.hash }, false, ['verify']);
       const ok = await subtle.verify('HMAC', k, sig, data);
-      return ok ? { status: 'valid', message: '署名は正しく、この秘密鍵で作られています' } : { status: 'invalid', message: INVALID };
+      return ok ? { status: 'valid', message: '署名は正しく、この秘密鍵で作られています' } : { status: 'invalid', message: SIGNATURE_MISMATCH };
     } catch (e) {
-      return { status: 'unsupported', message: `秘密鍵を読み込めません（${(e as Error).name}）` };
+      return { status: 'unsupported', message: `秘密鍵を読み込めません（${detailPreview(cryptoErrorName(e))}）` };
     }
   }
 

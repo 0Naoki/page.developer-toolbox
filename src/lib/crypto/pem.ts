@@ -1,6 +1,3 @@
-import { base64ToBytes } from '../bytes';
-import { LINE_BREAK } from '../text/lines';
-
 /**
  * PEM（-----BEGIN 〜 -----END）の読み取り。証明書デコーダーと JWT の公開鍵の入力で共通に使う。
  *
@@ -8,6 +5,8 @@ import { LINE_BREAK } from '../text/lines';
  * どの種類のブロックを受け付けるか、何個まで読むか、秘密鍵をどう断るかは呼び出し側が決める。
  * ここでは、BEGIN と END の組・本文の Base64 を、どちらの入力でも同じ厳しさで読むことだけを受け持つ。
  */
+import { base64ToBytes } from '../bytes';
+import { LINE_BREAK } from '../text/lines';
 
 /** PEM の1つのブロック。type は BEGIN の行の種類（CERTIFICATE・PUBLIC KEY など） */
 export type PemBlock = { type: string; der: Uint8Array<ArrayBuffer> };

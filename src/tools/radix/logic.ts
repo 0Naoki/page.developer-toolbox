@@ -2,6 +2,7 @@
  * 進数変換・ビット演算。
  * 64ビットを超える値も正確に扱えるよう、整数はすべて BigInt で計算する。
  */
+import { formatNumber } from '../../lib/number';
 
 export type Base = 2 | 8 | 10 | 16;
 /** ビット幅。0 は制限なし（2の補数やバイト順は扱わない） */
@@ -42,12 +43,13 @@ export function parseInteger(input: string, base: Base): { value: bigint; base: 
     const bad = [...s].find((c) => !DIGITS[actual].test(c))!;
     throw new Error(`${BASE_NAMES[actual]}に使えない文字「${bad}」があります`);
   }
-  if (s.length > MAX_DIGITS) throw new Error(`桁数が多すぎます（${MAX_DIGITS}桁まで）`);
+  if (s.length > MAX_DIGITS) throw new Error(`桁数が多すぎます（${formatNumber(MAX_DIGITS)}桁まで）`);
   const abs = BigInt(actual === 10 ? s : `${BASE_PREFIX[actual]}${s}`);
   return { value: negative ? -abs : abs, base: actual };
 }
 
-const pow2 = (n: number) => 1n << BigInt(n);
+/** 2の整数乗（BigInt）。浮動小数点の内部表現（float.ts）のビット列の組み立てでも使う */
+export const pow2 = (n: number) => 1n << BigInt(n);
 
 /** ビット幅に収まる範囲（符号付きの最小値 〜 符号なしの最大値） */
 function rangeOf(width: Exclude<Width, 0>): { min: bigint; max: bigint } {
@@ -79,7 +81,7 @@ function groupDigits(digits: string, size: number): string {
 
 /**
  * 表示用の文字列。ビット幅があれば、2進数は幅いっぱいに、16進数は幅の 1/4 桁に0で埋める。
- * 2進数は4桁、16進数は4桁、10進数は3桁ごとに区切る
+ * 2進数・16進数は4桁、8進数は3桁ごとに空白で、10進数は3桁ごとにカンマで区切る
  */
 export function formatInteger(value: bigint, base: Base, width: Width): string {
   const negative = value < 0n;
@@ -87,7 +89,7 @@ export function formatInteger(value: bigint, base: Base, width: Width): string {
   if (width > 0 && base === 2) digits = digits.padStart(width, '0');
   if (width > 0 && base === 16) digits = digits.padStart(width / 4, '0');
   if (base === 16) digits = digits.toUpperCase();
-  const size = base === 10 ? 3 : base === 8 ? 3 : 4;
+  const size = base === 10 || base === 8 ? 3 : 4;
   const grouped = base === 10 ? groupDigits(digits, size).replace(/ /g, ',') : groupDigits(digits, size);
   return (negative ? '-' : '') + grouped;
 }
@@ -134,7 +136,7 @@ export const MAX_SHIFT = 4096;
 export function bitOp(op: BitOp, a: bigint, b: bigint, width: Width): bigint {
   const A = toUnsigned(a, width);
   const isShift = op === 'shl' || op === 'shr' || op === 'ushr';
-  if (isShift && (b < 0n || b > BigInt(MAX_SHIFT))) throw new Error(`シフト量は 0 〜 ${MAX_SHIFT} で指定してください`);
+  if (isShift && (b < 0n || b > BigInt(MAX_SHIFT))) throw new Error(`シフト量は 0 〜 ${formatNumber(MAX_SHIFT)} で指定してください`);
   const B = isShift ? b : op === 'not' ? 0n : toUnsigned(b, width);
   const mask = width === 0 ? null : pow2(width) - 1n;
   const fit = (v: bigint) => (mask === null ? v : v & mask);

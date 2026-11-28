@@ -29,7 +29,7 @@ test('営業日計算：自由入力の整数を丸めず、範囲外の値か�
   await page.getByRole('button', { name: 'n営業日後', exact: true }).click();
   const offset = page.getByLabel('営業日数（マイナスで前）');
   await offset.fill('1e1');
-  await expect(page.getByText('営業日数は ±3000 以内の整数で入力してください', { exact: true })).toBeVisible();
+  await expect(page.getByText('営業日数は ±3,000 以内の整数で入力してください', { exact: true })).toBeVisible();
   await offset.fill('-2');
   await expect(page.locator('.big-result')).toBeVisible();
 });

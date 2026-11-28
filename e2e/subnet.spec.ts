@@ -15,7 +15,6 @@ import { captureClipboard, copiedText, copiedLines, copiedLength } from './clipb
 import { CROSS_BROWSER } from './tags';
 import { downloadedText } from './files';
 
-
 /** 計算結果の表で、見出しが label の行 */
 const row = (page: Page, label: string) => page.locator('tr', { has: page.locator('th', { hasText: new RegExp(`^${label}$`) }) });
 const selectTab = (page: Page, name: string) => page.getByRole('group', { name: '機能' }).getByRole('button', { name, exact: true }).click();
@@ -252,7 +251,6 @@ test('サブネット：集約は重なりと隣り合う範囲をまとめ、�
   await expect(page.locator('.error-text').filter({ hasText: /^3行目：/ })).toBeVisible();
   await expect(page.locator('pre.code')).toHaveText(['10.0.0.0/24']);
 });
-
 
 test('サブネット：壊れた分割設定は復旧し、表示と計算が一致する', async ({ page }) => {
   await page.addInitScript(() => {

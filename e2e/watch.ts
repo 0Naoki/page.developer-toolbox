@@ -1,9 +1,8 @@
-import type { BrowserContext, Page } from '@playwright/test';
-
 /**
  * 外部への通信・CSP 違反・実行時エラーの監視（e2e/fixtures.ts の test が、すべてのケースで使う）。
  * ブラウザ自身の既知の報告（アプリのコードではないもの）だけを、ブラウザごとに除外する。除外の範囲は広げない
  */
+import type { BrowserContext, Page } from '@playwright/test';
 
 /**
  * WebKit は <select> の内部の部品にインラインのスタイルを使うため、<select> を置いただけで

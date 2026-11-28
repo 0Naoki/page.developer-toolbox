@@ -8,7 +8,8 @@ import { isBoolean, oneOf } from '../../lib/settings';
 import { decodeText, FileInputError, type TextEncodingName } from '../../lib/file';
 import { DEFAULT_CSV_TO_JSON, isCsvToJsonOptions, isEmptyConversionInput, type CsvToJsonOptions } from './logic';
 import { DEFAULT_JSON_TO_CSV, isJsonToCsvOptions, type JsonToCsvOptions } from './writeCsv';
-import { optionsForFile, optionsForSwap, type Direction } from './fileOptions';
+import { optionsForFile, optionsForSwap } from './fileOptions';
+import type { Direction } from './csvFormat';
 
 /**
  * CSV ⇔ JSON の画面の状態（入力・変換の向きと設定・ファイルの読み込み）と、計算の結果。

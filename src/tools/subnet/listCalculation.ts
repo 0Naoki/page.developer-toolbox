@@ -20,13 +20,18 @@ export function calculateSplit(input: string, newPrefix: number): { output: stri
   const { ip, prefix } = parseNetwork(input);
   return { output: splitNetworkOutput(subnetInfo(ip, prefix).network, prefix, newPrefix) };
 }
-/**
- * 入力の値（名前・ラベル）は、長い1行を結果として描画しないよう detailPreview で抜粋にする。
- * 診断文は、作る側で入力を抜粋にしてあるため、文言の上限（limitMessage）だけをかける。
- * 診断文全体を抜粋の上限で切り直すと、抜粋した入力の後ろにある理由が消える
- */
 
-/** messages は、IPv4・IPv6 それぞれの行の順で先頭 MAX_MESSAGES 件までを合わせたもの。total はすべての件数（文言を作っていない行を含む） */
+/**
+ * 一覧の診断文を、行の順で先頭 MAX_MESSAGES 件にする。
+ *
+ * @remarks
+ * 診断文は、作る側で入力を抜粋にしてあるため、文言の上限（limitMessage）だけをかける。
+ * 診断文全体を抜粋の上限（detailPreview）で切り直すと、抜粋した入力の後ろにある理由が消える。
+ * 結果に入れる入力の値（名前・ラベル）は、長い1行を描画しないよう、それぞれの計算で detailPreview にする（overlapEntry・calculateVlsm）。
+ *
+ * @param messages - IPv4・IPv6 それぞれの行の順で先頭 MAX_MESSAGES 件までを合わせたもの。
+ * @param total - すべての件数（文言を作っていない行を含む）。
+ */
 function firstMessages(messages: ListError[], total = messages.length) {
   return {
     items: messages.sort((a, b) => a.line - b.line).slice(0, MAX_MESSAGES)

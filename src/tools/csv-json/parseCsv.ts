@@ -1,4 +1,5 @@
 import type { Delimiter } from './csvFormat';
+import { codePointCount } from '../../lib/text/surrogate';
 
 export type ParseOptions = {
   /**
@@ -53,7 +54,7 @@ export function parseCsv(input: string, delimiter: Delimiter = ',', options: Par
     }
     /** "abc"def の def を黙って値に足すと、元と違う値になるため、位置を示してエラーにする */
     if (afterQuote && c !== delimiter && c !== '\n' && c !== '\r') {
-      const column = Array.from(text.slice(lineStart, i)).length + 1;
+      const column = codePointCount(text.slice(lineStart, i)) + 1;
       throw new Error(`${line}行${column}列目：閉じたダブルクォートの後に「${String.fromCodePoint(text.codePointAt(i)!)}」があります。値の中の " は "" と書き、値全体をダブルクォートで囲んでください`);
     }
     afterQuote = false;

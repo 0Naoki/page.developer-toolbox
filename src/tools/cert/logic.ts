@@ -1,3 +1,7 @@
+/**
+ * X.509 証明書と CSR（証明書署名要求）の解析。
+ * 表示に必要な項目だけを読む。署名の検証は verify.ts で行う。失効の確認（OCSP・CRL。通信が必要）は行わない。
+ */
 import { keyIdsCompatible, readName, sameBytes, sameName, type ParsedName } from './name';
 import { type DerItem } from './pem';
 import { oidName, readExtensions, type ExtensionSummary } from './extensions';
@@ -20,11 +24,6 @@ import {
   valueOf,
   type Node,
 } from '../../lib/crypto/asn1';
-
-/**
- * X.509 証明書と CSR（証明書署名要求）の解析。
- * 表示に必要な項目だけを読む。署名の検証は verify.ts で行う。失効の確認（OCSP・CRL。通信が必要）は行わない。
- */
 
 /** RSA の公開指数の長さの上限（通常は 65537 の3バイト。表示するだけなので、4096ビットの鍵と同じ長さまで読む） */
 const MAX_EXPONENT_BYTES = 512;

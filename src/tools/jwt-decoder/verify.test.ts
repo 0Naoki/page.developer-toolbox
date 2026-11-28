@@ -4,12 +4,15 @@ import { ED25519, LEAF, ROOT_CA } from '../cert/certificates.fixtures';
 import { LEAF_JWK, P384_JWK, P521_PUBLIC_PEM, RSA_JWK, RSA_PUBLIC_PEM, RSA_PUBLIC_PKCS1_PEM, SECRET, SECRET_BASE64, TOKENS, base64Url, decodeJwt } from './tokens.fixtures';
 import { readPublicKey, secretBytes, shortSecretWarning } from './keys';
 import { INVALID_BASE64_PADDING, VALID_BASE64_PADDING } from '../../lib/bytes.fixtures';
-import { verifyJwt, verifyPreparedJws, type VerifyKey } from './verify';
+import { verifyPreparedJws, type VerifyKey } from './verify';
 import { decodeTokenForScreen } from './calculation';
 import { prepareJws } from './jws';
 import { SAMPLE_SECRET, SAMPLE_TOKEN } from './sample';
 import { limitMessage, MESSAGE_LIMIT } from '../../lib/text/textPreview';
 
+/** 画面と同じく、prepareJws で準備してから検証する */
+const verifyJwt = (signingInput: string, signature: string, alg: unknown, key: VerifyKey, subtle?: SubtleCrypto) =>
+  verifyPreparedJws(prepareJws(signingInput, signature), alg, key, subtle);
 /** トークンの署名を、ヘッダの alg で検証する */
 const verify = (token: string, key: VerifyKey, subtle?: SubtleCrypto) => {
   const d = decodeJwt(token, 0);

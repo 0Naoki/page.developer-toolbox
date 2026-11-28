@@ -27,3 +27,24 @@ export function replacementWarning(text: string, done: string): string | null {
   const lone = findLoneSurrogate(text);
   return lone < 0 ? null : `${describeAt(text, lone)}などの対になっていないサロゲートは、UTF-8 で表せないため U+FFFD（�）に置き換えて${done}`;
 }
+
+/**
+ * 文字数（コードポイント数）。配列を作らずに数える（Array.from(s).length と同じ数）。
+ *
+ * @remarks
+ * サロゲートペアは1文字、対になっていないサロゲートも1文字と数える。長い入力でも、捨てるだけの文字の配列を作らないために使う。
+ */
+export function codePointCount(s: string): number {
+  let count = s.length;
+  for (let i = 0; i < s.length - 1; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = s.charCodeAt(i + 1);
+      if (d >= 0xdc00 && d <= 0xdfff) {
+        count--;
+        i++;
+      }
+    }
+  }
+  return count;
+}

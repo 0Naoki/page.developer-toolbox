@@ -1,6 +1,7 @@
 /** 数値・文字列・重複キーを元の表記で保持するJSON構文木。 */
 import { detailPreview } from './text/textPreview';
 import { endsLineAt } from './text/lines';
+import { codePointCount } from './text/surrogate';
 
 export type JsonNode =
   | { kind: 'object'; entries: { key: string; name: string; value: JsonNode }[] }
@@ -226,7 +227,7 @@ export function lineColumn(text: string, pos: number): { line: number; column: n
     line++;
     lineStart = i + 1;
   }
-  return { line, column: Array.from(text.slice(lineStart, pos)).length + 1 };
+  return { line, column: codePointCount(text.slice(lineStart, pos)) + 1 };
 }
 
 /**

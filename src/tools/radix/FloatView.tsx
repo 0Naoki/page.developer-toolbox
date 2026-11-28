@@ -13,7 +13,6 @@ import {
 } from './float';
 
 /** float・double の内部表現 */
-
 export function FloatView() {
   const [input, setInput] = useInput('radix:float');
   const [precision, setPrecision] = usePreference<Precision>('radix:precision', 64, oneOf(32, 64));

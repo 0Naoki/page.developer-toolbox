@@ -15,8 +15,6 @@ import { type BulkMode } from './epoch';
 import { isStoredZone, JST_ZONE, type Zone } from '../../lib/time/timezone';
 import { formatNumber } from '../../lib/number';
 
-/** ログの一括変換のパネル */
-
 /** サンプルのログ（秒・ミリ秒・マイクロ秒の時刻と、変換しない ID を含む、架空の値） */
 const SAMPLE = [
   '1790899200 INFO 起動しました',
@@ -24,6 +22,7 @@ const SAMPLE = [
   '{"ts": 1790899205123456, "level": "error", "msg": "接続を切断"}',
 ].join('\n');
 
+/** ログの一括変換のパネル */
 export function Bulk({ zones }: { zones: Zone[] }) {
   const [text, setText] = useInput('time:bulk');
   /** サンプルで入力を差し替えたとき、編集履歴を作り直す（LargeTextInput の resetKey） */

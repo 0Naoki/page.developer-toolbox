@@ -1,6 +1,7 @@
 import { isBoolean, isRecord, oneOf } from '../../lib/settings';
-import { checkCells, isDelimiter, MAX_CSV_OUTPUT, maxColumns, type Delimiter } from './csvFormat';
+import { checkCells, isDelimiter, MAX_CSV_OUTPUT, maxColumns, type Delimiter, type Direction } from './csvFormat';
 import { parseCsv } from './parseCsv';
+import { formatNumber } from '../../lib/number';
 
 /**
  * 項目名と値の組を、書かれた順のまま JSON のオブジェクトにする。
@@ -110,7 +111,7 @@ export type CsvToJsonResult = { json: string; rows: number; columns: number; war
  * CSV では空白も値の一部なので、空文字だけを空とし、空白・空行の扱いは CSV の設定に任せる。
  * JSON では空白だけの入力に値がないため、空白を除いて空なら空とする。
  */
-export const isEmptyConversionInput = (input: string, direction: 'csv2json' | 'json2csv'): boolean =>
+export const isEmptyConversionInput = (input: string, direction: Direction): boolean =>
   direction === 'csv2json' ? input === '' : input.trim() === '';
 
 export function csvToJson(input: string, o: CsvToJsonOptions): CsvToJsonResult {
@@ -133,7 +134,7 @@ export function csvToJson(input: string, o: CsvToJsonOptions): CsvToJsonResult {
   const headers = uniqueHeaders([...head, ...Array.from({ length: width - head.length }, () => '')]);
   if (new Set(head).size !== head.length) warnings.push('項目名が重複していたため、2つ目以降に連番を付けました');
   const ragged = body.filter((r) => r.length !== head.length).length;
-  if (ragged > 0) warnings.push(`${ragged}行で列数が項目名の数と一致しません`);
+  if (ragged > 0) warnings.push(`${formatNumber(ragged)}行で列数が項目名の数と一致しません`);
 
   const json = stringifyRows(body, o.indent, (r) => objectJson(headers, headers.map((_, i) => convert(r[i] ?? '')), o.indent));
   return { json, rows: body.length, columns: headers.length, warnings };

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { toolsByCategory, type ToolDef } from '../registry';
-import { isMac } from './platform';
+import { SEARCH_SHORTCUT } from './platform';
 
 function ToolChips({ title, tools }: { title: string; tools: ToolDef[] }) {
   if (tools.length === 0) return null;
@@ -23,7 +23,7 @@ export function Home({ recent, favorites }: { recent: ToolDef[]; favorites: Tool
     <section>
       <header className="tool-header">
         <h1>開発者向けユーティリティ</h1>
-        <p>よく使う変換・確認作業をブラウザだけで。{isMac ? '⌘K' : 'Ctrl+K'} でいつでも検索できます。</p>
+        <p>よく使う変換・確認作業をブラウザだけで。{SEARCH_SHORTCUT} でいつでも検索できます。</p>
       </header>
       <ToolChips title="お気に入り" tools={favorites} />
       <ToolChips title="最近使ったツール" tools={recent} />

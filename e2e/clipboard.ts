@@ -1,6 +1,5 @@
-import type { Page } from '@playwright/test';
-
 /** コピーした内容の記録（OS のクリップボードは変えない） */
+import type { Page } from '@playwright/test';
 
 type ClipboardWindow = Window & { __copiedText?: string };
 

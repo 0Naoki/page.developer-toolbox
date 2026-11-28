@@ -61,7 +61,7 @@
 
 1. [Claude の GitHub App](https://github.com/apps/claude) をインストールし、**Only select repositories** でこのリポジトリだけを選ぶ（リポジトリを取り出し、Issue を登録するために必要）
 2. [claude.ai/code/routines](https://claude.ai/code/routines) で新しいタスクを作る
-   - **指示文**：下の「定期レビューの指示文」を貼り付け、`<OWNER>/<REPO>` をこのリポジトリ（`0Naoki/page.developer-toolbox`）に置き換える
+   - **指示文**：下の「定期レビューの指示文」を貼り付け、`<OWNER>/<REPO>` を、このリポジトリの所有者と名前（`所有者/リポジトリ名`）に置き換える
    - **リポジトリ**：このリポジトリ
    - **環境**：Default（ネットワークは Trusted のままでよい）
    - **トリガー**：スケジュールのみ、毎週1回（例：月曜の朝）。Pro の使用量を節約するため、毎日にはしない。GitHub トリガー・API トリガーは追加しない

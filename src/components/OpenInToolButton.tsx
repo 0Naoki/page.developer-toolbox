@@ -19,7 +19,7 @@ export function OpenInToolButton({ to, text, limit }: { to: ToolId; text: string
       type="button"
       className="btn btn-ghost"
       disabled={!text || tooLarge}
-      title={tooLarge && limit !== undefined ? `${name}の入力の上限（${formatNumber(limit)}文字）を超えています` : undefined}
+      title={tooLarge ? `${name}の入力の上限（${formatNumber(limit)}文字）を超えています` : undefined}
       onClick={() => {
         handOff(to, text);
         navigate(`/${to}`);

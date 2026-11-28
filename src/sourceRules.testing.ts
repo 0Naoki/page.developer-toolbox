@@ -108,7 +108,7 @@ export const SOURCE_RULES: SourceRule[] = [
     appliesTo: (file) => file.endsWith('.tsx'),
     allowed: {
       '/src/components/Pane.tsx': '共通の部品そのもの',
-      '/src/components/FormattedOutput.tsx': '見出しのない Pane の中に置く、整形結果の見出し（保存・コピー・折り返しの操作）',
+      '/src/components/FormattedOutput.tsx': '見出しのない Pane の中に置く、整形結果の見出し（コピー・全文の保存の操作）',
     },
     detects: ['<div className="pane"><div className="pane-head">入力</div></div>', '<span className="pane-head">置換文字列</span>', '<div className="stack pane">{children}</div>'],
     ignores: ['<Pane title="入力" actions={<CopyButton text={text} />}>{children}</Pane>', '<span className="muted pane-sub">{summary}</span>', '<div className="panel" />'],
@@ -150,9 +150,6 @@ export const SOURCE_RULES: SourceRule[] = [
     fix: 'src/lib/text/lines.ts の splitLines を使う',
     /** 処理ごとに書くと、CR だけの改行や混在した改行の扱いと行番号が処理によって食い違うため */
     pattern: /\.split\(\s*(?:\/[^/\n]*\\[rn]|(['"`])(?:\\r\\n|\\r|\\n)\1)/,
-    allowed: {
-      '/src/tools/text-count/count.ts': '書記素を数えるための分割で、行番号を扱わない',
-    },
     detects: ['text.split(/\\r?\\n/)', "text.split('\\n')", 'text.split(/\\r\\n|\\r|\\n/, 10)', "text.split('\\r\\n')", 'text.split(`\\n`)'],
     ignores: ['splitLines(text)', 'body.split(LINE_BREAK)', 'line.split(/\\s+/)', "line.split(',')"],
   },

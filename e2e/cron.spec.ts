@@ -12,7 +12,6 @@ import { expect, test } from './fixtures';
 import { type Page } from '@playwright/test';
 import { CROSS_BROWSER } from './tags';
 
-
 const expression = (page: Page) => page.getByRole('textbox', { name: 'cron式', exact: true });
 const runs = (page: Page) => page.getByRole('table', { name: '次回の実行日時' }).getByRole('row');
 const breakdown = (page: Page) => page.getByRole('table', { name: '項目ごとの内訳' });

@@ -20,7 +20,6 @@ import { MAX_FILE, WEAK_ALGORITHMS, sameHash, surrogateWarning } from './logic';
 import { ErrorBox } from '../../components/ErrorMessage';
 import { errorMessage } from '../../lib/errors';
 import { Check } from '../../components/Check';
-
 import { createHashComputer, type HashInput, type HashResult, type Row } from './computeHashes';
 
 type Source = 'text' | 'file';

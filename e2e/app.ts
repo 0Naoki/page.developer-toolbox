@@ -1,7 +1,6 @@
+/** アプリ全体の操作（メニュー・ツール検索・全消去）と、描画の待ち合わせ */
 import { expect, type Page } from '@playwright/test';
 import { toolCatalog } from '../src/toolCatalog';
-
-/** アプリ全体の操作（メニュー・ツール検索・全消去）と、描画の待ち合わせ */
 
 export const TOOLS = toolCatalog.map(({ id, name }) => [id, name] as const);
 

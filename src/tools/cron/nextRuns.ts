@@ -69,7 +69,8 @@ export function nextRuns(cron: CronExpression, zone: Zone, from: number, count: 
     for (const mo of months) {
       if (y === start.y && mo < start.mo) continue;
       const first = y === start.y && mo === start.mo ? start.d : 1;
-      for (let d = first; d <= daysInMonth(y, mo); d++) {
+      const last = daysInMonth(y, mo);
+      for (let d = first; d <= last; d++) {
         if (!matchesDate(cron, y, mo, d)) continue;
         for (const h of hours) {
           for (const mi of minutes) {
