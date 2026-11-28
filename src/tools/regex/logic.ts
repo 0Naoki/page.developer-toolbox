@@ -143,7 +143,7 @@ export function evaluateRegex(input: RegexInput, timeBudgetMs = TIME_BUDGET_MS):
     const append = (piece: string) => {
       if (piece === '') return;
       outputLength += piece.length;
-      if (outputLength > MAX_OUTPUT) throw new Error('置換結果が大きすぎます（100万文字まで）');
+      if (outputLength > MAX_OUTPUT) throw new Error(`置換結果が大きすぎます（${MAX_OUTPUT / 10_000}万文字まで）`);
       output.push(piece);
     };
     for (;;) {
@@ -166,7 +166,7 @@ export function evaluateRegex(input: RegexInput, timeBudgetMs = TIME_BUDGET_MS):
           captures.push(capture(`$<${name}>`, value, match.indices?.groups?.[name]));
         }
         resultLength += match[0].length;
-        if (resultLength > MAX_OUTPUT) throw new Error('マッチとキャプチャの合計が大きすぎます（100万文字まで）');
+        if (resultLength > MAX_OUTPUT) throw new Error(`マッチとキャプチャの合計が大きすぎます（${MAX_OUTPUT / 10_000}万文字まで）`);
         matches.push({ value: match[0], start: match.index, end: match.index + match[0].length, captures });
       }
       if (!replacementError) {

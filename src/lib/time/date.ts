@@ -1,5 +1,6 @@
 /** 年月日（暦の日付）の計算と、日本時間の今日の日付。時刻とタイムゾーンの変換は timezone.ts にある。 */
 import { civilFromDays, daysFromCivil } from './civilTime';
+import { DAY_MS, JST_OFFSET_MS } from './timezone';
 
 /**
  * タイムゾーンの影響を受けない「日付だけ」の値。
@@ -16,6 +17,9 @@ export function isValidYmd({ y, m, d }: Ymd): boolean {
   return d <= daysInMonth(y, m);
 }
 
+/** 月ごとの日数（2月はうるう年でない年）。呼ぶたびに配列を作らないよう、1つだけ持つ */
+const DAYS_IN_MONTH: readonly number[] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
 /** グレゴリオ暦のうるう年かを返す。 */
 const isLeapYear = (y: number): boolean => y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
 
@@ -24,7 +28,8 @@ const isLeapYear = (y: number): boolean => y % 4 === 0 && (y % 100 !== 0 || y % 
  * 28日（1900年として）にしてしまうため、計算で求める
  */
 export function daysInMonth(y: number, m: number): number {
-  const days = [31, isLeapYear(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+  if (m === 2) return isLeapYear(y) ? 29 : 28;
+  const days = DAYS_IN_MONTH[m - 1];
   if (days === undefined) throw new RangeError(`月は 1〜12 です（${m}）`);
   return days;
 }
@@ -50,7 +55,7 @@ export const compareYmd = (a: Ymd, b: Ymd) => toDayNumber(a) - toDayNumber(b);
 export const formatYmd = ({ y, m, d }: Ymd, sep = '-') =>
   `${String(y).padStart(4, '0')}${sep}${String(m).padStart(2, '0')}${sep}${String(d).padStart(2, '0')}`;
 
-/** 全角数字・全角記号を半角にする */
+/** 全角数字と、日付の区切りに使う全角の記号（．／－）を半角にする。長音符（ー）もハイフンとして読む（区切りに使われることがあるため） */
 export const toHalfWidthDigits = (s: string) =>
   s.replace(/[０-９．／－ー]/g, (c) => {
     if (c === 'ー') return '-';
@@ -88,11 +93,6 @@ export function parseYmd(input: string): Ymd {
   if (v === 'invalid') throw new Error('存在しない日付です');
   return v;
 }
-
-/** 1日のミリ秒 */
-const DAY_MS = 86_400_000;
-/** 日本時間の UTC からの時差（ミリ秒）。日本時間には夏時間がない */
-const JST_OFFSET_MS = 9 * 3_600_000;
 
 /**
  * UNIX 時刻から日本時間の日付を求める。

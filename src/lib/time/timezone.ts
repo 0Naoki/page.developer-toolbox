@@ -7,6 +7,12 @@ export type Zone = string;
 /** 日本時間のタイムゾーン名。各ツールの既定の表示と、cron の基準日時に使う。ツールでは直書きせずにこれを使う（静的検査あり） */
 export const JST_ZONE: Zone = 'Asia/Tokyo';
 
+/** 日本時間の UTC からのずれ（ミリ秒）。日本時間には夏時間がない。1888年より前の東京は地方平均時（+09:18:59）で、これと違う */
+export const JST_OFFSET_MS = 9 * 3_600_000;
+
+/** 1日のミリ秒 */
+export const DAY_MS = 86_400_000;
+
 /** タイムゾーンの一覧を取れない古いブラウザ向けの、よく使うもの */
 const FALLBACK_ZONES = [JST_ZONE, 'UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Shanghai', 'Asia/Singapore', 'Australia/Sydney'];
 
@@ -81,7 +87,7 @@ export type Wall = { y: number; mo: number; d: number; h: number; mi: number; s:
  * Date の範囲を少し超える壁時計（範囲の端の時刻を東京時間で見たときなど）も、NaN にせず計算する
  */
 export function utcOf(w: Wall): number {
-  return daysFromCivil(w.y, w.mo, w.d) * 86400000 + ((w.h * 60 + w.mi) * 60 + w.s) * 1000 + w.ms;
+  return daysFromCivil(w.y, w.mo, w.d) * DAY_MS + ((w.h * 60 + w.mi) * 60 + w.s) * 1000 + w.ms;
 }
 
 /** 時刻 ms の、そのタイムゾーンでの壁時計の日時 */
@@ -109,6 +115,9 @@ export const offsetMs = (ms: number, zone: Zone): number => utcOf(wallOf(ms, zon
 
 /** Date で表せる時刻の上限（エポックから±1億日のミリ秒） */
 export const MAX_DATE_MS = 8.64e15;
+
+/** 時刻を Date で表せる範囲に寄せる（前後1日の時差を調べるとき、範囲の端で範囲を超えないように） */
+const clampToDateRange = (t: number) => Math.min(MAX_DATE_MS, Math.max(-MAX_DATE_MS, t));
 
 /**
  * 日時が Date で表せる範囲（エポックから±1億日）を超えた。
@@ -153,9 +162,8 @@ export function zonedToUtc(w: Wall, zone: Zone, strict = true): number {
  */
 export function nonexistentGapEnd(w: Wall, zone: Zone): Wall {
   const guess = utcOf(w);
-  const near = (t: number) => Math.min(MAX_DATE_MS, Math.max(-MAX_DATE_MS, t));
-  const before = offsetMs(near(guess - 86400000), zone);
-  const after = offsetMs(near(guess + 86400000), zone);
+  const before = offsetMs(clampToDateRange(guess - DAY_MS), zone);
+  const after = offsetMs(clampToDateRange(guess + DAY_MS), zone);
   /** w は「切り替え前のずれ」で読むと切り替えの後、「切り替え後のずれ」で読むと切り替えの前の時刻になる */
   let lo = guess - after;
   let hi = guess - before;
@@ -180,9 +188,9 @@ export function nonexistentGapEnd(w: Wall, zone: Zone): Wall {
 export function addZonedElapsed(w: Wall, zone: Zone, elapsedMs: number): Date {
   const offset = resolveZonedOffset(w, zone, false, true);
   /** 中間のミリ秒は安全な整数の範囲を超え得るため、経過時間との相殺が終わるまで整数で保つ。 */
-  const calendarMs = BigInt(daysFromCivil(w.y, w.mo, w.d)) * 86400000n + BigInt(((w.h * 60 + w.mi) * 60 + w.s) * 1000 + w.ms);
+  const calendarMs = BigInt(daysFromCivil(w.y, w.mo, w.d)) * BigInt(DAY_MS) + BigInt(((w.h * 60 + w.mi) * 60 + w.s) * 1000 + w.ms);
   const result = calendarMs - BigInt(offset) + BigInt(elapsedMs);
-  if (result < -8640000000000000n || result > 8640000000000000n) throw new DateRangeError();
+  if (result < -BigInt(MAX_DATE_MS) || result > BigInt(MAX_DATE_MS)) throw new DateRangeError();
   return checked(Number(result));
 }
 
@@ -193,9 +201,7 @@ function resolveZonedOffset(w: Wall, zone: Zone, strict: boolean, allowOutside: 
    * ずれは時刻によって変わるため、前後のずれで2回試す
    * 分に丸めたずれを使うと、秒を含むずれの時代で候補が秒単位でずれ、存在する日時も見つからなくなる
    */
-  /** 前後1日の時刻は、Date の範囲の端では範囲を超えるため、範囲内に寄せてずれを調べる */
-  const near = (t: number) => Math.min(MAX_DATE_MS, Math.max(-MAX_DATE_MS, t));
-  const offsets: [number, number] = [offsetMs(near(guess - 86400000), zone), offsetMs(near(guess + 86400000), zone)];
+  const offsets: [number, number] = [offsetMs(clampToDateRange(guess - DAY_MS), zone), offsetMs(clampToDateRange(guess + DAY_MS), zone)];
   const candidates = offsets.map((offset) => ({ time: guess - offset, offset }));
   const inRange = candidates.filter((c) => Math.abs(c.time) <= MAX_DATE_MS);
   if (inRange.length === 0) {

@@ -10,10 +10,10 @@ const randomBytes = (n: number, rng: Rng) => {
   return b;
 };
 
-function formatUuid(bytes: Uint8Array): string {
-  const h = toHex(bytes);
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
+/** 32桁の16進数を、ハイフンで区切った UUID の表記（8-4-4-4-12 桁）にする */
+const hyphenateUuid = (h: string): string => `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+
+const formatUuid = (bytes: Uint8Array): string => hyphenateUuid(toHex(bytes));
 
 /** UUID v4（完全ランダム） */
 export function uuidV4(rng: Rng = cryptoRng): string {
@@ -154,7 +154,7 @@ export function inspectId(input: string): Inspection {
     const version = parseInt(h.charAt(12), 16);
     const v = parseInt(h.charAt(16), 16);
     const variant = v < 8 ? 'NCS（旧形式）' : v < 12 ? 'RFC 9562' : v < 14 ? 'Microsoft' : '予約';
-    const canonical = `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    const canonical = hyphenateUuid(h);
     const base = { kind: 'uuid' as const, version, variant, canonical };
     if (variant === 'RFC 9562') {
       if (version === 7) return { ...base, timeStatus: 'decoded', time: parseInt(h.slice(0, 12), 16) };

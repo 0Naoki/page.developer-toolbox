@@ -5,7 +5,6 @@ import { detailPreview } from '../../lib/text/textPreview';
 import { isImeComposing } from '../../lib/keyboard';
 
 /** 表示するタイムゾーンの追加・削除 */
-
 export function ZoneEditor({ zones, setZones }: { zones: Zone[]; setZones: (z: Zone[]) => void }) {
   const [draft, setDraft] = useState('');
   const all = useMemo(availableZones, []);

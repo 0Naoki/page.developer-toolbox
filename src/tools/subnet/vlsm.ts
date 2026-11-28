@@ -51,7 +51,7 @@ const HOSTS_FORMAT = '「営業部 120」のように、名前と必要なホス
 export function prefixForHosts(hosts: number, cloud = false): number {
   const reserved = cloud ? CLOUD_RESERVED : 2;
   for (let p = cloud ? 28 : 30; p >= 0; p--) if (2 ** (32 - p) - reserved >= hosts) return p;
-  throw new Error(`${hosts} ホストを収められるサブネットはありません`);
+  throw new Error(`${formatNumber(hosts)} ホストを収められるサブネットはありません`);
 }
 
 /**

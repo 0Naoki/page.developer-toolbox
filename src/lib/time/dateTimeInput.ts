@@ -1,6 +1,6 @@
 /** 日時の入力の解析。表示した日時（dateTimeFormat.ts）を入力に貼り戻すと、同じ時刻に読む。 */
 import { dayOfWeek, daysInMonth, WEEKDAYS_JA } from './date';
-import { checked, isValidZone, utcOf, zonedToUtc, type Wall, type Zone } from './timezone';
+import { checked, isValidZone, JST_OFFSET_MS, utcOf, zonedToUtc, type Wall, type Zone } from './timezone';
 
 /**
  * 表示に添えた曜日（「（月）」「(月)」）。cron の次回の実行日時などの表示を、そのまま貼り戻せるようにする。
@@ -35,7 +35,7 @@ export function parseDateTime(input: string, zone: Zone): Date {
   }
   const wall: Wall = { y: Number(y), mo: month, d: Number(d), h: Number(h), mi: Number(mi), s: Number(sec), ms: Number(frac.slice(1, 4).padEnd(3, '0')) };
   if (tz) {
-    if (/^[a-z]/i.test(tz)) return checked(utcOf(wall) - (tz.toUpperCase() === 'JST' ? 540 : 0) * 60000);
+    if (/^[a-z]/i.test(tz)) return checked(utcOf(wall) - (tz.toUpperCase() === 'JST' ? JST_OFFSET_MS : 0));
     const hours = Number(tz.slice(1, 3));
     const minutes = Number(tz.slice(3).replace(':', '').slice(0, 2));
     const seconds = tz.length === 9 ? Number(tz.slice(7)) : 0;

@@ -1,5 +1,4 @@
 import type { ListError } from './ranges';
-
 import { MAX_MESSAGES } from './listCalculation';
 import { ErrorText } from '../../components/ErrorMessage';
 import { previewList } from '../../lib/listPreview';

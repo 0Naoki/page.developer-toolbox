@@ -15,12 +15,10 @@ export function createClearOperations(io: { local: () => StorageLike; session: (
     start(): ClearState {
       let recorded = io.recordGeneration();
       const keys = safe(sharedKeys, null);
-      const local: ClearState['local'] = keys === null ? 'unknown' : new Set<string>();
-      if (keys && local !== 'unknown') {
-        for (const key of keys) {
-          if (!safe(() => { io.local().removeItem(key); return true; }, false)) local.add(key);
-        }
-      }
+      /** 消せなかったキーだけを残す（再試行で、消えたかを確かめる） */
+      const local: ClearState['local'] = keys === null
+        ? 'unknown'
+        : new Set(keys.filter((key) => !safe(() => { io.local().removeItem(key); return true; }, false)));
       const session = clearTab();
       if (!recorded) recorded = io.recordGeneration();
       return { local, session, recorded };

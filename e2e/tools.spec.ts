@@ -73,7 +73,7 @@ test('テキスト差分：比較結果が変わると、展開した箇所を�
   await page.getByRole('textbox', { name: '変更前', exact: true }).fill(lines.join('\n'));
   const after = page.getByRole('textbox', { name: '変更後', exact: true });
   await after.fill(['changed 1', ...lines.slice(1)].join('\n'));
-  const fold = page.getByRole('button', { name: /変更のない \d+ 行を表示/ });
+  const fold = page.getByRole('button', { name: /変更のない [\d,]+ 行を表示/ });
   await fold.click();
   await expect(fold).toHaveCount(0);
 

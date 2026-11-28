@@ -1,36 +1,22 @@
 import { useMemo } from 'react';
 import { usePreference } from '../../hooks/usePreference';
-import { integerBetween } from '../../lib/settings';
 import { compareYmd, formatYmd, type Ymd } from '../../lib/time/date';
 import { HOLIDAY_MAX_YEAR, HOLIDAY_MIN_YEAR, holidaysOfYear } from './holidays';
-import { withDow } from './tabFields';
+import { withDow, YearSelect } from './tabFields';
+import { yearChoices } from './numericInput';
 import { attempt } from '../../lib/errors';
 import { ErrorText } from '../../components/ErrorMessage';
 
 export function HolidaysTab({ today }: { today: Ymd }) {
-  const currentYear = Math.min(HOLIDAY_MAX_YEAR, Math.max(HOLIDAY_MIN_YEAR, today.y));
-  const minYear = Math.max(HOLIDAY_MIN_YEAR, currentYear - 10);
-  const maxYear = Math.min(HOLIDAY_MAX_YEAR, currentYear + 10);
-  const isYear = integerBetween(minYear, maxYear);
-  const [savedYear, setYear] = usePreference('bizdays:hyear', currentYear, isYear);
-  const year = isYear(savedYear) ? savedYear : currentYear;
+  const { current, years, isYear } = yearChoices(today.y, { min: HOLIDAY_MIN_YEAR, max: HOLIDAY_MAX_YEAR });
+  const [savedYear, setYear] = usePreference('bizdays:hyear', current, isYear);
+  const year = isYear(savedYear) ? savedYear : current;
   const list = useMemo(() => attempt(() => ({ holidays: holidaysOfYear(year) })), [year]);
-  const years: number[] = [];
-  for (let y = minYear; y <= maxYear; y++) years.push(y);
 
   return (
     <>
       <div className="toolbar">
-        <label>
-          年
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}年
-              </option>
-            ))}
-          </select>
-        </label>
+        <YearSelect value={year} years={years} onChange={setYear} />
       </div>
       {!list.ok && <ErrorText message={list.error} />}
       {list.ok && (

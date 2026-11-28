@@ -1,6 +1,5 @@
-import type { Certificate } from './logic';
-
 /** 証明書の有効期間の評価。解析と署名検証から独立した、現在時刻に対する判定。 */
+import type { Certificate } from './logic';
 
 export type Validity = { status: 'notYet' | 'expired' | 'soon' | 'valid'; daysLeft: number };
 

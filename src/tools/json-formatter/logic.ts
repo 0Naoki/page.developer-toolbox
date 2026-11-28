@@ -1,6 +1,3 @@
-import { JsonSyntaxError, lineColumn, parseJsonSource, serializeJsonTree } from '../../lib/jsonTree';
-import { formatNumber } from '../../lib/number';
-
 /**
  * 値を一切変えない JSON 整形。
  *
@@ -11,6 +8,8 @@ import { formatNumber } from '../../lib/number';
  *   - 重複したキーが黙って消える
  * といった問題が起きる。そのため自前で構文解析し、数値と文字列は元の表記のまま出力する。
  */
+import { JsonSyntaxError, lineColumn, parseJsonSource, serializeJsonTree } from '../../lib/jsonTree';
+import { formatNumber } from '../../lib/number';
 
 export type JsonIndent = 2 | 4 | 'tab' | 'minify';
 

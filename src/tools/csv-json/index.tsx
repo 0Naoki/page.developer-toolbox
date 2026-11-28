@@ -4,7 +4,7 @@
  * - `writeCsv.ts`：JSON からの CSV の出力
  * - `validateJson.ts`：列へ展開する前に、JSONの各オブジェクトの重複キーを拒否
  * - `logic.ts`：CSV から JSON への変換
- * - `csvFormat.ts`：両方向で共通の形式（区切り文字・セル数と出力の上限）
+ * - `csvFormat.ts`：両方向で共通の形式（変換の方向・区切り文字・セル数と出力の上限）
  * - `fileOptions.ts`：ファイル名や入れ替えから、変換の方向と区切り文字を選ぶ
  * - `calculation.ts`：計算 Worker で、要求の方向に変換して画面に返す形にする
  * - `useCsvJson.ts`：画面の状態（入力・変換の向きと設定・ファイルの読み込み）と計算の結果をまとめるフック
@@ -23,8 +23,7 @@ import { ToolShell } from '../../components/ToolShell';
 import { downloadText, type TextEncodingName } from '../../lib/file';
 import { TextOutputPreview } from '../../components/FormattedOutput';
 import { ErrorBox } from '../../components/ErrorMessage';
-import { type Delimiter } from './csvFormat';
-import type { Direction } from './fileOptions';
+import type { Delimiter, Direction } from './csvFormat';
 import { OpenInToolButton } from '../../components/OpenInToolButton';
 import { useCsvJson } from './useCsvJson';
 

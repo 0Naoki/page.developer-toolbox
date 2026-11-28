@@ -3,7 +3,8 @@
  */
 import type { DiffLine, DiffResult } from './logic';
 
-type UnifiedItem = { mark: ' ' | '-' | '+'; text: string; a?: DiffLine; b?: DiffLine };
+/** 共通行は変更前と変更後の行、削除は変更前の行、追加は変更後の行を持つ */
+type UnifiedItem = { mark: ' '; a: DiffLine; b: DiffLine } | { mark: '-'; a: DiffLine } | { mark: '+'; b: DiffLine };
 
 const NO_NEWLINE = '\\ No newline at end of file';
 
@@ -16,7 +17,6 @@ const CONTEXT = 3;
  * 空白・大文字小文字を無視したときに一致した行は、変更前の行を共通行として出す
  */
 export function toUnified(result: Pick<DiffResult, 'rows'>): string {
-  const context = CONTEXT;
   const rows = result.rows;
   let aCount = 0;
   let bCount = 0;
@@ -38,8 +38,8 @@ export function toUnified(result: Pick<DiffResult, 'rows'>): string {
   /** 連続する変更は、削除をすべて並べてから追加を並べる */
   const items: UnifiedItem[] = [];
   const pushChange = (dels: DiffLine[], adds: DiffLine[]) => {
-    for (const a of dels) items.push({ mark: '-', text: a.text, a });
-    for (const b of adds) items.push({ mark: '+', text: b.text, b });
+    for (const a of dels) items.push({ mark: '-', a });
+    for (const b of adds) items.push({ mark: '+', b });
   };
   let dels: DiffLine[] = [];
   let adds: DiffLine[] = [];
@@ -51,7 +51,7 @@ export function toUnified(result: Pick<DiffResult, 'rows'>): string {
       pushChange(dels, adds);
       dels = [];
       adds = [];
-      items.push({ mark: ' ', text: a.text, a, b });
+      items.push({ mark: ' ', a, b });
       continue;
     }
     if (a) dels.push(a);
@@ -78,12 +78,12 @@ export function toUnified(result: Pick<DiffResult, 'rows'>): string {
   const range = (start: number, count: number) => `${count === 0 ? start : start + 1}${count === 1 ? '' : `,${count}`}`;
   const out = ['--- before', '+++ after'];
   for (let c = 0; c < changed.length; ) {
-    /** 変更の間の共通行が 2×context 行以下なら、同じハンクにまとめる */
+    /** 変更の間の共通行が 2×CONTEXT 行以下なら、同じハンクにまとめる */
     let last = c;
     /** c・last は changed の範囲内、from は items の範囲内（! はそれを示すだけ） */
-    while (last + 1 < changed.length && changed[last + 1]! - changed[last]! - 1 <= context * 2) last++;
-    const from = Math.max(0, changed[c]! - context);
-    const to = Math.min(items.length, changed[last]! + context + 1);
+    while (last + 1 < changed.length && changed[last + 1]! - changed[last]! - 1 <= CONTEXT * 2) last++;
+    const from = Math.max(0, changed[c]! - CONTEXT);
+    const to = Math.min(items.length, changed[last]! + CONTEXT + 1);
     const hunk = items.slice(from, to);
     const aLen = hunk.filter((it) => it.mark !== '+').length;
     const bLen = hunk.filter((it) => it.mark !== '-').length;
@@ -91,8 +91,8 @@ export function toUnified(result: Pick<DiffResult, 'rows'>): string {
     for (const it of hunk) {
       /** 元の行が CRLF なら、行の内容に CR を付ける（CRLF のファイルに git apply・patch で適用できるように） */
       const line = it.mark === '+' ? it.b : it.a;
-      out.push(it.mark + it.text + (line?.crlf ? '\r' : ''));
-      if (it.mark === '+' ? lacksNlB(it.b) : lacksNlA(it.a)) out.push(NO_NEWLINE);
+      out.push(it.mark + line.text + (line.crlf ? '\r' : ''));
+      if (it.mark === '+' ? lacksNlB(line) : lacksNlA(line)) out.push(NO_NEWLINE);
     }
     c = last + 1;
   }

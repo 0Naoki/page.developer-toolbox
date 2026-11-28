@@ -1,6 +1,5 @@
-import { assertTag, rawOf, readOid, readString, TAG, toUpperHex, type Node } from '../../lib/crypto/asn1';
-
 /** 証明書の名前（発行者・主体）の読み取りと比較 */
+import { assertTag, rawOf, readOid, readString, TAG, toUpperHex, type Node } from '../../lib/crypto/asn1';
 
 /** バイト列が同じか（名前の DER の比較と、署名アルゴリズムの比較に使う） */
 export const sameBytes = (a: Uint8Array, b: Uint8Array): boolean => a.length === b.length && a.every((x, i) => x === b[i]);

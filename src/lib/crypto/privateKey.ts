@@ -1,9 +1,8 @@
-import { isUniversal, parseDerExact, TAG, type Node } from './asn1';
-
 /**
  * 秘密鍵の検出（証明書デコーダーと JWT の鍵の入力で共通）。
  * 秘密鍵は解析も保存もしないため、鍵の値は読まずに、見た目と外側の型だけで判定する。
  */
+import { isUniversal, parseDerExact, TAG, type Node } from './asn1';
 
 /** 秘密鍵らしい文字列を含むか（PRIVATE KEY・ENCRYPTED PRIVATE KEY・RSA/EC PRIVATE KEY など） */
 export const containsPrivateKey = (text: string): boolean => /PRIVATE KEY/i.test(text);

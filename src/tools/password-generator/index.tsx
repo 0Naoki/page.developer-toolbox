@@ -12,7 +12,9 @@ import {
   CONFIG_PREVIEW_LIMIT,
   DEFAULT_OPTIONS,
   MAX_LENGTH,
+  MAX_PIN_LENGTH,
   MIN_LENGTH,
+  MIN_PIN_LENGTH,
   createPasswordPlan,
   pinEntropyBits,
   generatePin,
@@ -36,7 +38,7 @@ export default function PasswordGenerator() {
   const [mode, setMode] = usePreference<Mode>('password:mode', 'password', oneOf('password', 'pin'));
   const [options, setOptions] = usePreference<PasswordOptions>('password:options', DEFAULT_OPTIONS, isPasswordOptions);
   const [count, setCount] = usePreference('password:count', 5, oneOf(...COUNTS));
-  const [pinLength, setPinLength] = usePreference('password:pin', 6, integerBetween(4, 32));
+  const [pinLength, setPinLength] = usePreference('password:pin', 6, integerBetween(MIN_PIN_LENGTH, MAX_PIN_LENGTH));
   const [results, setResults] = useState<string[]>([]);
 
   const update = (patch: Partial<PasswordOptions>) => setOptions({ ...options, ...patch });
@@ -151,7 +153,7 @@ export default function PasswordGenerator() {
               <Check label="選んだ文字種を必ず1文字以上含める" checked={options.requireEach} onChange={(v) => update({ requireEach: v })} />
             </>
           ) : (
-            <LengthField label="桁数" value={pinLength} min={4} max={32} onChange={setPinLength} />
+            <LengthField label="桁数" value={pinLength} min={MIN_PIN_LENGTH} max={MAX_PIN_LENGTH} onChange={setPinLength} />
           )}
         </div>
 

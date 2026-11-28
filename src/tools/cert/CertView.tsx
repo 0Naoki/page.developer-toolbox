@@ -24,6 +24,7 @@ import { validityOf } from './validity';
 import { type Certificate, type Csr } from './logic';
 import { verifyInList, type ItemVerification } from './verify';
 import type { Extension } from './extensions';
+import { formatNumber } from '../../lib/number';
 
 function useFingerprints(der: Uint8Array) {
   /** カードは作り直されないため、どの証明書の結果かを組で持ち、内容を変えた直後の描画でも前の値を表示しない */
@@ -85,14 +86,14 @@ function ValidityBadge({ cert }: { cert: Certificate }) {
   const v = validityOf(cert, now);
   switch (v.status) {
     case 'expired':
-      return <Badge tone="bad">期限切れ（{v.daysLeft === 0 ? '24時間以内' : `${-v.daysLeft} 日前`}）</Badge>;
+      return <Badge tone="bad">期限切れ（{v.daysLeft === 0 ? '24時間以内' : `${formatNumber(-v.daysLeft)} 日前`}）</Badge>;
     case 'notYet':
       return <Badge tone="bad">まだ有効ではありません</Badge>;
     case 'soon':
       /** 残りが24時間未満のときは「あと 0 日」ではなく、期限切れの側と同じく「24時間以内」と示す */
-      return <Badge tone="bad">{v.daysLeft === 0 ? '24時間以内に期限切れ' : `あと ${v.daysLeft} 日で期限切れ`}</Badge>;
+      return <Badge tone="bad">{v.daysLeft === 0 ? '24時間以内に期限切れ' : `あと ${formatNumber(v.daysLeft)} 日で期限切れ`}</Badge>;
     default:
-      return <Badge tone="good">有効（残り {v.daysLeft} 日）</Badge>;
+      return <Badge tone="good">有効（残り {formatNumber(v.daysLeft)} 日）</Badge>;
   }
 }
 
@@ -223,7 +224,7 @@ function Extensions({ item }: { item: Certificate | Csr }) {
   const extensions = previewList(item.extensions, LIST_PREVIEW_LIMIT);
   return (
     <details className="stack">
-      <summary>すべての拡張（{item.extensions.length}）</summary>
+      <summary>すべての拡張（{formatNumber(item.extensions.length)}）</summary>
       <table className="kv cert-table">
         <tbody>
           {extensions.shown.map((e, i) => <ExtensionRow key={i} extension={e} />)}

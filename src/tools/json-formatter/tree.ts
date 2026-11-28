@@ -1,5 +1,3 @@
-import { sortedEntries, type JsonNode } from '../../lib/jsonTree';
-
 /**
  * ツリー表示の計算（画面に依存しない部分）。
  *
@@ -7,6 +5,7 @@ import { sortedEntries, type JsonNode } from '../../lib/jsonTree';
  * 構文木は src/lib/jsonTree.ts の parseJsonTree で作る（数値・文字列・重複キーを元の表記のまま持つ）。
  * 画面の側で解析するため、入力の大きさを {@link MAX_TREE_INPUT} までに限る。
  */
+import { sortedEntries, type JsonNode } from '../../lib/jsonTree';
 
 /**
  * ツリーを表示する入力の上限（UTF-16 の単位）。解析は画面の側（Worker の外）で行うため、遅い端末でも止まらない大きさにする

@@ -1,4 +1,6 @@
 /**
+ * 証明書デコーダーの E2E（ファイル読み込みの競合・上限、署名の検証とチェーン、期限の表示、SAN・拡張の表示の上限）。
+ *
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
@@ -21,8 +23,6 @@ import { settleRendering, openNavigation } from './app';
 import { pasteLargeInput } from './paste';
 import { pickFile } from './files';
 import { captureClipboard, copiedLength, copiedLines, copiedText } from './clipboard';
-
-/** 証明書デコーダーの E2E（ファイル読み込みの競合・上限、署名の検証とチェーン、期限の表示、SAN・拡張の表示の上限） */
 
 test('証明書：不正な文字列を拒否し、有効な文字列への編集で復旧する', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/cert');

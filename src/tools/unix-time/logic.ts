@@ -97,7 +97,6 @@ export function parseDuration(input: string): Duration {
   const d = { years: 0n, months: 0n, days: 0n, ms: 0n };
   let sign = 1n;
   let pos = 0;
-  UNIT_PATTERN.lastIndex = 0;
   while (pos < s.length) {
     UNIT_PATTERN.lastIndex = pos;
     const m = UNIT_PATTERN.exec(s);

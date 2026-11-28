@@ -3,5 +3,5 @@ import { TRUSTED_TYPES_POLICIES } from '../../csp.config';
 import { createTrustedWorker } from '../lib/worker/createTrustedWorker';
 import workerSource from './worker?worker-source';
 
-/** 大きな入力の計算用の Worker を起動する（整形・変換・文字数・差分・エポック・Base64・サブネット。種類は protocol.ts。計算を中断できるように） */
+/** 大きな入力の計算用の Worker を起動する（計算の種類は protocol.ts の CalculationRequest。計算を中断できるように） */
 export const createCalculationWorker = (): Worker => createTrustedWorker(TRUSTED_TYPES_POLICIES.calculationWorker, workerSource);

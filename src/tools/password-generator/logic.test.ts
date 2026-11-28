@@ -12,15 +12,11 @@ import {
   AMBIGUOUS,
   CHARSETS,
   DEFAULT_OPTIONS,
-  buildPools,
-  entropyBits,
   pinEntropyBits,
   generateMany,
-  generatePassword,
   generatePin,
   randomInt,
   strengthOf,
-  validate,
   type PasswordOptions,
   type Rng,
 } from './logic';
@@ -33,6 +29,17 @@ const sequenceRng =
   };
 
 const opts = (o: Partial<PasswordOptions>): PasswordOptions => ({ ...DEFAULT_OPTIONS, ...o });
+
+/** 画面と同じく、生成計画（createPasswordPlan）を通して検証・文字集合・生成・強度を確かめる */
+const planOf = (o: PasswordOptions) => {
+  const plan = createPasswordPlan(o);
+  if (!plan.ok) throw new Error(plan.error);
+  return plan;
+};
+const validate = (o: PasswordOptions) => createPasswordPlan(o).error;
+const generatePassword = (o: PasswordOptions, rng?: Rng) => planOf(o).generate(rng);
+const buildPools = (o: PasswordOptions) => planOf(o).pools.map((p) => p.join(''));
+const entropyBits = (o: PasswordOptions) => createPasswordPlan(o).bits;
 
 describe('randomInt', () => {
   it('偏りの出る範囲の値は捨てて引き直す', () => {

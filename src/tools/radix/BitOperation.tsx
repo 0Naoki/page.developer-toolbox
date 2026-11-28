@@ -16,14 +16,13 @@ import {
   type Width,
 } from './logic';
 
-/** 2つの値のビット演算 */
-
 const isShift = (op: BitOp) => op === 'shl' || op === 'shr' || op === 'ushr';
 
 const OPS = (Object.keys(OP_LABELS) as BitOp[]).map((op) => ({ value: op, label: OP_LABELS[op] }));
 
+/** 2つの値のビット演算 */
 export function BitOperation({ a, width, onUseResult }: { a: bigint | null; width: Width; onUseResult: (v: bigint) => void }) {
-  const [op, setOp] = usePreference<BitOp>('radix:op', 'and', oneOf('and', 'or', 'xor', 'not', 'shl', 'shr', 'ushr'));
+  const [op, setOp] = usePreference<BitOp>('radix:op', 'and', oneOf(...OPS.map(({ value }) => value)));
   const [bText, setBText] = useInput('radix:b');
 
   const result = useMemo(() => {

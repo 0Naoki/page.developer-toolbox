@@ -1,4 +1,4 @@
-import { eucjpBytesOf, sjisBytesOf } from './encoding';
+import { eucjpBytesOf, sjisBytesOf, utf8Length } from './encoding';
 import { IssueList, issueReasonOf, type CharIssue, type IssueTotals } from './issues';
 
 export type Newline = 'lf' | 'crlf' | 'none';
@@ -50,11 +50,19 @@ const newlineBytes = (o: CountOptions) => (o.newline === 'crlf' ? 2 : o.newline 
 export function countText(input: string, o: CountOptions): CountResult {
   const text = input.replace(/\r\n?/g, '\n');
   const nl = newlineBytes(o);
-  const newlines = (text.match(/\n/g) ?? []).length;
-  const body = text.replace(/\n/g, '');
-  /** 改行を除いて連結すると別の行の文字どうしが結合される（🇯 と 🇵 が国旗になるなど）ため、行ごとに数える */
+  /**
+   * 見た目の文字数は行ごとに数える。改行を除いて連結すると、別の行の文字どうしが結合される（🇯 と 🇵 が国旗になるなど）。
+   * 改行を除いた本文や行の配列は作らない（800万文字の入力で、同じ大きさの文字列を何度も作らないため）
+   */
   let graphemes = 0;
-  for (const l of text.split('\n')) graphemes += countGraphemes(l);
+  let newlines = 0;
+  for (let start = 0; ; newlines++) {
+    const end = text.indexOf('\n', start);
+    graphemes += countGraphemes(text.slice(start, end < 0 ? text.length : end));
+    if (end < 0) break;
+    start = end + 1;
+  }
+  const bodyLength = text.length - newlines;
 
   let codePoints = 0;
   let sjis = 0;
@@ -92,10 +100,10 @@ export function countText(input: string, o: CountOptions): CountResult {
   return {
     graphemes: graphemes + newlines * nl,
     codePoints: codePoints + newlines * nl,
-    utf16Units: body.length + newlines * nl,
-    /** 改行を消してから変換すると、別の行の不完全なサロゲートが結合されるため、LFのまま変換して改行分だけ補正する。 */
-    utf8Bytes: new TextEncoder().encode(text).length + newlines * (nl - 1),
-    utf16Bytes: (body.length + newlines * nl) * 2,
+    utf16Units: bodyLength + newlines * nl,
+    /** LF のまま数えて（LF は1バイト）、改行分だけ補正する。改行を消してから数えると、別の行の不完全なサロゲートが結合される */
+    utf8Bytes: utf8Length(text) + newlines * (nl - 1),
+    utf16Bytes: (bodyLength + newlines * nl) * 2,
     sjisBytes: sjis + newlines * nl,
     eucjpBytes: euc + newlines * nl,
     halfWidth: half,

@@ -1,5 +1,6 @@
 /** 日時の表示の書式（タイムゾーンを明示した表示と、今からの相対的な表示）。 */
-import { JST_ZONE, offsetMs, wallOf, type Wall, type Zone } from './timezone';
+import { JST_OFFSET_MS, JST_ZONE, offsetMs, wallOf, type Wall, type Zone } from './timezone';
+import { formatNumber } from '../number';
 
 /** UTC からのずれを「+09:00」の形にする */
 export function formatOffset(minutes: number): string {
@@ -51,8 +52,9 @@ export function formatInZone(date: Date, zone: Zone): string {
 /** 日本時間の「2026-10-02 09:00:00」の形（末尾に「JST」は付けない。見出しや表の列で JST と示す画面向け） */
 export const formatJst = (date: Date): string => formatInZone(date, JST_ZONE);
 
-/** 日本時間の UTC からのずれ（+09:00）。1888年より前の東京は地方平均時（+09:18:59）で、これと違う */
-const JST_OFFSET_MS = 9 * 3600000;
+/** ミリ秒の表記（「.123」）。withMillis でなければ空文字。負の時刻（1970年より前）も 0〜999 で書く */
+const millisSuffix = (ms: number, withMillis: boolean): string =>
+  withMillis ? `.${String(((ms % 1000) + 1000) % 1000).padStart(3, '0')}` : '';
 
 /**
  * formatJst の日時の後ろに付ける、タイムゾーンの表記。ずれが +09:00 なら「JST」、そうでなければ「+09:18:59」のようなオフセット。
@@ -68,10 +70,8 @@ export const jstZoneLabel = (date: Date): string =>
  * withMillis ならミリ秒も付ける（「09:00:00.123 JST」。showsMillis で決める）。
  * ずれが +09:00 でない時刻（1888年より前）は、「JST」の代わりにオフセット（「+09:18:59」）を付ける（{@link jstZoneLabel}）
  */
-export const formatJstLabeled = (date: Date, withMillis = false): string => {
-  const millis = withMillis ? `.${String(((date.getTime() % 1000) + 1000) % 1000).padStart(3, '0')}` : '';
-  return `${formatJst(date)}${millis} ${jstZoneLabel(date)}`;
-};
+export const formatJstLabeled = (date: Date, withMillis = false): string =>
+  `${formatJst(date)}${millisSuffix(date.getTime(), withMillis)} ${jstZoneLabel(date)}`;
 
 /**
  * 日時の表示にミリ秒を含めるか。画面・一括変換のどちらもこれで決める。
@@ -91,8 +91,7 @@ export const hasWrittenFraction = (input: string): boolean => /:\d{2}\.\d/.test(
 /** 「2026-10-02 09:00:00 +09:00」の形。withMillis ならミリ秒も付ける（showsMillis で決める） */
 export function formatWithOffset(date: Date, zone: Zone, withMillis = false): string {
   const ms = date.getTime();
-  const millis = withMillis ? `.${String(((ms % 1000) + 1000) % 1000).padStart(3, '0')}` : '';
-  return `${formatInZone(date, zone)}${millis} ${offsetLabel(ms, zone)}`;
+  return `${formatInZone(date, zone)}${millisSuffix(ms, withMillis)} ${offsetLabel(ms, zone)}`;
 }
 
 /** 時刻 ms での、zone の UTC からのずれを「+09:00」の形にする。秒を含むずれ（1888年より前の東京など）は「+09:18:59」 */
@@ -104,6 +103,7 @@ function offsetLabel(ms: number, zone: Zone): string {
   return `${offset < 0 ? '-' : '+'}${minutes}${suffix}`;
 }
 
+/** 今からの差を「3時間後」「2日前」の形にする。日数は3桁ごとに区切る（日時入力には貼り戻さない表示のため） */
 export function relativeFrom(date: Date, now: number): string {
   const diff = Math.round((date.getTime() - now) / 1000);
   const abs = Math.abs(diff);
@@ -111,5 +111,5 @@ export function relativeFrom(date: Date, now: number): string {
   if (abs < 60) return abs === 0 ? '現在' : `${abs}秒${suffix}`;
   if (abs < 3600) return `${Math.floor(abs / 60)}分${suffix}`;
   if (abs < 86400) return `${Math.floor(abs / 3600)}時間${suffix}`;
-  return `${Math.floor(abs / 86400)}日${suffix}`;
+  return `${formatNumber(Math.floor(abs / 86400))}日${suffix}`;
 }

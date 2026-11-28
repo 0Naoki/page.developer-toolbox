@@ -1,4 +1,6 @@
 /**
+ * ハッシュ生成の E2E（再計算中の古い結果の非表示、HMAC、ファイルの上限、キーボード操作）。
+ *
  * 回帰テストとして残す検証（docs/TESTING.md の「既知不具合を守るテスト」で、このファイルが担当）。
  * テストを移動・統合するときは、ここに挙げた入力とアサーションを削らずに引き継ぐ。
  *
@@ -8,8 +10,6 @@ import { expect, test } from './fixtures';
 import { CROSS_BROWSER } from './tags';
 import { settleRendering } from './app';
 import { pickFile } from './files';
-
-/** ハッシュ生成の E2E（再計算中の古い結果の非表示、HMAC、ファイルの上限、キーボード操作） */
 
 test('回帰：ハッシュの再計算中は古い値・一致表示・コピーを表示しない', CROSS_BROWSER, async ({ page }) => {
   await page.goto('./#/hash');

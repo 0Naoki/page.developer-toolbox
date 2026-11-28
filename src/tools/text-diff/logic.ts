@@ -1,5 +1,6 @@
 import { eachLineRange, splitLines } from '../../lib/text/lines';
 import { diffSequencesWithStatus, type DiffLimit } from './myers';
+import { codePointCount } from '../../lib/text/surrogate';
 
 export type Segment = { text: string; changed: boolean };
 /** crlf は、元の行の終わりが CRLF だったか（unified 形式で元の改行を出すため。比較と表示には使わない） */
@@ -94,22 +95,6 @@ export function diffChars(a: string, b: string, limit: DiffLimit = {}): CharDiff
 
 /** 行全体を変更扱いにした文字単位の差分 */
 const wholeLineOf = (a: string, b: string) => ({ left: [{ text: a, changed: true }], right: [{ text: b, changed: true }] });
-
-/** 文字数（コードポイント数）。配列を作らずに数える */
-function codePointCount(s: string): number {
-  let count = s.length;
-  for (let i = 0; i < s.length - 1; i++) {
-    const c = s.charCodeAt(i);
-    if (c >= 0xd800 && c <= 0xdbff) {
-      const d = s.charCodeAt(i + 1);
-      if (d >= 0xdc00 && d <= 0xdfff) {
-        count--;
-        i++;
-      }
-    }
-  }
-  return count;
-}
 
 /** 2つのテキストを行単位で比較し、左右に並べられる形で返す */
 export function diffText(before: string, after: string, o: DiffOptions): DiffResult {

@@ -67,6 +67,27 @@ function getTables(): Tables {
   return tables;
 }
 
+/**
+ * UTF-8 にしたときのバイト数。バイト列を作らずに数える（TextEncoder().encode(text).length と同じ値）。
+ *
+ * @remarks
+ * 対になっていないサロゲートは、TextEncoder と同じく U+FFFD（3バイト）として数える。
+ * 行ごとの計測で、行のたびに入力と同じ大きさのバイト列を作らないために使う。
+ */
+export function utf8Length(text: string): number {
+  let bytes = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c < 0x80) bytes += 1;
+    else if (c < 0x800) bytes += 2;
+    else if (c >= 0xd800 && c <= 0xdbff && (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00) {
+      bytes += 4;
+      i++;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
 /** Shift_JIS でのバイト数。表現できない文字は null */
 export function sjisBytesOf(ch: string): 1 | 2 | null {
   const cp = ch.codePointAt(0)!;

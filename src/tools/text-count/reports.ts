@@ -41,11 +41,11 @@ export function createDiagnosticReport(input: string, kind: DiagnosticKind, limi
       minimumLength += minimumIssueLength(char, value, kind);
       output.check(minimumLength);
     });
+    /** 書き出した文字から消し、集約の表と出力の文字列を同時に持ち続けない */
     for (const [char, value] of counts) {
       output.row(issueCells(describeIssue(char, value, kind)));
       counts.delete(char);
     }
-    counts.clear();
   }
   return output.finish();
 }

@@ -2,6 +2,7 @@ import { addDays, compareYmd, dayOfWeek, daysInMonth, formatYmd, readYmd, toDayN
 import { HOLIDAY_MAX_YEAR, HOLIDAY_MIN_YEAR, holidayName } from './holidays';
 import { textPreview } from '../../lib/text/textPreview';
 import { splitLines } from '../../lib/text/lines';
+import { codePointCount } from '../../lib/text/surrogate';
 import { formatNumber } from '../../lib/number';
 
 export type Calendar = {
@@ -44,20 +45,6 @@ export const MAX_INVALID_PREVIEW = 100;
 
 /** 読めない項目の診断。text は表示用の抜粋、length は元の長さ（UTF-16 の単位。抜粋したかの判定に使う）、chars は元の文字数（コードポイント数。文言に出す） */
 export type InvalidHoliday = { line: number; text: string; length: number; chars: number };
-
-/** 文字数（コードポイント数）。配列を作らずに数える */
-function codePointCount(s: string): number {
-  let count = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c >= 0xd800 && c <= 0xdbff) {
-      const d = s.charCodeAt(i + 1);
-      if (d >= 0xdc00 && d <= 0xdfff) i++;
-    }
-    count++;
-  }
-  return count;
-}
 
 /**
  * 会社独自の休日の入力を読む。1行に1日付で、カンマで区切ってもよい。
@@ -126,9 +113,9 @@ export const MAX_SPAN_YEARS = 30;
 /** n営業日後・前の上限 */
 export const MAX_BUSINESS_DAYS = 3000;
 /** 前後移動で扱う年の下限。日付入力と同じ4桁の範囲に収める。 */
-export const MIN_BUSINESS_YEAR = 0;
+const MIN_BUSINESS_YEAR = 0;
 /** 前後移動で扱う年の上限。 */
-export const MAX_BUSINESS_YEAR = 9999;
+const MAX_BUSINESS_YEAR = 9999;
 const MAX_SPAN = 366 * MAX_SPAN_YEARS;
 
 /** 日付入力へ戻せない年に探索が進んだ場合は、結果を返さずに止める。 */
@@ -173,7 +160,7 @@ export function summarizeBusinessRange(from: Ymd, to: Ymd, cal: Calendar): { bus
  * n = 0 のときは、基準日が休みならその次の営業日を返す。
  */
 export function addBusinessDays(date: Ymd, n: number, cal: Calendar): Ymd {
-  if (!Number.isInteger(n) || Math.abs(n) > MAX_BUSINESS_DAYS) throw new Error(`営業日数は ±${MAX_BUSINESS_DAYS} 以内の整数で指定してください`);
+  if (!Number.isInteger(n) || Math.abs(n) > MAX_BUSINESS_DAYS) throw new Error(`営業日数は ±${formatNumber(MAX_BUSINESS_DAYS)} 以内の整数で指定してください`);
   const notFound = () => new Error('営業日が見つかりません。休日の設定を確認してください');
   if (new Set(cal.weekend).size === 7) throw notFound();
   /** 週に1日でも営業日があれば n × 7 日で足りる。独自休日や祝日が重なる分の余裕を足して、探索回数に上限を設ける */
@@ -200,7 +187,8 @@ export function addBusinessDays(date: Ymd, n: number, cal: Calendar): Ymd {
 /** その月の第n営業日（「第5営業日に支払い」など） */
 export function nthBusinessDayOfMonth(y: number, m: number, n: number, cal: Calendar): Ymd | null {
   let count = 0;
-  for (let d = 1; d <= daysInMonth(y, m); d++) {
+  const last = daysInMonth(y, m);
+  for (let d = 1; d <= last; d++) {
     const date = { y, m, d };
     if (isBusinessDay(date, cal) && ++count === n) return date;
   }

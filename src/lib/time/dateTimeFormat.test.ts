@@ -9,6 +9,7 @@ describe('relativeFrom', () => {
   it('相対表記を返す', () => {
     expect(relativeFrom(new Date(0), 90_000)).toBe('1分前');
     expect(relativeFrom(new Date(2 * 86400_000), 0)).toBe('2日後');
+    expect(relativeFrom(new Date(0), 3650 * 86400_000)).toBe('3,650日前');
   });
 });
 

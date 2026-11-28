@@ -1,6 +1,9 @@
 import { oneOf } from '../../lib/settings';
 import { formatNumber } from '../../lib/number';
 
+/** 変換の方向 */
+export type Direction = 'csv2json' | 'json2csv';
+
 export type Delimiter = ',' | '\t' | ';' | '|';
 export const isDelimiter = oneOf<Delimiter>(',', '\t', ';', '|');
 

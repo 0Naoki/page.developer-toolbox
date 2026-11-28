@@ -1,7 +1,3 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Announcer } from '../lib/announcements';
-import { detailPreview } from '../lib/text/textPreview';
-
 /**
  * 読み上げソフトへの知らせ（エラーと、バッジなどで示す判定の結果）。アプリに1つだけ置く live region（{@link LiveRegion}）で読み上げる。
  *
@@ -11,6 +7,9 @@ import { detailPreview } from '../lib/text/textPreview';
  * その間に出て、まだ表示している文言をまとめて読む（待ち時間と件数は {@link Announcer}）。文言は抜粋（detailPreview）にする。
  * 文言は画面にも表示している内容だけで、保存も送信もしない。
  */
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Announcer } from '../lib/announcements';
+import { detailPreview } from '../lib/text/textPreview';
 
 let current = '';
 const listeners = new Set<() => void>();

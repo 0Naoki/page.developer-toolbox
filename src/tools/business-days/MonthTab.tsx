@@ -1,19 +1,17 @@
 import { useMemo } from 'react';
 import { useInput } from '../../hooks/useInput';
 import { usePreference } from '../../hooks/usePreference';
-import { integerBetween } from '../../lib/settings';
 import { WEEKDAYS_JA, dayOfWeek, type Ymd } from '../../lib/time/date';
 import { nthBusinessDayOfMonth, yearSummary, type Calendar } from './logic';
 import { attempt } from '../../lib/errors';
 import { ErrorText } from '../../components/ErrorMessage';
-import { parseMonthOrdinal } from './numericInput';
+import { parseMonthOrdinal, yearChoices } from './numericInput';
+import { YearSelect } from './tabFields';
 
 export function MonthTab({ cal, today }: { cal: Calendar; today: Ymd }) {
-  const minYear = today.y - 10;
-  const maxYear = today.y + 10;
-  const isYear = integerBetween(minYear, maxYear);
-  const [savedYear, setYear] = usePreference('bizdays:year', today.y, isYear);
-  const year = isYear(savedYear) ? savedYear : today.y;
+  const { current, years, isYear } = yearChoices(today.y);
+  const [savedYear, setYear] = usePreference('bizdays:year', current, isYear);
+  const year = isYear(savedYear) ? savedYear : current;
   const [nthText, setNthText] = useInput('bizdays:nth', '5');
   const ordinal = useMemo(() => attempt(() => ({ value: parseMonthOrdinal(nthText) })), [nthText]);
   const nth = ordinal.ok ? ordinal.value : null;
@@ -31,16 +29,7 @@ export function MonthTab({ cal, today }: { cal: Calendar; today: Ymd }) {
   return (
     <>
       <div className="toolbar">
-        <label>
-          年
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i).map((y) => (
-              <option key={y} value={y}>
-                {y}年
-              </option>
-            ))}
-          </select>
-        </label>
+        <YearSelect value={year} years={years} onChange={setYear} />
         <label>
           第
           <input className="input input-num mono" inputMode="numeric" value={nthText} onChange={(e) => setNthText(e.target.value)} />

@@ -1,9 +1,8 @@
+/** JWT の診断：時刻クレームの値の判定と、ヘッダ・クレームの警告（画面に出す短い文言）。警告を組み立てる処理は、どんな値でも例外を投げない */
 import { MAX_DATE_MS } from '../../lib/time/timezone';
 import { formatJstLabeled } from '../../lib/time/dateTimeFormat';
 import { detailPreview } from '../../lib/text/textPreview';
 import { formatNumber } from '../../lib/number';
-
-/** JWT の診断：時刻クレームの値の判定と、ヘッダ・クレームの警告（画面に出す短い文言）。警告を組み立てる処理は、どんな値でも例外を投げない */
 
 /** UNIX時間ツールと同じく、13桁以上の整数はミリ秒で書かれたものとみなす */
 const MIN_MILLIS_EPOCH = 1e12;
@@ -77,7 +76,7 @@ function describeValue(v: unknown): string {
 /** 名前の一覧を、先頭10件までつなぐ。名前はトークン由来で長さに制限がないため、1件ずつ抜粋にする */
 const listOf = (names: unknown[]): string => {
   const shown = names.slice(0, 10).map((name) => detailPreview(typeof name === 'string' ? name : describeValue(name))).join(', ');
-  return names.length > 10 ? `${shown} ほか${names.length - 10}件` : shown;
+  return names.length > 10 ? `${shown} ほか${formatNumber(names.length - 10)}件` : shown;
 };
 
 /** 時刻のクレームが数値でない（文字列・null・真偽値・有限でない数）ときの警告 */

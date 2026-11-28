@@ -1,6 +1,5 @@
 /** 圧縮・上限適用前の参照実装。表示の順序と折りたたみのテスト、および差分転送の計測で使う。 */
 import type { DiffRow } from './logic';
-
 import type { FoldedRow, UnifiedDisplayRow } from './rows';
 
 /**
@@ -36,7 +35,6 @@ export function foldRows(rows: DiffRow[], context: number): FoldedRow[] {
   }
   return out;
 }
-
 
 /**
  * 画面に並べる行。変更だけを表示するときは、変更のない行を折りたたみ、利用者が開いた箇所（expanded の from）だけを戻す。

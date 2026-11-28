@@ -1,6 +1,5 @@
-import type { Download, Page } from '@playwright/test';
-
 /** ファイルの選択と、保存（ダウンロード）したファイルの読み取り */
+import type { Download, Page } from '@playwright/test';
 
 /**
  * ファイル入力に渡すファイルの中身。大きなファイルはテストの外に作らず、ページの中で作る。

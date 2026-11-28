@@ -8,7 +8,7 @@ import { CLOUD_RESERVED, cloudSubnetNotes } from './cloudPolicy';
 import { detailPreview } from '../../lib/text/textPreview';
 import { formatNumber } from '../../lib/number';
 import { formatIpv6Groups } from '../../lib/ipv6';
-import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList, type RangeBlock } from './ranges';
+import { aggregateIn, isFailure, MAX_ROWS, parseCidrListIn, rangeToCidrsIn, splitNetworkIn, splitNetworkOutputIn, type Aggregated, type Failure, type Family, type ParsedCidrList } from './ranges';
 
 const BITS = 128n;
 const MAX6 = (1n << BITS) - 1n;
@@ -203,8 +203,6 @@ export function kindOf6(start: bigint, end: bigint = start): { kinds: { label: s
 }
 
 /** 一覧（重複チェック・分割・集約） */
-
-export type Block6 = RangeBlock<bigint>;
 
 /** IPv6 の CIDR を1行ずつ読む（IPv4 の行は読み飛ばす）。行の残りは名前、# の後ろはコメント */
 export const parseCidrList6 = (text: string): ParsedCidrList<bigint> => parseCidrListIn(IPV6, text);

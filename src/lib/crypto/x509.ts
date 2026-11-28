@@ -1,6 +1,5 @@
-import { Asn1Error, isContext, isUniversal, parseDerExact, rawOf, readOid, readString, TAG, type Node } from './asn1';
-
 /** X.509 証明書から、公開鍵と主体の CN だけを取り出す（JWT の検証の鍵に使う）。証明書の内容の表示や検証は、証明書デコーダーの担当 */
+import { Asn1Error, isContext, isUniversal, parseDerExact, rawOf, readOid, readString, TAG, type Node } from './asn1';
 
 const CN = '2.5.4.3';
 

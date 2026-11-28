@@ -14,23 +14,24 @@ export type AlgSpec =
   | { family: 'ecdsa'; hash: HashName; curve: WebCryptoCurve; size: number }
   | { family: 'eddsa' };
 
-/** 検証に対応していない（alg がない・none・ブラウザで扱えない）ことを表す例外 */
-class Unsupported extends Error {}
-
 const CURVE_OF: Record<string, { curve: WebCryptoCurve; size: number }> = {
   '256': { curve: 'P-256', size: 32 },
   '384': { curve: 'P-384', size: 48 },
   '512': { curve: 'P-521', size: 66 },
 };
 
-/** alg（RFC 7518）を Web Crypto API の指定に直す。対応していなければ Unsupported を投げる */
+/**
+ * alg（RFC 7518）を Web Crypto API の指定に直す。
+ *
+ * @throws 検証に対応していないとき（alg がない・none・ブラウザで扱えない）。呼び出し側は「検証できない」として文言を表示する
+ */
 export function algSpec(alg: unknown): AlgSpec {
-  if (typeof alg !== 'string') throw new Unsupported('ヘッダに alg（署名アルゴリズム）がありません');
-  if (alg.toLowerCase() === 'none') throw new Unsupported('alg が none（署名なし）のため、検証するものがありません');
+  if (typeof alg !== 'string') throw new Error('ヘッダに alg（署名アルゴリズム）がありません');
+  if (alg.toLowerCase() === 'none') throw new Error('alg が none（署名なし）のため、検証するものがありません');
   const m = /^(HS|RS|PS|ES)(256|384|512)$/.exec(alg);
   if (m) {
     const curve = CURVE_OF[m[2] ?? ''];
-    if (curve === undefined) throw new Unsupported('署名アルゴリズムのビット数を読めません');
+    if (curve === undefined) throw new Error('署名アルゴリズムのビット数を読めません');
     const hash = `SHA-${m[2]}` as HashName;
     const bytes = Number(m[2]) / 8;
     if (m[1] === 'HS') return { family: 'hmac', hash };
@@ -40,17 +41,16 @@ export function algSpec(alg: unknown): AlgSpec {
     return { family: 'ecdsa', hash, ...curve };
   }
   if (alg === 'EdDSA' || alg === 'Ed25519') return { family: 'eddsa' };
-  if (alg === 'ES256K') throw new Unsupported('ES256K（secp256k1）の署名は、ブラウザ（Web Crypto API）で検証できません');
-  if (alg === 'Ed448') throw new Unsupported('Ed448 の署名は、ブラウザ（Web Crypto API）で検証できません');
-  throw new Unsupported(`この署名アルゴリズム（${detailPreview(alg)}）には対応していません`);
+  if (alg === 'ES256K') throw new Error('ES256K（secp256k1）の署名は、ブラウザ（Web Crypto API）で検証できません');
+  if (alg === 'Ed448') throw new Error('Ed448 の署名は、ブラウザ（Web Crypto API）で検証できません');
+  throw new Error(`この署名アルゴリズム（${detailPreview(alg)}）には対応していません`);
 }
 
 /** 秘密鍵（共通鍵）で検証する alg（HS256 など）か */
 export const isHmacAlg = (alg: unknown): boolean => typeof alg === 'string' && /^HS(256|384|512)$/.test(alg);
 
-
-/** 鍵の種類（RSA・曲線の名前など） */
-export type KeyType = 'RSA' | 'P-256' | 'P-384' | 'P-521' | 'Ed25519' | string;
+/** 鍵の種類（`RSA`・`P-256` などの曲線の名前・`Ed25519`）。検証できない曲線（`secp256k1` など）の名前も入る */
+export type KeyType = string;
 
 /** alg に必要な鍵の種類 */
 export const neededKey = (spec: Exclude<AlgSpec, { family: 'hmac' }>): KeyType =>

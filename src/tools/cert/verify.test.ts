@@ -165,7 +165,6 @@ describe('verifyInList', () => {
   });
 });
 
-
 describe('RSA-PSS のパラメーター（RFC 4055）', () => {
   /** CSR の外側の署名アルゴリズムは署名の対象ではないため、書き換えても署名の値は正しいまま */
   const pssCsr = parse(PSS_CSR) as Csr;

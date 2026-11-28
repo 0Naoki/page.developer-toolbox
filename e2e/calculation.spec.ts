@@ -274,8 +274,8 @@ test('テキスト差分：大きな入力もWorkerで計算し、変わらな�
   await pasteLargeInput(page, '変更前', lines('before'));
   await pasteLargeInput(page, '変更後', lines('after'));
   await expect(page.getByRole('status')).toHaveText('計算が完了しました');
-  await expect(page.getByText('+10000 行', { exact: true })).toBeVisible();
-  await expect(page.getByText('−10000 行', { exact: true })).toBeVisible();
+  await expect(page.getByText('+10,000 行', { exact: true })).toBeVisible();
+  await expect(page.getByText('−10,000 行', { exact: true })).toBeVisible();
   await expect(page.getByText('差分が大きいため', { exact: false })).toHaveCount(0);
 });
 

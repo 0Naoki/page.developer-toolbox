@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { bytesToBase64, toHex } from '../../lib/bytes';
-import { Md5, digest, hmac, hmacKeyBytes, md5, md5Chunked, sameHash, surrogateWarning, utf8 } from './logic';
+import { Md5, digest, hmac, hmacKeyBytes, md5Chunked, sameHash, surrogateWarning, utf8 } from './logic';
+
+/** 一度に渡した MD5（分けて渡す md5Chunked・Md5.update の結果と比べる基準） */
+const md5 = (data: Uint8Array) => new Md5().update(data).digest();
 
 const FOX = 'The quick brown fox jumps over the lazy dog';
 

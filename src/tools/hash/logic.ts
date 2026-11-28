@@ -1,9 +1,10 @@
 import { describeAt, findLoneSurrogate, replacementWarning } from '../../lib/text/surrogate';
 
-export const ALGORITHMS =['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as const;
+/** MD5 は Web Crypto API が対応していないため自前実装（{@link Md5}）。ほかは Web Crypto API で計算する */
+export const ALGORITHMS = ['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as const;
 export type Algorithm = (typeof ALGORITHMS)[number];
 
-/** Web Crypto API が対応していないため MD5 は自前実装。改ざん検知などの安全性が必要な用途には使わないこと */
+/** 衝突を作れることが知られている方式。互換性のために提供し、改ざん検知などの安全性が必要な用途には使わないこと */
 export const WEAK_ALGORITHMS: readonly Algorithm[] = ['MD5', 'SHA-1'];
 
 type Bytes = Uint8Array<ArrayBuffer>;
@@ -20,8 +21,8 @@ export function hmacKeyBytes(key: string): Bytes {
   return utf8(key);
 }
 
-export async function digest(algorithm: Algorithm, data: Bytes): Promise<Bytes> {
-  if (algorithm === 'MD5') return md5(data);
+/** SHA 系のハッシュ（Web Crypto API）。MD5 は {@link md5Chunked} で計算する */
+export async function digest(algorithm: Exclude<Algorithm, 'MD5'>, data: Bytes): Promise<Bytes> {
   return new Uint8Array(await crypto.subtle.digest(algorithm, data));
 }
 
@@ -162,5 +163,3 @@ export class Md5 {
     this.d = (this.d + d) >>> 0;
   }
 }
-
-export const md5 = (data: Uint8Array): Bytes => new Md5().update(data).digest();

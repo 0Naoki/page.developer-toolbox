@@ -2,8 +2,10 @@ import { base64ToBytes, bytesToBase64, bytesToBinaryString } from '../../lib/byt
 import { describeAt, findLoneSurrogate, replacementWarning } from '../../lib/text/surrogate';
 import { errorMessage } from '../../lib/errors';
 
-
 export type EncodeMode = 'base64' | 'base64url' | 'url';
+
+/** 変換の方向 */
+export type Direction = 'encode' | 'decode';
 
 /** デコード結果をテキストとして読むときの文字コード */
 export type Charset = 'utf-8' | 'shift_jis' | 'euc-jp' | 'utf-16le';
@@ -11,13 +13,6 @@ export type Charset = 'utf-8' | 'shift_jis' | 'euc-jp' | 'utf-16le';
 /** UTF-8文字列をBase64にエンコードする（日本語対応） */
 export function encodeBase64(text: string, urlSafe = false, wrap = false): string {
   return bytesToBase64(new TextEncoder().encode(text), { urlSafe, wrap });
-}
-
-/** Base64 / Base64URL をUTF-8文字列にデコードする（パディング省略も許容） */
-export function decodeBase64(input: string): string {
-  const text = bytesToText(base64ToBytes(input), 'utf-8');
-  if (text === null) throw new Error('デコード結果がUTF-8のテキストではありません（バイナリの可能性）');
-  return text;
 }
 
 /** バイト列を指定した文字コードのテキストとして読む。その文字コードとして不正なら null */
@@ -165,15 +160,18 @@ export function encode(text: string, mode: EncodeMode, wrap = false): string {
 /** Base64 でエンコードするときに U+FFFD（�）へ置き換わる文字の警告。なければ null */
 export const surrogateWarning = (text: string): string | null => replacementWarning(text, 'エンコードしました');
 
-export function decode(text: string, mode: EncodeMode): string {
-  if (mode === 'url') {
-    try {
-      return decodeURIComponent(text.replace(/\+/g, ' '));
-    } catch {
-      throw new Error('URLエンコードとして不正な形式です');
-    }
+/**
+ * URL エンコード（`+` は空白）を戻す。
+ *
+ * @remarks
+ * Base64 の復号は {@link decodeInput} でバイト列にし、文字コードの指定に合わせて画面で読む（UTF-8 に限らないため）。
+ */
+export function decodeUrl(text: string): string {
+  try {
+    return decodeURIComponent(text.replace(/\+/g, ' '));
+  } catch {
+    throw new Error('URLエンコードとして不正な形式です');
   }
-  return decodeBase64(text);
 }
 
 /** テキストの変換の結果。bytes はデコードしたバイト列（Base64・data: URI のとき） */
@@ -183,7 +181,7 @@ export type TextConversion =
   | { kind: 'text'; output: string; warning: string | null }
   | ({ kind: 'bytes' } & Decoded);
 
-export type TextConversionRequest = { input: string; direction: 'encode' | 'decode'; mode: EncodeMode; wrap: boolean };
+export type TextConversionRequest = { input: string; direction: Direction; mode: EncodeMode; wrap: boolean };
 
 /**
  * 入力欄のテキストを変換する。大きな入力では画面が止まらないよう Worker から呼ぶ。
@@ -196,7 +194,7 @@ export function convertText({ input, direction, mode, wrap }: TextConversionRequ
   try {
     if (direction === 'encode' ? input === '' : !input.trim()) return { kind: 'empty' };
     if (direction === 'encode') return { kind: 'text', output: encode(input, mode, wrap), warning: mode === 'url' ? null : surrogateWarning(input) };
-    if (mode === 'url') return { kind: 'text', output: decode(input, mode), warning: null };
+    if (mode === 'url') return { kind: 'text', output: decodeUrl(input), warning: null };
     return { kind: 'bytes', ...decodeInput(input) };
   } catch (e) {
     return { kind: 'error', error: errorMessage(e) };

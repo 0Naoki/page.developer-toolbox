@@ -1,10 +1,9 @@
+/** 証明書・CSR の入力（PEM・DER・Base64 の本文）の読み取り。秘密鍵は解析せずに断る */
 import { containsPrivateKey, isPrivateKeyDer } from '../../lib/crypto/privateKey';
 import { fileTooLargeMessage } from '../../lib/file';
 import { detailPreview } from '../../lib/text/textPreview';
 import { pemBodyToBytes, readPemBlocks } from '../../lib/crypto/pem';
 import { formatNumber } from '../../lib/number';
-
-/** 証明書・CSR の入力（PEM・DER・Base64 の本文）の読み取り。秘密鍵は解析せずに断る */
 
 /** 受け付ける入力の大きさ（証明書のチェーンでも通常は数十KB） */
 export const MAX_INPUT = 1024 * 1024;

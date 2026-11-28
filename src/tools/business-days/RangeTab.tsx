@@ -8,6 +8,7 @@ import { attempt } from '../../lib/errors';
 import { ErrorText } from '../../components/ErrorMessage';
 import { ListRest } from '../../components/ListRest';
 import { previewList } from '../../lib/listPreview';
+import { formatNumber } from '../../lib/number';
 
 type OffDay = { date: Ymd; reason: string };
 
@@ -54,9 +55,9 @@ export function RangeTab({ cal, today }: { cal: Calendar; today: Ymd }) {
       {r.ok && (
         <>
           <div className="stats">
-            <Stat label="営業日数" value={r.business} note="開始日・終了日を含む" />
-            <Stat label="暦日数" value={r.calendar} />
-            <Stat label="休日数" value={r.calendar - r.business} />
+            <Stat label="営業日数" value={formatNumber(r.business)} note="開始日・終了日を含む" />
+            <Stat label="暦日数" value={formatNumber(r.calendar)} />
+            <Stat label="休日数" value={formatNumber(r.calendar - r.business)} />
           </div>
           {offDays && r.offDays.length > 0 && (
             <>

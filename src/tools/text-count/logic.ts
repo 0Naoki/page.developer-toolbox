@@ -1,5 +1,5 @@
 import { countText, type CountOptions, type CountResult } from './count';
-import { eucjpBytesOf, isHalfWidth, sjisBytesOf } from './encoding';
+import { eucjpBytesOf, isHalfWidth, sjisBytesOf, utf8Length } from './encoding';
 import { inspectInvisible, type InvisibleInspection } from './invisible';
 import { eachLineRange } from '../../lib/text/lines';
 
@@ -22,7 +22,6 @@ const LINE_PREVIEW_SIZE = 1000;
 export type TextAnalysis = {
   counts: CountResult;
   invisible: InvisibleInspection;
-  issueTotals: { unsupported: number; unsupportedEuc: number; vendor: number };
   visible: (LineStat & { truncated: boolean; segments?: Segment[] })[];
   matchingLines: number;
   overCount: number;
@@ -38,7 +37,6 @@ export type TextAnalysis = {
 export type TextMeasurement = {
   counts: CountResult;
   invisible: InvisibleInspection;
-  issueTotals: TextAnalysis['issueTotals'];
   measure: Measure;
   /** 行ごとの計測値 */
   values: Float64Array;
@@ -49,7 +47,6 @@ export type TextMeasurement = {
 /** 全文の文字数と不可視文字を集計し、行ごとの計測値と位置を求める。 */
 export function measureText(input: string, options: CountOptions & { measure: Measure }): TextMeasurement {
   const counts = countText(input, options);
-  const issueTotals = counts.issueTotals;
   const starts: number[] = [];
   const ends: number[] = [];
   if (input !== '') {
@@ -59,7 +56,7 @@ export function measureText(input: string, options: CountOptions & { measure: Me
     });
   }
   const values = Float64Array.from(starts, (s, i) => measureOf(input.slice(s, ends[i]), options.measure));
-  return { counts, invisible: inspectInvisible(input), issueTotals, measure: options.measure, values, starts: Uint32Array.from(starts), ends: Uint32Array.from(ends) };
+  return { counts, invisible: inspectInvisible(input), measure: options.measure, values, starts: Uint32Array.from(starts), ends: Uint32Array.from(ends) };
 }
 
 /**
@@ -109,11 +106,11 @@ export type PageOptions = { limit: number | null; onlyOver: boolean; page: numbe
  * input は measureText に渡したものと同じにする。
  */
 export function analysisOf(input: string, m: TextMeasurement, options: PageOptions): TextAnalysis {
-  return { counts: m.counts, invisible: m.invisible, issueTotals: m.issueTotals, ...linesPage(input, m, options) };
+  return { counts: m.counts, invisible: m.invisible, ...linesPage(input, m, options) };
 }
 
 export function measureOf(text: string, measure: Measure): number {
-  if (measure === 'utf8') return new TextEncoder().encode(text).length;
+  if (measure === 'utf8') return utf8Length(text);
   if (measure === 'utf16') return text.length * 2;
   let value = 0;
   for (const ch of text) {
